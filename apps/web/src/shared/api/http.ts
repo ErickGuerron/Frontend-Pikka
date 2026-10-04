@@ -65,6 +65,11 @@ function toApiError(status: number, data: unknown): ApiError {
       typeof requestId === 'string' ? requestId : undefined,
     )
   }
+  // Sin cuerpo del Gateway: lo más probable es que no esté corriendo o que un
+  // proxy intermedio no lo alcance.
+  if (status === 502 || status === 503 || status === 504) {
+    return new ApiError(status, 'UPSTREAM_UNAVAILABLE', `HTTP ${String(status)}`)
+  }
   return new ApiError(status, 'ERROR', `HTTP ${String(status)}`)
 }
 

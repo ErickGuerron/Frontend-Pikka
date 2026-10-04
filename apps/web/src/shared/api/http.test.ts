@@ -47,3 +47,13 @@ describe('createHttpClient', () => {
     await expect(client.get('/x', identity)).rejects.toMatchObject({ code: 'NETWORK' })
   })
 })
+
+describe('respuestas sin cuerpo del Gateway', () => {
+  it('trata un 502 sin JSON como backend no disponible', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('', { status: 502 }))))
+    const client = createHttpClient({ baseUrl: '', getToken: () => null, onUnauthorized: vi.fn() })
+    const error = await client.post('/api/v1/auth/login', identity).catch((e: unknown) => e)
+    expect(error).toMatchObject({ status: 502, code: 'UPSTREAM_UNAVAILABLE' })
+    expect(userMessage(error)).toBe('No se pudo conectar con el backend. Revisa que el API Gateway esté corriendo.')
+  })
+})
