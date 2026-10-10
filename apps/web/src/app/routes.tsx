@@ -6,6 +6,7 @@ import { OrdersPage } from '@/features/orders/OrdersPage'
 import { RoutesPage } from '@/features/routing/RoutesPage'
 import { TrackingPage } from '@/features/tracking/TrackingPage'
 import { CreateUserPage } from '@/features/users/CreateUserPage'
+import { UsersPage } from '@/features/users/UsersPage'
 import { ZonesPage } from '@/features/zones/ZonesPage'
 import { AppLayout } from './AppLayout'
 import { HomePage } from './HomePage'
@@ -27,6 +28,14 @@ export const routes: RouteObject[] = [
       { path: 'routes', element: <RoutesPage /> },
       { path: 'drivers', element: <DriversPage /> },
       { path: 'tracking', element: <TrackingPage /> },
+      {
+        path: 'users',
+        element: (
+          <RequireRole roles={['ADMIN']}>
+            <UsersPage />
+          </RequireRole>
+        ),
+      },
       {
         path: 'users/new',
         element: (
