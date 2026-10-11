@@ -88,7 +88,7 @@ export function DrawZonePanel() {
     setSaved(null)
     setEditingZone(zone)
     setViewedZone(null)
-    setFitBounds(zone.ring)
+    setFitBounds([...zone.ring])
     setOuterPoints(zone.ring.slice(0, -1))
     setHoles(zone.holes.map((hole) => hole.slice(0, -1)))
     setHolePoints([])
@@ -99,7 +99,7 @@ export function DrawZonePanel() {
   /** Muestra una zona en el mapa, con su contorno, sin entrar en modo edición. */
   const viewZone = (zone: Zone) => {
     setViewedZone(zone)
-    setFitBounds(zone.ring)
+    setFitBounds([...zone.ring])
   }
 
   const onMapClick = (point: Coordinate) => {

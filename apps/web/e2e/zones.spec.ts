@@ -369,3 +369,81 @@ test('al elegir una zona la muestra en el mapa, y al redibujarla el mapa la encu
   await expect(page.getByText('Redibujando GUAY-001')).toBeVisible()
   await expect(page.locator('path[stroke="#0e7075"]').first()).toBeInViewport()
 })
+
+test('despues de buscar un lugar, volver a elegir la zona la encuadra de nuevo', async ({ page }) => {
+  await mockAuth(page)
+  await mockPhoton(page)
+  await blockTiles(page)
+  const guayaquil = {
+    id: '77777777-7777-7777-7777-777777777777',
+    code: 'GUAY-002',
+    name: 'Guayaquil Norte',
+    ring: [
+      { latitude: -2.19, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.91 },
+    ],
+    holes: [],
+    status: 'ACTIVE',
+    statusReason: '',
+    createdAt: '2026-10-03T00:00:00Z',
+  }
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  const shown = page.locator('path[stroke="#1bb3b8"]')
+
+  await page.getByRole('button', { name: 'Ver GUAY-002 en el mapa' }).click()
+  await expect(shown).toBeInViewport()
+
+  // La búsqueda lleva el mapa a Quito, lejos de la zona.
+  await page.getByLabel('Buscar calle o lugar').fill('Av. Central')
+  await page.getByRole('button', { name: /Av\. Central/ }).click()
+  await expect(shown).not.toBeInViewport()
+
+  // Volver a elegir la misma zona debe encuadrarla otra vez.
+  await page.getByRole('button', { name: 'Ver GUAY-002 en el mapa' }).click()
+  await expect(shown).toBeInViewport()
+})
+
+test('despues de redibujar y buscar un lugar, volver a redibujar la zona la encuadra de nuevo', async ({ page }) => {
+  await mockAuth(page)
+  await mockPhoton(page)
+  await blockTiles(page)
+  const guayaquil = {
+    id: '88888888-8888-8888-8888-888888888888',
+    code: 'GUAY-003',
+    name: 'Guayaquil Sur',
+    ring: [
+      { latitude: -2.19, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.91 },
+    ],
+    holes: [],
+    status: 'ACTIVE',
+    statusReason: '',
+    createdAt: '2026-10-03T00:00:00Z',
+  }
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  const outline = page.locator('path[stroke="#0e7075"]').first()
+
+  await page.getByRole('button', { name: 'Redibujar GUAY-003' }).click()
+  await expect(outline).toBeInViewport()
+
+  await page.getByLabel('Buscar calle o lugar').fill('Av. Central')
+  await page.getByRole('button', { name: /Av\. Central/ }).click()
+  await expect(outline).not.toBeInViewport()
+
+  await page.getByRole('button', { name: 'Redibujar GUAY-003' }).click()
+  await expect(outline).toBeInViewport()
+})
