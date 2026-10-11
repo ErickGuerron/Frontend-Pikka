@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/app/query-client'
-import { apiError, mockApi, sentBody } from '@/test/utils'
+import { apiError, mockApi, renderApp, sentBody } from '@/test/utils'
 import { SignupForm } from './SignupForm'
 import { useSession } from './session-store'
 
@@ -231,6 +231,21 @@ describe('SignupForm', () => {
     mockApi(() => ({ status: 200, body: {} }))
     renderForm()
     expect(screen.queryByLabelText(/rol/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('alternar en la pantalla de acceso', () => {
+  it('cambia entre iniciar sesión y crear cuenta', async () => {
+    mockApi(() => ({ status: 200, body: { status: 'ready' } }))
+    renderApp('/login')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Crear cuenta' }))
+    expect(screen.getByLabelText('Confirmar contraseña')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    expect(screen.queryByLabelText('Confirmar contraseña')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Iniciar Sesión en Pikka' })).toBeInTheDocument()
   })
 })
 
