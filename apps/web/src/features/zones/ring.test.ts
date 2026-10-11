@@ -27,6 +27,21 @@ describe('addVertex', () => {
     expect(addVertex(square, inside)).toEqual({ points: square, error: VERTEX_REJECTED_MESSAGE })
   })
 
+  it('vuelve a colocar un vértice quitado en su posición original', () => {
+    const removed = removeVertex([a, b, c, d], 1)
+    expect(addVertex(removed, b)).toEqual({ points: [a, b, c, d], error: null })
+  })
+
+  it('coloca un vértice nuevo en la arista que lo recibe, no al final', () => {
+    // Triángulo a, b, c: el punto d solo cabe entre c y a.
+    expect(addVertex([a, b, c], d)).toEqual({ points: [a, b, c, d], error: null })
+  })
+
+  it('rechaza un punto que no cabe en ninguna arista sin romper la forma', () => {
+    const square = [a, b, c, d]
+    expect(addVertex(square, inside).error).toBe(VERTEX_REJECTED_MESSAGE)
+  })
+
   it('rechaza un tercer punto alineado: no forma una esquina', () => {
     const mid: Coordinate = { latitude: -0.2, longitude: -78.45 }
     expect(addVertex([a, mid], b).error).toBe(VERTEX_REJECTED_MESSAGE)

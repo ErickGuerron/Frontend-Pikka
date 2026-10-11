@@ -101,3 +101,32 @@ test('dibuja una zona cuadrada, quita un vértice con clic derecho y la guarda',
   expect(body.ring).toHaveLength(5)
   expect(body.ring[0]).toEqual(body.ring[4])
 })
+
+test('quita un vértice intermedio y lo vuelve a colocar en su sitio', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await expect(page.getByText(/Vértices: 4/)).toBeVisible()
+
+  // Clic derecho sobre la esquina intermedia (300, 100).
+  await clickMap(page, 300, 100, 'right')
+  await expect(page.getByText(/Vértices: 3/)).toBeVisible()
+
+  // Al hacer clic en el mismo punto vuelve a su lugar, sin error de forma.
+  await clickMap(page, 300, 100)
+  await expect(page.getByText(/Vértices: 4/)).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
+
+  await page.getByLabel('Código').fill('CENTRO-2')
+  await page.getByLabel('Nombre').fill('Zona Centro 2')
+  await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
+})
