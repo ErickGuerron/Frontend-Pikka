@@ -1,9 +1,6 @@
-import { object, oneOf, ParseError, string } from '@/shared/api/parse'
+import { number, object, oneOf, ParseError, string } from '@/shared/api/parse'
 
-/**
- * Estados logísticos de un pedido (BASE_TECNICA.md, secciones 3.1 y 3.5).
- * Contrato provisional: el OpenAPI del Gateway aún no expone /api/v1/orders.
- */
+/** Estados logísticos de un pedido (contracts/openapi/openapi.yaml, OrderStatus). */
 export const orderStatuses = [
   'PENDING',
   'ROUTE_ASSIGNED',
@@ -28,6 +25,9 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export interface Order {
   id: string
   address: string
+  /** Coordenadas WGS 84 del punto de entrega. */
+  latitude: number
+  longitude: number
   /** Fecha de entrega en formato YYYY-MM-DD. */
   deliveryDate: string
   /** Ventana aproximada de entrega en formato HH:mm. */
@@ -38,8 +38,11 @@ export interface Order {
   createdAt: string
 }
 
+/** Payload de creación: exactamente lo que acepta CreateOrderRequest. */
 export interface NewOrder {
   address: string
+  latitude: number
+  longitude: number
   deliveryDate: string
   windowStart: string
   windowEnd: string
@@ -50,6 +53,8 @@ export function parseOrder(data: unknown): Order {
   return {
     id: string(o, 'id'),
     address: string(o, 'address'),
+    latitude: number(o, 'latitude'),
+    longitude: number(o, 'longitude'),
     deliveryDate: string(o, 'deliveryDate'),
     windowStart: string(o, 'windowStart'),
     windowEnd: string(o, 'windowEnd'),

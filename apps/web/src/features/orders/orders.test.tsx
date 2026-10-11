@@ -1,13 +1,28 @@
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { adminUser, apiError, mockApi, renderApp, sentBody } from '@/test/utils'
 import type { Order } from './types'
 
+// El mapa real necesita un navegador (lo cubre el e2e). Aquí un botón emite un punto fijo.
+vi.mock('@/features/geo/LazyMapCanvas', async () => {
+  const { createElement } = await import('react')
+  return {
+    LazyMapCanvas: ({ onMapClick }: { onMapClick: (point: { latitude: number; longitude: number }) => void }) =>
+      createElement(
+        'button',
+        { type: 'button', onClick: () => { onMapClick({ latitude: -0.2, longitude: -78.5 }); } },
+        'Elegir punto en mapa',
+      ),
+  }
+})
+
 const pendingOrder: Order = {
   id: 'o-1',
   address: 'Av. Central 123, Col. Centro',
+  latitude: -0.2,
+  longitude: -78.5,
   deliveryDate: '2099-12-31',
   windowStart: '09:00',
   windowEnd: '11:00',
@@ -82,7 +97,7 @@ describe('listado de pedidos', () => {
 })
 
 describe('registro de pedido', () => {
-  it('no envía el formulario vacío y muestra los errores por campo', async () => {
+  it('no envía el formulario vacío y muestra los errores por campo, incluida la ubicación', async () => {
     const fetchMock = mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [] } : baseHandler(url)))
     renderApp('/orders')
     const user = userEvent.setup()
@@ -90,13 +105,14 @@ describe('registro de pedido', () => {
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
     await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
 
+    expect(screen.getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
     expect(screen.getByText('Escribe la dirección completa (mínimo 5 caracteres).')).toBeInTheDocument()
     expect(screen.getByText('Elige la fecha de entrega.')).toBeInTheDocument()
     expect(screen.getByLabelText(/Dirección de entrega/)).toHaveAttribute('aria-invalid', 'true')
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
   })
 
-  it('registra el pedido con los datos normalizados y confirma el resultado', async () => {
+  it('registra el pedido con la ubicación del mapa y confirma el resultado', async () => {
     let created = false
     const fetchMock = mockApi((url, init) => {
       if (url.endsWith('/api/v1/orders') && init.method === 'POST') {
@@ -110,6 +126,7 @@ describe('registro de pedido', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+    await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), '  Av. Central 123, Col. Centro  ')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })
@@ -120,6 +137,8 @@ describe('registro de pedido', () => {
     const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
     expect(sentBody(call?.[1])).toEqual({
       address: 'Av. Central 123, Col. Centro',
+      latitude: -0.2,
+      longitude: -78.5,
       deliveryDate: '2099-12-31',
       windowStart: '09:00',
       windowEnd: '11:00',
@@ -137,6 +156,7 @@ describe('registro de pedido', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+    await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), 'Av. Central 123')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })

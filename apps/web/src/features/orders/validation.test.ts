@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { localToday, validateNewOrder } from './validation'
 
 const today = '2026-10-10'
-const valid = { address: 'Av. Central 123', deliveryDate: '2026-10-11', windowStart: '09:00', windowEnd: '11:00' }
+const valid = {
+  address: 'Av. Central 123',
+  location: { latitude: -0.2, longitude: -78.5 },
+  deliveryDate: '2026-10-11',
+  windowStart: '09:00',
+  windowEnd: '11:00',
+}
 
 describe('validateNewOrder', () => {
   it('acepta un pedido completo y vigente', () => {
@@ -11,6 +17,20 @@ describe('validateNewOrder', () => {
 
   it('exige una dirección de al menos 5 caracteres, ignorando espacios', () => {
     expect(validateNewOrder({ ...valid, address: '  abc  ' }, today).address).toBeDefined()
+  })
+
+  it('exige elegir la ubicación en el mapa', () => {
+    expect(validateNewOrder({ ...valid, location: null }, today).location).toMatch(/mapa/)
+  })
+
+  it('rechaza coordenadas fuera del rango WGS 84', () => {
+    expect(validateNewOrder({ ...valid, location: { latitude: 91, longitude: 0 } }, today).location).toMatch(/no es válida/)
+    expect(validateNewOrder({ ...valid, location: { latitude: 0, longitude: -181 } }, today).location).toMatch(/no es válida/)
+    expect(validateNewOrder({ ...valid, location: { latitude: Number.NaN, longitude: 0 } }, today).location).toMatch(/no es válida/)
+  })
+
+  it('acepta los límites exactos de latitud y longitud', () => {
+    expect(validateNewOrder({ ...valid, location: { latitude: -90, longitude: 180 } }, today)).toEqual({})
   })
 
   it('rechaza fechas anteriores a hoy y acepta hoy', () => {

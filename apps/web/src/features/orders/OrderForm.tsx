@@ -1,21 +1,26 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
+import { AddressPicker } from '@/features/geo/AddressPicker'
+import type { Place } from '@/features/geo/photon'
 import { userMessage } from '@/shared/api/errors'
-import { fieldLabelClass, inputClass } from '@/shared/ui/form'
+import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { createOrder } from './api'
-import type { NewOrder, Order } from './types'
-import { localToday, validateNewOrder, type OrderErrors } from './validation'
+import type { Order } from './types'
+import { localToday, validateNewOrder, type OrderErrors, type OrderFields } from './validation'
 
 interface OrderFormProps {
   onCancel: () => void
   onCreated: (order: Order) => void
 }
 
-const emptyOrder: NewOrder = { address: '', deliveryDate: '', windowStart: '', windowEnd: '' }
+const emptyFields: OrderFields = { address: '', deliveryDate: '', windowStart: '', windowEnd: '' }
+const subLabelClass = 'text-[10px] text-on-surface-variant'
 
 export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<NewOrder>(emptyOrder)
+  const [fields, setFields] = useState<OrderFields>(emptyFields)
+  // El lugar elegido en el mapa es la única fuente de la ubicación (latitud y longitud).
+  const [place, setPlace] = useState<Place | null>(null)
   const [errors, setErrors] = useState<OrderErrors>({})
 
   const mutation = useMutation({
@@ -26,17 +31,25 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
     },
   })
 
-  const update = (key: keyof NewOrder, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }))
+  const update = (key: keyof OrderFields, value: string) => {
+    setFields((current) => ({ ...current, [key]: value }))
   }
 
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const input: NewOrder = { ...form, address: form.address.trim() }
-    const found = validateNewOrder(input, localToday())
+    const location = place === null ? null : { latitude: place.latitude, longitude: place.longitude }
+    const draft = { ...fields, address: fields.address.trim(), location }
+    const found = validateNewOrder(draft, localToday())
     setErrors(found)
-    if (Object.keys(found).length > 0) return
-    mutation.mutate(input)
+    if (Object.keys(found).length > 0 || location === null) return
+    mutation.mutate({
+      address: draft.address,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      deliveryDate: draft.deliveryDate,
+      windowStart: draft.windowStart,
+      windowEnd: draft.windowEnd,
+    })
   }
 
   const isPending = mutation.isPending
@@ -59,6 +72,16 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
 
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-3" noValidate onSubmit={onSubmit}>
         <div className="lg:col-span-2 flex flex-col gap-1">
+          <span className={fieldLabelClass}>Ubicación de entrega *</span>
+          <AddressPicker value={place} onChange={setPlace} />
+          {errors.location ? (
+            <ErrorMessage id="order-location-error">{errors.location}</ErrorMessage>
+          ) : (
+            <p className={subLabelClass}>Haz clic en el mapa o busca una calle para ubicar el punto de entrega.</p>
+          )}
+        </div>
+
+        <div className="lg:col-span-2 flex flex-col gap-1">
           <label className={fieldLabelClass} htmlFor="order-address">
             Dirección de entrega *
           </label>
@@ -71,12 +94,12 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
             onChange={(e) => { update('address', e.target.value); }}
             placeholder="Calle, número, colonia y referencia"
             type="text"
-            value={form.address}
+            value={fields.address}
           />
           {errors.address ? (
-            <p id="order-address-error" className="text-[11px] text-error">{errors.address}</p>
+            <ErrorMessage id="order-address-error">{errors.address}</ErrorMessage>
           ) : (
-            <p id="order-address-help" className="text-[10px] text-on-surface-variant">Incluye referencias para el repartidor.</p>
+            <p id="order-address-help" className={subLabelClass}>Incluye referencias para el repartidor.</p>
           )}
         </div>
 
@@ -93,16 +116,16 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
             min={localToday()}
             onChange={(e) => { update('deliveryDate', e.target.value); }}
             type="date"
-            value={form.deliveryDate}
+            value={fields.deliveryDate}
           />
-          {errors.deliveryDate ? <p id="order-date-error" className="text-[11px] text-error">{errors.deliveryDate}</p> : null}
+          {errors.deliveryDate ? <ErrorMessage id="order-date-error">{errors.deliveryDate}</ErrorMessage> : null}
         </div>
 
         <fieldset className="flex flex-col gap-1">
           <legend className={fieldLabelClass}>Ventana aproximada *</legend>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-on-surface-variant" htmlFor="order-window-start">Desde</label>
+              <label className={subLabelClass} htmlFor="order-window-start">Desde</label>
               <input
                 id="order-window-start"
                 aria-describedby={errors.windowStart ? 'order-window-start-error' : undefined}
@@ -111,12 +134,12 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
                 disabled={isPending}
                 onChange={(e) => { update('windowStart', e.target.value); }}
                 type="time"
-                value={form.windowStart}
+                value={fields.windowStart}
               />
-              {errors.windowStart ? <p id="order-window-start-error" className="text-[11px] text-error">{errors.windowStart}</p> : null}
+              {errors.windowStart ? <ErrorMessage id="order-window-start-error">{errors.windowStart}</ErrorMessage> : null}
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-on-surface-variant" htmlFor="order-window-end">Hasta</label>
+              <label className={subLabelClass} htmlFor="order-window-end">Hasta</label>
               <input
                 id="order-window-end"
                 aria-describedby={errors.windowEnd ? 'order-window-end-error' : undefined}
@@ -125,9 +148,9 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
                 disabled={isPending}
                 onChange={(e) => { update('windowEnd', e.target.value); }}
                 type="time"
-                value={form.windowEnd}
+                value={fields.windowEnd}
               />
-              {errors.windowEnd ? <p id="order-window-end-error" className="text-[11px] text-error">{errors.windowEnd}</p> : null}
+              {errors.windowEnd ? <ErrorMessage id="order-window-end-error">{errors.windowEnd}</ErrorMessage> : null}
             </div>
           </div>
         </fieldset>

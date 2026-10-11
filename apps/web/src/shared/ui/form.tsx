@@ -22,10 +22,17 @@ export function Field({ label, children }: FieldProps) {
   )
 }
 
+export interface ErrorMessageProps {
+  children: ReactNode
+  /** Permite enlazarlo con el control vía aria-describedby. */
+  id?: string
+  className?: string
+}
+
 /** Mensaje de error anunciado a lectores de pantalla. */
-export function ErrorMessage({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function ErrorMessage({ children, id, className = '' }: ErrorMessageProps) {
   return (
-    <p role="alert" className={`text-[11px] text-error ${className}`.trim()}>
+    <p id={id} role="alert" className={`text-[11px] text-error ${className}`.trim()}>
       {children}
     </p>
   )

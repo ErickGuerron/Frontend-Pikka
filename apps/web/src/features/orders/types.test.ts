@@ -4,6 +4,8 @@ import { parseOrder } from './types'
 const base = {
   id: '11111111-1111-1111-1111-111111111111',
   address: 'Av. Amazonas 123 y Naciones Unidas',
+  latitude: -0.1807,
+  longitude: -78.4678,
   deliveryDate: '2026-10-12',
   windowStart: '09:00',
   windowEnd: '11:00',
@@ -17,5 +19,16 @@ describe('parseOrder', () => {
 
   it('rechaza un estado que el contrato no define', () => {
     expect(() => parseOrder({ ...base, status: 'LOST' })).toThrow()
+  })
+
+  it('exige latitud y longitud numéricas, porque el contrato las marca como requeridas', () => {
+    expect(() => parseOrder({ ...base, latitude: undefined, status: 'PENDING' })).toThrow(/latitude/)
+    expect(() => parseOrder({ ...base, longitude: '-78.4', status: 'PENDING' })).toThrow(/longitude/)
+  })
+
+  it('expone las coordenadas del pedido', () => {
+    const order = parseOrder({ ...base, status: 'PENDING' })
+    expect(order.latitude).toBe(-0.1807)
+    expect(order.longitude).toBe(-78.4678)
   })
 })
