@@ -14,6 +14,8 @@ export interface AddressPickerProps {
   onChange: (place: Place | null) => void
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
   highlight?: readonly Coordinate[] | null
+  /** Huecos de la zona resaltada (dona). */
+  highlightHoles?: readonly (readonly Coordinate[])[]
 }
 
 /**
@@ -21,7 +23,7 @@ export interface AddressPickerProps {
  * punto, y nombre editable. Reutilizable en cualquier formulario que necesite una
  * ubicación (zonas hoy; pedidos cuando el contrato acepte coordenadas).
  */
-export function AddressPicker({ value, onChange, highlight = null }: AddressPickerProps) {
+export function AddressPicker({ value, onChange, highlight = null, highlightHoles = [] }: AddressPickerProps) {
   const [focus, setFocus] = useState<Coordinate | null>(null)
   const [addressPending, setAddressPending] = useState(false)
   const lookup = useRef<AbortController | null>(null)
@@ -71,6 +73,7 @@ export function AddressPicker({ value, onChange, highlight = null }: AddressPick
         <LazyMapCanvas
           picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
           highlight={highlight}
+          holes={highlightHoles}
           focus={focus}
           onMapClick={pickPoint}
         />

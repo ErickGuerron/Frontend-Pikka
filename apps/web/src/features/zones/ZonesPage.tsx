@@ -60,7 +60,7 @@ export function ZonesPage() {
 
       {effectiveMode === 'classify' ? (
         <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2 flex flex-col gap-2">
-          <AddressPicker value={place} onChange={setPlace} highlight={zone?.ring ?? null} />
+          <AddressPicker value={place} onChange={setPlace} highlight={zone?.ring ?? null} highlightHoles={zone?.holes ?? []} />
           {classifyTarget !== null && (
             <div aria-live="polite" className="flex flex-col gap-1 px-1 pb-1 text-[12px] text-on-surface">
               {outside && <p>Ninguna zona cubre este punto.</p>}

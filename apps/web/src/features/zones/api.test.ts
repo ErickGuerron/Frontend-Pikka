@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mockApi, sentBody } from '@/test/utils'
-import { classifyPoint, createZone, getZone } from './api'
+import { classifyPoint, createZone, getZone, listZones, updateZone } from './api'
 import type { Coordinate } from './types'
 
 const s1: Coordinate = { latitude: -0.2, longitude: -78.5 }
@@ -100,5 +100,28 @@ describe('createZone con huecos', () => {
     await createZone({ code: 'CENTRO', name: 'Centro', ring: closedRing, holes: [] })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
     expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro', ring: closedRing })
+  })
+})
+
+describe('listZones y updateZone', () => {
+  it('lista las zonas con sus huecos', async () => {
+    const fetchMock = mockApi(() => ({ status: 200, body: [{ ...zoneBody, holes: [] }] }))
+    const zones = await listZones()
+    expect(zones).toHaveLength(1)
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([expect.stringMatching(/\/api\/v1\/zones$/)])
+  })
+
+  it('redibuja con PUT sobre el identificador de la zona', async () => {
+    const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
+    await updateZone('z-1', { code: 'CENTRO', name: 'Centro 2', ring: closedRing })
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(call?.[0]).toMatch(/\/api\/v1\/zones\/z-1$/)
+    expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro 2', ring: closedRing })
+  })
+
+  it('no llama a la API al redibujar con una figura inv�lida', async () => {
+    const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
+    await expect(updateZone('z-1', { code: 'X', name: 'X', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

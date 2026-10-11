@@ -218,3 +218,73 @@ test('no permite terminar un hueco que sale de la zona', async ({ page }) => {
   await expect(page.getByText(/completamente dentro de la zona/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Terminar hueco' })).toBeDisabled()
 })
+
+const dona = {
+  id: '55555555-5555-5555-5555-555555555555',
+  code: 'DONA',
+  name: 'Dona Centro',
+  ring: [
+    { latitude: -0.25, longitude: -78.55 },
+    { latitude: -0.25, longitude: -78.45 },
+    { latitude: -0.15, longitude: -78.45 },
+    { latitude: -0.15, longitude: -78.55 },
+    { latitude: -0.25, longitude: -78.55 },
+  ],
+  holes: [
+    [
+      { latitude: -0.22, longitude: -78.52 },
+      { latitude: -0.22, longitude: -78.48 },
+      { latitude: -0.18, longitude: -78.48 },
+      { latitude: -0.18, longitude: -78.52 },
+      { latitude: -0.22, longitude: -78.52 },
+    ],
+  ],
+  createdAt: '2026-10-03T00:00:00Z',
+}
+
+test('clasificar punto muestra el hueco de la zona', async ({ page }) => {
+  await mockAuth(page)
+  await mockPhoton(page)
+  await blockTiles(page)
+  await page.route('**/api/v1/zones/classify**', (route) => route.fulfill({ json: dona }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await clickMap(page, 200, 150)
+
+  await expect(page.getByText('Zona Dona Centro (DONA).')).toBeVisible()
+  await expect(page.locator('path[stroke="#b45309"]')).toHaveCount(1)
+})
+
+test('redibuja una zona registrada: la carga en el editor y guarda los cambios con PUT', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  const updates: { url: string; body: unknown }[] = []
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [dona] }))
+  await page.route('**/api/v1/zones/*', async (route) => {
+    if (route.request().method() === 'PUT') {
+      updates.push({ url: route.request().url(), body: route.request().postDataJSON() })
+      await route.fulfill({ json: { ...dona, name: 'Dona nueva' } })
+    }
+  })
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('button', { name: 'Redibujar DONA' }).click()
+
+  await expect(page.getByText('Redibujando DONA')).toBeVisible()
+  await expect(page.getByText(/Exterior · Vértices: 4/)).toBeVisible()
+  await expect(page.getByText(/Huecos: 1/)).toBeVisible()
+  await expect(page.getByLabel('Código')).toHaveValue('DONA')
+
+  await page.getByLabel('Nombre').fill('Dona nueva')
+  await page.getByRole('button', { name: 'Guardar cambios' }).click()
+
+  await expect(page.getByRole('status')).toContainText('Zona DONA actualizada.')
+  expect(updates).toHaveLength(1)
+  expect(updates[0]?.url).toMatch(/\/api\/v1\/zones\/55555555-5555-5555-5555-555555555555$/)
+  const body = updates[0]?.body as { name: string; holes: unknown[] }
+  expect(body.name).toBe('Dona nueva')
+  expect(body.holes).toHaveLength(1)
+})

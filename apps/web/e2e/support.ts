@@ -28,6 +28,8 @@ export async function mockAuth(page: Page) {
   )
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: admin }))
   await page.route('**/ready', (route) => route.fulfill({ json: { status: 'ready' } }))
+  // Lista de zonas vacía por defecto; cada prueba la sustituye si necesita zonas.
+  await page.route('**/api/v1/zones', (route) => (route.request().method() === 'GET' ? route.fulfill({ json: [] }) : route.fallback()))
 }
 
 /** Photon público: geocodificación inversa y búsqueda, siempre con el mismo lugar. */
