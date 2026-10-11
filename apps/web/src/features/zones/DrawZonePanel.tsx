@@ -45,6 +45,9 @@ export function DrawZonePanel() {
   const [saved, setSaved] = useState<Saved | null>(null)
   // Búsqueda de calle o lugar: solo centra el mapa, nunca marca un punto.
   const [focusPoint, setFocusPoint] = useState<Coordinate | null>(null)
+  // Zona mostrada en el mapa sin editarla, y encuadre pedido. Cada arreglo nuevo vuelve a encuadrar.
+  const [viewedZone, setViewedZone] = useState<Zone | null>(null)
+  const [fitBounds, setFitBounds] = useState<Coordinate[] | null>(null)
 
   const outerVertices = zoneVertices(outerPoints)
   const outerShapeError = zoneShapeError(outerVertices)
@@ -84,11 +87,19 @@ export function DrawZonePanel() {
   const startRedraw = (zone: Zone) => {
     setSaved(null)
     setEditingZone(zone)
+    setViewedZone(null)
+    setFitBounds(zone.ring)
     setOuterPoints(zone.ring.slice(0, -1))
     setHoles(zone.holes.map((hole) => hole.slice(0, -1)))
     setHolePoints([])
     setEditing('outer')
     setName(zone.name)
+  }
+
+  /** Muestra una zona en el mapa, con su contorno, sin entrar en modo edición. */
+  const viewZone = (zone: Zone) => {
+    setViewedZone(zone)
+    setFitBounds(zone.ring)
   }
 
   const onMapClick = (point: Coordinate) => {
@@ -156,6 +167,9 @@ export function DrawZonePanel() {
           reference={editing === 'hole' ? outerVertices : null}
           holes={holes}
           focus={focusPoint}
+          fitBounds={fitBounds}
+          highlight={viewedZone?.ring ?? null}
+          highlightHoles={viewedZone?.holes ?? []}
           onMapClick={onMapClick}
           onVertexRemove={(vertex) => { updateActive((current) => removePoint(current, vertex)); }}
         />
@@ -166,7 +180,7 @@ export function DrawZonePanel() {
         {zonesQuery.isPending && <p className="text-[11px] text-on-surface-variant">Cargando zonas…</p>}
         {zonesQuery.isError && <ErrorMessage>No pudimos cargar las zonas. {userMessage(zonesQuery.error)}</ErrorMessage>}
         {zonesQuery.isSuccess && (
-          <ZoneList zones={zonesQuery.data} editingZoneId={editingZone?.id ?? null} onRedraw={startRedraw} />
+          <ZoneList zones={zonesQuery.data} editingZoneId={editingZone?.id ?? null} onView={viewZone} onRedraw={startRedraw} />
         )}
       </section>
 

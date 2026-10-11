@@ -17,6 +17,8 @@ type PendingAction =
 export interface ZoneListProps {
   zones: Zone[]
   editingZoneId: string | null
+  /** Muestra la zona en el mapa sin entrar en modo edición. */
+  onView: (zone: Zone) => void
   onRedraw: (zone: Zone) => void
 }
 
@@ -24,7 +26,7 @@ export interface ZoneListProps {
  * Zonas registradas con sus acciones: redibujar (solo activas), desactivar, reactivar y borrar
  * (solo inactivas). Cada acción pide un motivo obligatorio, que queda en la bitácora del servicio.
  */
-export function ZoneList({ zones, editingZoneId, onRedraw }: ZoneListProps) {
+export function ZoneList({ zones, editingZoneId, onView, onRedraw }: ZoneListProps) {
   const queryClient = useQueryClient()
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [reason, setReason] = useState('')
@@ -79,7 +81,7 @@ export function ZoneList({ zones, editingZoneId, onRedraw }: ZoneListProps) {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-on-surface">
-                <span className="font-bold">{zone.name}</span> ({zone.code}) · {zone.holes.length} {zone.holes.length === 1 ? 'hueco' : 'huecos'}
+                <button aria-label={`Ver ${zone.code} en el mapa`} className="font-bold underline-offset-2 hover:underline cursor-pointer" onClick={() => { onView(zone); }} type="button">{zone.name}</button> ({zone.code}) · {zone.holes.length} {zone.holes.length === 1 ? 'hueco' : 'huecos'}
                 <span className={`ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${isActive ? 'bg-primary-fixed/60 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                   {zoneStatusLabels[zone.status]}
                 </span>

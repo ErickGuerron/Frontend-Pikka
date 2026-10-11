@@ -331,3 +331,41 @@ test('desactiva, reactiva y borra una zona: cada cambio pide motivo', async ({ p
   await expect(page.getByText('Aún no hay zonas')).toBeVisible()
   expect(deletions).toEqual([{ reason: 'Zona creada por error de captura' }])
 })
+
+test('al elegir una zona la muestra en el mapa, y al redibujarla el mapa la encuadra', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  // Zona lejos del centro por defecto (Quito): solo se ve si el mapa se mueve hacia ella.
+  const guayaquil = {
+    id: '66666666-6666-6666-6666-666666666666',
+    code: 'GUAY-001',
+    name: 'Guayaquil Centro',
+    ring: [
+      { latitude: -2.19, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.91 },
+    ],
+    holes: [],
+    status: 'ACTIVE',
+    statusReason: '',
+    createdAt: '2026-10-03T00:00:00Z',
+  }
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  const shown = page.locator('path[stroke="#1bb3b8"]')
+  await expect(shown).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Ver GUAY-001 en el mapa' }).click()
+  await expect(shown).toHaveCount(1)
+  await expect(shown).toBeInViewport()
+
+  await page.getByRole('button', { name: 'Redibujar GUAY-001' }).click()
+  await expect(page.getByText('Redibujando GUAY-001')).toBeVisible()
+  await expect(page.locator('path[stroke="#0e7075"]').first()).toBeInViewport()
+})

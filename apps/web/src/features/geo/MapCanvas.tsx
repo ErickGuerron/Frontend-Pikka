@@ -14,8 +14,15 @@ export interface MapCanvasProps {
   picked?: Coordinate | null
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
   highlight?: readonly Coordinate[] | null
+  /** Huecos del polígono resaltado. */
+  highlightHoles?: readonly (readonly Coordinate[])[]
   /** Punto al que el mapa se centra (por ejemplo, un resultado de búsqueda). */
   focus?: Coordinate | null
+  /**
+   * Puntos que el mapa debe mostrar completos, por ejemplo el anillo de una zona. Cada arreglo nuevo
+   * (aunque tenga los mismos puntos) vuelve a encuadrar el mapa.
+   */
+  fitBounds?: readonly Coordinate[] | null
   onMapClick: (point: Coordinate) => void
   /** Clic derecho sobre un vértice de `drawing`: recibe sus coordenadas. */
   onVertexRemove?: (point: Coordinate) => void
@@ -30,7 +37,9 @@ export function MapCanvas({
   drawing = [],
   picked = null,
   highlight = null,
+  highlightHoles = [],
   focus = null,
+  fitBounds = null,
   onMapClick,
   onVertexRemove,
   holes = [],
@@ -44,6 +53,7 @@ export function MapCanvas({
       />
       <ClickListener onMapClick={onMapClick} />
       <FocusController target={focus} />
+      <FitController bounds={fitBounds} />
       {reference !== null && reference.length > 0 && (
         <Polygon positions={toLatLngTuples(reference)} pathOptions={{ color: '#0e7075', weight: 1, dashArray: '4 4', fill: false }} />
       )}
@@ -54,6 +64,9 @@ export function MapCanvas({
       {highlight !== null && highlight.length > 0 && (
         <Polygon positions={toLatLngTuples(highlight)} pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }} />
       )}
+      {highlightHoles.map((hole, i) => (
+        <Polygon key={`hl-${String(i)}`} positions={toLatLngTuples(hole)} pathOptions={{ color: '#b45309', fillOpacity: 0.35 }} />
+      ))}
       {drawing.map((vertex, i) => (
         <CircleMarker
           key={`v-${String(i)}`}
@@ -93,5 +106,15 @@ function FocusController({ target }: { target: Coordinate | null }) {
   useEffect(() => {
     if (target !== null) map.flyTo([target.latitude, target.longitude], Math.max(map.getZoom(), 16))
   }, [map, target])
+  return null
+}
+
+/** Encuadra el mapa para que todos los puntos recibidos queden visibles. */
+function FitController({ bounds }: { bounds: readonly Coordinate[] | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (bounds === null || bounds.length === 0) return
+    map.fitBounds(toLatLngTuples(bounds), { padding: [40, 40], maxZoom: 17 })
+  }, [map, bounds])
   return null
 }
