@@ -63,19 +63,20 @@ describe('login', () => {
   it('cierra la sesión si el token vence', async () => {
     useSession.getState().setToken('expired')
     mockApi(() => apiError(401, 'UNAUTHENTICATED'))
-    const { router } = renderApp('/')
-    await waitFor(() => { expect(router.state.location.pathname).toBe('/login') })
+    renderApp('/')
+    // Una vez limpiada la sesión, / muestra la landing pública (no redirige a /login).
+    expect(await screen.findByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeInTheDocument()
     expect(useSession.getState().token).toBeNull()
   })
 
   it('cerrar sesión borra el token', async () => {
     useSession.getState().setToken('tok')
     mockApi((url) => (url.endsWith('/auth/me') ? { status: 200, body: adminUser } : { status: 200, body: { status: 'ready' } }))
-    const { router } = renderApp('/')
+    renderApp('/')
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
-    await waitFor(() => { expect(router.state.location.pathname).toBe('/login') })
+    expect(await screen.findByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeInTheDocument()
     expect(useSession.getState().token).toBeNull()
   })
 })

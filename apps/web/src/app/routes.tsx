@@ -1,6 +1,6 @@
 import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
-import { RequireAuth, RequireSection } from '@/features/auth/guards'
+import { PublicIndexOrAuth, RequireSection } from '@/features/auth/guards'
 import { MyOrdersPage } from '@/features/customer-orders/MyOrdersPage'
 import { DriversPage } from '@/features/drivers/DriversPage'
 import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
@@ -21,9 +21,9 @@ export const routes: RouteObject[] = [
   {
     path: '/',
     element: (
-      <RequireAuth>
+      <PublicIndexOrAuth>
         <AppLayout />
-      </RequireAuth>
+      </PublicIndexOrAuth>
     ),
     children: [
       { index: true, element: <HomeRoute /> },

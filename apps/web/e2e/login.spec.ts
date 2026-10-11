@@ -24,6 +24,8 @@ async function mockGateway(page: Page) {
 test('login, navegación y cierre de sesión', async ({ page }) => {
   await mockGateway(page)
   await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeVisible()
+  await page.goto('/orders')
   await expect(page).toHaveURL(/\/login$/)
 
   await page.getByLabel(/^Correo/).fill('admin@example.com')
@@ -40,5 +42,5 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Rutas' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
-  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeVisible()
 })

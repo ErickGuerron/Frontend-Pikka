@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { useCurrentUser } from './hooks'
 import { canAccess, sectionLabels, type Section } from './permissions'
+import { LandingPage } from '@/features/landing/LandingPage'
 import { useSession } from './session-store'
 
 /** Exige sesión. La autorización real la hace el backend; esto solo ordena la navegación. */
@@ -10,6 +11,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation()
   if (!token) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return children
+}
+
+/** Raíz del sitio: la landing pública en `/` sin sesión; con sesión (o en rutas profundas) exige sesión. */
+export function PublicIndexOrAuth({ children }: { children: ReactNode }) {
+  const token = useSession((s) => s.token)
+  const { pathname } = useLocation()
+  if (!token && pathname === '/') return <LandingPage />
+  return <RequireAuth>{children}</RequireAuth>
 }
 
 /**
