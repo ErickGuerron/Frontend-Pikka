@@ -9,6 +9,7 @@ const centro = {
     { latitude: -0.25, longitude: -78.55 },
     { latitude: -0.25, longitude: -78.45 },
     { latitude: -0.15, longitude: -78.45 },
+    { latitude: -0.15, longitude: -78.55 },
     { latitude: -0.25, longitude: -78.55 },
   ],
   createdAt: '2026-10-03T00:00:00Z',
@@ -49,7 +50,7 @@ test('informa cuando ninguna zona cubre el punto elegido', async ({ page }) => {
   await expect(page.getByText('Ninguna zona cubre este punto.')).toBeVisible()
 })
 
-test('dibuja una zona cuadrada, quita un vértice con clic derecho y la guarda', async ({ page }) => {
+test('dibuja una zona: un punto interior no cambia la forma, se quita con clic derecho y se guarda', async ({ page }) => {
   await mockAuth(page)
   await blockTiles(page)
   const created: unknown[] = []
@@ -71,21 +72,26 @@ test('dibuja una zona cuadrada, quita un vértice con clic derecho y la guarda',
   await clickMap(page, 100, 300)
   await expect(page.getByText(/Vértices: 4/)).toBeVisible()
 
-  // Un punto en el centro dejaría una muesca: el mapa lo rechaza y explica por qué.
-  await clickMap(page, 200, 200)
-  await expect(page.getByRole('alert')).toContainText('no convexa')
+  // Un punto dentro de la zona no rompe la forma: queda marcado en gris y no es vértice.
+  await clickMap(page, 200, 150)
+  await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByText(/Vértices: 4/)).toBeVisible()
+  await expect(page.getByText(/Puntos marcados: 5/)).toBeVisible()
 
-  // Clic derecho sobre el último vértice lo quita.
+  // Clic derecho sobre ese punto interior lo quita.
+  await clickMap(page, 200, 150, 'right')
+  await expect(page.getByText(/Puntos marcados: 4/)).toBeVisible()
+
+  // Clic derecho sobre el último vértice lo quita; la forma pasa a triángulo y no se puede guardar.
   await clickMap(page, 100, 300, 'right')
   await expect(page.getByText(/Vértices: 3/)).toBeVisible()
 
-  // La tecla Retroceso también quita el último vértice (no mientras se escribe en un campo).
+  // Retroceso también quita el último punto (no mientras se escribe en un campo).
   await page.locator('body').click({ position: { x: 5, y: 5 } })
   await page.keyboard.press('Backspace')
   await expect(page.getByText(/Vértices: 2/)).toBeVisible()
 
-  // Se vuelve a dibujar el cuadrado en el mismo orden: esquina, esquina, esquina, esquina.
+  // Se vuelve a marcar el cuadrado en el mismo orden.
   await page.getByLabel('Código').fill('NORTE')
   await page.getByLabel('Nombre').fill('Zona Norte')
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
@@ -102,7 +108,7 @@ test('dibuja una zona cuadrada, quita un vértice con clic derecho y la guarda',
   expect(body.ring[0]).toEqual(body.ring[4])
 })
 
-test('quita un vértice intermedio y lo vuelve a colocar en su sitio', async ({ page }) => {
+test('quita un vértice intermedio y al volver a marcarlo la forma vuelve a cuatro vértices', async ({ page }) => {
   await mockAuth(page)
   await blockTiles(page)
   await loginAsAdmin(page)
@@ -120,7 +126,7 @@ test('quita un vértice intermedio y lo vuelve a colocar en su sitio', async ({ 
   await clickMap(page, 300, 100, 'right')
   await expect(page.getByText(/Vértices: 3/)).toBeVisible()
 
-  // Al hacer clic en el mismo punto vuelve a su lugar, sin error de forma.
+  // Al volver a marcar ese punto, la zona vuelve a formar el cuadrado, sin errores.
   await clickMap(page, 300, 100)
   await expect(page.getByText(/Vértices: 4/)).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)

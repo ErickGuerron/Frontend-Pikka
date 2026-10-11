@@ -7,9 +7,17 @@ import type { Coordinate } from './types'
 /** Centro por defecto: Quito, donde el equipo ubica sus pruebas. */
 const DEFAULT_CENTER: [number, number] = [-0.1807, -78.4678]
 
+/** Punto marcado al dibujar una zona. Los vértices se ven en teal; los demás, dentro de la zona, en gris. */
+export interface DrawingPoint {
+  point: Coordinate
+  isVertex: boolean
+}
+
 export interface MapCanvasProps {
-  /** Vértices de un polígono en edición. */
+  /** Contorno del polígono en edición. */
   drawing?: readonly Coordinate[]
+  /** Puntos marcados al dibujar. */
+  drawingPoints?: readonly DrawingPoint[]
   /** Punto seleccionado, marcado en rojo. */
   picked?: Coordinate | null
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
@@ -17,12 +25,20 @@ export interface MapCanvasProps {
   /** Punto al que el mapa se centra (por ejemplo, un resultado de búsqueda). */
   focus?: Coordinate | null
   onMapClick: (point: Coordinate) => void
-  /** Clic derecho sobre un vértice del trazo: recibe su posición en `drawing`. */
+  /** Clic derecho sobre un punto marcado: recibe su posición en `drawingPoints`. */
   onVertexRemove?: (index: number) => void
 }
 
 /** Mapa base de OpenStreetMap, sin API key. Respeta la política de uso de sus teselas. */
-export function MapCanvas({ drawing = [], picked = null, highlight = null, focus = null, onMapClick, onVertexRemove }: MapCanvasProps) {
+export function MapCanvas({
+  drawing = [],
+  drawingPoints = [],
+  picked = null,
+  highlight = null,
+  focus = null,
+  onMapClick,
+  onVertexRemove,
+}: MapCanvasProps) {
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-[420px] w-full rounded-xl z-0">
       <TileLayer
@@ -35,14 +51,14 @@ export function MapCanvas({ drawing = [], picked = null, highlight = null, focus
       {highlight !== null && highlight.length > 0 && (
         <Polygon positions={toLatLngTuples(highlight)} pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }} />
       )}
-      {drawing.map((p, i) => (
+      {drawingPoints.map(({ point, isVertex }, i) => (
         <CircleMarker
-          key={`v-${String(i)}`}
-          center={[p.latitude, p.longitude]}
-          radius={6}
-          pathOptions={{ color: '#0e7075', fillOpacity: 1 }}
+          key={`p-${String(i)}`}
+          center={[point.latitude, point.longitude]}
+          radius={isVertex ? 6 : 5}
+          pathOptions={{ color: isVertex ? '#0e7075' : '#8a9494', fillOpacity: 1 }}
           eventHandlers={{
-            // Un clic sobre un vértice no cuenta como un nuevo vértice del trazo.
+            // Un clic sobre un punto marcado no cuenta como un nuevo punto.
             click: (event) => { event.originalEvent.stopPropagation(); },
             contextmenu: (event) => {
               event.originalEvent.preventDefault()

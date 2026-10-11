@@ -3,13 +3,14 @@ import { useEffect, useState, type SyntheticEvent } from 'react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
+import type { DrawingPoint } from '@/features/geo/MapCanvas'
 import type { Place } from '@/features/geo/photon'
 import type { Coordinate } from '@/features/geo/types'
 import { ApiError, userMessage } from '@/shared/api/errors'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
 import { classifyPoint, createZone } from './api'
 import { zoneShapeError } from './geometry'
-import { addVertex, closeRing, removeVertex } from './ring'
+import { addPoint, closeRing, isZoneVertex, removePoint, zoneVertices } from './ring'
 import type { Zone } from './types'
 
 type Mode = 'classify' | 'draw'
@@ -37,22 +38,22 @@ export function ZonesPage() {
   const outside = classification.error instanceof ApiError && classification.error.status === 404
   const classifyFailed = classification.isError && !outside
 
-  // Dibujo de zonas (solo ADMIN).
-  const [drawing, setDrawing] = useState<Coordinate[]>([])
-  const [drawError, setDrawError] = useState<string | null>(null)
+  // Dibujo de zonas (solo ADMIN). Se guardan los puntos marcados; la forma se calcula a partir de ellos.
+  const [points, setPoints] = useState<Coordinate[]>([])
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<Zone | null>(null)
 
-  const shapeError = zoneShapeError(drawing)
-  const ring = shapeError === null ? closeRing(drawing) : null
+  const vertices = zoneVertices(points)
+  const shapeError = zoneShapeError(vertices)
+  const ring = shapeError === null ? closeRing(vertices) : null
+  const drawingPoints: DrawingPoint[] = points.map((point) => ({ point, isVertex: isZoneVertex(point, vertices) }))
 
   const save = useMutation({
     mutationFn: createZone,
     onSuccess: (created) => {
       setSaved(created)
-      setDrawing([])
-      setDrawError(null)
+      setPoints([])
       setCode('')
       setName('')
     },
@@ -60,22 +61,18 @@ export function ZonesPage() {
 
   const onDrawClick = (point: Coordinate) => {
     setSaved(null)
-    const result = addVertex(drawing, point)
-    setDrawing(result.points)
-    setDrawError(result.error)
+    setPoints((current) => addPoint(current, point))
   }
 
-  const removeDrawVertex = (index: number) => {
-    setDrawing((current) => removeVertex(current, index))
-    setDrawError(null)
+  const removeDrawPoint = (index: number) => {
+    setPoints((current) => removePoint(current, index))
   }
 
   const clearDrawing = () => {
-    setDrawing([])
-    setDrawError(null)
+    setPoints([])
   }
 
-  // Atajos de teclado para dibujar: Retroceso o Supr quitan el último vértice y Esc limpia el trazo.
+  // Atajos de teclado para dibujar: Retroceso o Supr quitan el último punto y Esc limpia el trazo.
   // No se activan mientras el usuario escribe en un campo, para no borrar el código de la zona.
   useEffect(() => {
     if (effectiveMode !== 'draw') return
@@ -83,11 +80,9 @@ export function ZonesPage() {
       if (isTypingTarget(event.target)) return
       if (event.key === 'Backspace' || event.key === 'Delete') {
         event.preventDefault()
-        setDrawing((current) => removeVertex(current, current.length - 1))
-        setDrawError(null)
+        setPoints((current) => removePoint(current, current.length - 1))
       } else if (event.key === 'Escape') {
-        setDrawing([])
-        setDrawError(null)
+        setPoints([])
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -114,7 +109,7 @@ export function ZonesPage() {
         <p className="text-[11px] text-on-surface-variant leading-tight">
           {effectiveMode === 'classify'
             ? 'Busca una calle o haz clic en el mapa para ver su dirección y a qué zona pertenece.'
-            : 'Marca un trapecio o cuadrado de al menos 4 vértices: sin lados cruzados ni esquinas hacia adentro.'}
+            : 'Marca los puntos de la zona. La figura se ajusta sola para formar un trapecio o cuadrado convexo.'}
         </p>
       </div>
 
@@ -143,7 +138,12 @@ export function ZonesPage() {
         </section>
       ) : (
         <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2">
-          <LazyMapCanvas drawing={drawing} onMapClick={onDrawClick} onVertexRemove={removeDrawVertex} />
+          <LazyMapCanvas
+            drawing={vertices}
+            drawingPoints={drawingPoints}
+            onMapClick={onDrawClick}
+            onVertexRemove={removeDrawPoint}
+          />
         </section>
       )}
 
@@ -151,14 +151,14 @@ export function ZonesPage() {
         <section className="bg-surface-container-lowest rounded-xl border border-surface-container-high/60 p-3">
           <div className="flex flex-col gap-1 mb-2 text-[12px] text-on-surface">
             <p>
-              Vértices: <span className="font-bold">{drawing.length}</span>
-              {drawing.length < 4 && <span className="text-on-surface-variant"> (mínimo 4)</span>}
+              Vértices: <span className="font-bold">{vertices.length}</span>
+              {vertices.length < 4 && <span className="text-on-surface-variant"> (mínimo 4)</span>}
+              <span className="text-on-surface-variant"> · Puntos marcados: {points.length}</span>
             </p>
             <p className="text-[10px] text-on-surface-variant">
-              Clic: añadir vértice · Clic derecho sobre un vértice o Retroceso: quitar el último · Esc: limpiar el trazo.
+              Clic: marcar un punto · Los puntos grises quedan dentro de la zona · Clic derecho sobre un punto o Retroceso: quitar el último · Esc: limpiar.
             </p>
-            {drawing.length > 0 && shapeError !== null && <p className="text-[11px] text-on-surface-variant">{shapeError}</p>}
-            {drawError !== null && <ErrorMessage>{drawError}</ErrorMessage>}
+            {points.length > 0 && shapeError !== null && <p className="text-[11px] text-on-surface-variant">{shapeError}</p>}
           </div>
           <form className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-end" onSubmit={onSave}>
             <Field label="Código">

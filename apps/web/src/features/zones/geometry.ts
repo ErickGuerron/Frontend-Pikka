@@ -41,6 +41,49 @@ export function isConvexPolygon(vertices: readonly Coordinate[]): boolean {
   return Math.abs(Math.abs(totalTurn) - 2 * Math.PI) < ANGLE_TOLERANCE
 }
 
+/** Producto cruzado de oa y ob: positivo si o→a→b gira a la izquierda, negativo si gira a la derecha. */
+function cross(o: Coordinate, a: Coordinate, b: Coordinate): number {
+  return (a.longitude - o.longitude) * (b.latitude - o.latitude) - (a.latitude - o.latitude) * (b.longitude - o.longitude)
+}
+
+/**
+ * Envoltura convexa de los puntos (Andrew, monotone chain). Devuelve los vértices
+ * exteriores en sentido antihorario. Un punto dentro de la figura no es un vértice
+ * y queda fuera del resultado; un punto sobre un lado tampoco, porque no es una esquina.
+ *
+ * Por construcción el resultado siempre es convexo, sin importar en qué orden o dónde
+ * se marquen los puntos. Así el usuario no necesita acertar la forma.
+ */
+export function convexHull(points: readonly Coordinate[]): Coordinate[] {
+  const sorted = [...points].sort((p, q) => p.longitude - q.longitude || p.latitude - q.latitude)
+  const unique: Coordinate[] = []
+  for (const p of sorted) {
+    const previous = unique[unique.length - 1]
+    if (previous === undefined || previous.latitude !== p.latitude || previous.longitude !== p.longitude) unique.push(p)
+  }
+  if (unique.length < 3) return unique
+
+  const lower = buildChain(unique)
+  const upper = buildChain([...unique].reverse())
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)]
+}
+
+/** Cadena inferior (o superior, si se recibe en orden inverso) de la envoltura. */
+function buildChain(ordered: readonly Coordinate[]): Coordinate[] {
+  const chain: Coordinate[] = []
+  for (const p of ordered) {
+    let a = chain[chain.length - 2]
+    let b = chain[chain.length - 1]
+    while (chain.length >= 2 && a !== undefined && b !== undefined && cross(a, b, p) <= 0) {
+      chain.pop()
+      a = chain[chain.length - 2]
+      b = chain[chain.length - 1]
+    }
+    chain.push(p)
+  }
+  return chain
+}
+
 /**
  * Motivo por el que una figura no puede guardarse como zona, o null si es válida.
  * Los mensajes son los que ve el usuario.
