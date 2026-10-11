@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { toLatLngTuples } from '@/features/geo/latlng'
 import type { Coordinate } from '@/features/geo/types'
-import { addPoint, closeRing, isZoneVertex, removePoint, zoneVertices } from './ring'
+import { addPoint, closeRing, isZoneVertex, removeLastVertex, removePoint, zoneVertices } from './ring'
 
 const a: Coordinate = { latitude: -0.2, longitude: -78.5 }
 const b: Coordinate = { latitude: -0.2, longitude: -78.4 }
@@ -28,14 +28,29 @@ describe('addPoint', () => {
 })
 
 describe('removePoint', () => {
-  it('quita el punto indicado sin mutar el arreglo original', () => {
+  it('quita el punto con esas coordenadas sin mutar el arreglo original', () => {
     const points = [a, b, c, d]
-    expect(removePoint(points, 1)).toEqual([a, c, d])
+    expect(removePoint(points, b)).toEqual([a, c, d])
     expect(points).toHaveLength(4)
   })
 
-  it('ignora un índice fuera de rango', () => {
-    expect(removePoint([a, b], 5)).toEqual([a, b])
+  it('no hace nada si el punto no está marcado', () => {
+    expect(removePoint([a, b], c)).toEqual([a, b])
+  })
+})
+
+describe('removeLastVertex', () => {
+  it('quita el último vértice visible', () => {
+    expect(removeLastVertex([a, b, c, d])).toEqual([a, b, c])
+  })
+
+  it('se salta un punto interior: deshacer siempre cambia algo visible', () => {
+    // El último marcado (inside) queda dentro de a, b, c, d: se quita d, el último vértice.
+    expect(removeLastVertex([a, b, c, d, inside])).toEqual([a, b, c, inside])
+  })
+
+  it('no cambia nada si no hay puntos', () => {
+    expect(removeLastVertex([])).toEqual([])
   })
 })
 

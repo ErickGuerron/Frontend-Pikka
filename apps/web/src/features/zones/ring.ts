@@ -14,9 +14,22 @@ export function addPoint(points: readonly Coordinate[], point: Coordinate): Coor
   return [...points, point]
 }
 
-/** Quita el punto marcado en la posición indicada. */
-export function removePoint(points: readonly Coordinate[], index: number): Coordinate[] {
-  return points.filter((_, i) => i !== index)
+/** Quita un punto marcado, identificado por sus coordenadas. */
+export function removePoint(points: readonly Coordinate[], target: Coordinate): Coordinate[] {
+  return points.filter((p) => !samePoint(p, target))
+}
+
+/**
+ * Quita el último vértice de la zona. Los puntos interiores no se dibujan, así que
+ * se saltan: deshacer siempre cambia algo visible.
+ */
+export function removeLastVertex(points: readonly Coordinate[]): Coordinate[] {
+  const vertices = zoneVertices(points)
+  for (let i = points.length - 1; i >= 0; i--) {
+    const point = points[i]
+    if (point !== undefined && isZoneVertex(point, vertices)) return removePoint(points, point)
+  }
+  return [...points]
 }
 
 /** Vértices de la zona: la envoltura convexa de los puntos marcados. */
@@ -35,7 +48,7 @@ export function closeRing(vertices: readonly Coordinate[]): Coordinate[] | null 
   return [...vertices, { latitude: first.latitude, longitude: first.longitude }]
 }
 
-/** Un punto marcado es vértice si está en la envoltura; si no, queda dentro de la zona. */
+/** Un punto marcado es vértice si está en la envoltura; si no, queda dentro de la zona y no se dibuja. */
 export function isZoneVertex(point: Coordinate, vertices: readonly Coordinate[]): boolean {
   return vertices.some((v) => samePoint(v, point))
 }

@@ -72,24 +72,20 @@ test('dibuja una zona: un punto interior no cambia la forma, se quita con clic d
   await clickMap(page, 100, 300)
   await expect(page.getByText(/Vértices: 4/)).toBeVisible()
 
-  // Un punto dentro de la zona no rompe la forma: queda marcado en gris y no es vértice.
+  // Un punto dentro de la zona no cambia la forma y no se dibuja.
   await clickMap(page, 200, 150)
   await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByText(/Vértices: 4/)).toBeVisible()
-  await expect(page.getByText(/Puntos marcados: 5/)).toBeVisible()
-
-  // Clic derecho sobre ese punto interior lo quita.
-  await clickMap(page, 200, 150, 'right')
-  await expect(page.getByText(/Puntos marcados: 4/)).toBeVisible()
 
   // Clic derecho sobre el último vértice lo quita; la forma pasa a triángulo y no se puede guardar.
   await clickMap(page, 100, 300, 'right')
   await expect(page.getByText(/Vértices: 3/)).toBeVisible()
 
-  // Retroceso también quita el último punto (no mientras se escribe en un campo).
+  // Retroceso quita el último vértice visible (no mientras se escribe en un campo).
+  // El punto interior se salta, así que la forma pasa de triángulo a otro triángulo.
   await page.locator('body').click({ position: { x: 5, y: 5 } })
   await page.keyboard.press('Backspace')
-  await expect(page.getByText(/Vértices: 2/)).toBeVisible()
+  await expect(page.getByText(/Vértices: 3/)).toBeVisible()
 
   // Se vuelve a marcar el cuadrado en el mismo orden.
   await page.getByLabel('Código').fill('NORTE')

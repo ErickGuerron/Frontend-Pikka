@@ -3,14 +3,13 @@ import { useEffect, useState, type SyntheticEvent } from 'react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
-import type { DrawingPoint } from '@/features/geo/MapCanvas'
 import type { Place } from '@/features/geo/photon'
 import type { Coordinate } from '@/features/geo/types'
 import { ApiError, userMessage } from '@/shared/api/errors'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
 import { classifyPoint, createZone } from './api'
 import { zoneShapeError } from './geometry'
-import { addPoint, closeRing, isZoneVertex, removePoint, zoneVertices } from './ring'
+import { addPoint, closeRing, removeLastVertex, removePoint, zoneVertices } from './ring'
 import type { Zone } from './types'
 
 type Mode = 'classify' | 'draw'
@@ -47,7 +46,6 @@ export function ZonesPage() {
   const vertices = zoneVertices(points)
   const shapeError = zoneShapeError(vertices)
   const ring = shapeError === null ? closeRing(vertices) : null
-  const drawingPoints: DrawingPoint[] = points.map((point) => ({ point, isVertex: isZoneVertex(point, vertices) }))
 
   const save = useMutation({
     mutationFn: createZone,
@@ -64,8 +62,8 @@ export function ZonesPage() {
     setPoints((current) => addPoint(current, point))
   }
 
-  const removeDrawPoint = (index: number) => {
-    setPoints((current) => removePoint(current, index))
+  const removeDrawVertex = (vertex: Coordinate) => {
+    setPoints((current) => removePoint(current, vertex))
   }
 
   const clearDrawing = () => {
@@ -80,7 +78,7 @@ export function ZonesPage() {
       if (isTypingTarget(event.target)) return
       if (event.key === 'Backspace' || event.key === 'Delete') {
         event.preventDefault()
-        setPoints((current) => removePoint(current, current.length - 1))
+        setPoints((current) => removeLastVertex(current))
       } else if (event.key === 'Escape') {
         setPoints([])
       }
@@ -138,12 +136,7 @@ export function ZonesPage() {
         </section>
       ) : (
         <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2">
-          <LazyMapCanvas
-            drawing={vertices}
-            drawingPoints={drawingPoints}
-            onMapClick={onDrawClick}
-            onVertexRemove={removeDrawPoint}
-          />
+          <LazyMapCanvas drawing={vertices} onMapClick={onDrawClick} onVertexRemove={removeDrawVertex} />
         </section>
       )}
 
@@ -153,10 +146,9 @@ export function ZonesPage() {
             <p>
               Vértices: <span className="font-bold">{vertices.length}</span>
               {vertices.length < 4 && <span className="text-on-surface-variant"> (mínimo 4)</span>}
-              <span className="text-on-surface-variant"> · Puntos marcados: {points.length}</span>
             </p>
             <p className="text-[10px] text-on-surface-variant">
-              Clic: marcar un punto · Los puntos grises quedan dentro de la zona · Clic derecho sobre un punto o Retroceso: quitar el último · Esc: limpiar.
+              Clic: marcar un punto · Clic derecho sobre un vértice o Retroceso: quitar el último · Esc: limpiar.
             </p>
             {points.length > 0 && shapeError !== null && <p className="text-[11px] text-on-surface-variant">{shapeError}</p>}
           </div>
