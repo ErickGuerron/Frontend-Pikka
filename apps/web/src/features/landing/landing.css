@@ -44,6 +44,21 @@ html:has(.landing) {
   }
 }
 
+/* Carousel track: hide the scrollbar, swipe/scroll stays native. */
+.landing-track {
+  scrollbar-width: none;
+}
+
+.landing-track::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-track {
+    scroll-behavior: auto;
+  }
+}
+
 /*
  * The back-office stylesheet sets a global `a { color }` that is unlayered, so it
  * beats Tailwind utilities (which live in a cascade layer). Links in the landing

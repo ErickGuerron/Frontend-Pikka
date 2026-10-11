@@ -1,10 +1,12 @@
 import { BenefitsTelemetry } from './BenefitsTelemetry'
+import { Carousel } from './Carousel'
 import { Faq } from './Faq'
 import { FinalCta } from './FinalCta'
 import { Hero } from './Hero'
 import { HowItWorks } from './HowItWorks'
 import { LandingFooter } from './LandingFooter'
 import { LandingHeader } from './LandingHeader'
+import { QuickSearch } from './QuickSearch'
 import { Testimonials } from './Testimonials'
 import { Zones } from './Zones'
 import './landing.css'
@@ -16,6 +18,8 @@ export function LandingPage() {
       <LandingHeader />
       <main>
         <Hero />
+        <QuickSearch />
+        <Carousel />
         <HowItWorks />
         <BenefitsTelemetry />
         <Testimonials />

@@ -1,10 +1,109 @@
 import {
   CalendarDays,
+  Clock,
   Headset,
+  Map as MapIcon,
+  PackagePlus,
   Route,
   ShieldCheck,
+  ShieldQuestion,
+  Undo2,
   type LucideIcon,
 } from 'lucide-react'
+
+export const DELIVERY_WINDOWS = [
+  { value: '09-12', label: '09:00 – 12:00' },
+  { value: '12-15', label: '12:00 – 15:00' },
+  { value: '15-18', label: '15:00 – 18:00' },
+  { value: '18-21', label: '18:00 – 21:00' },
+]
+
+export interface Slide {
+  id: string
+  icon: LucideIcon
+  /** Tailwind gradient classes for the visual area. */
+  gradient: string
+  mascot?: boolean
+  title: string
+  text: string
+  chips?: string[]
+  details: [string, string][]
+}
+
+/** What the service offers, based on the real order flow (no products, no prices). */
+export const SLIDES: Slide[] = [
+  {
+    id: 'crear',
+    icon: PackagePlus,
+    gradient: 'from-primary-fixed to-surface-container',
+    mascot: true,
+    title: 'Crea tu pedido',
+    text: 'Regístrate y solicita tu entrega indicando a dónde y cuándo la quieres.',
+    details: [
+      ['Dirección', 'Dónde entregamos'],
+      ['Fecha', 'El día que prefieras'],
+      ['Notas', 'Indicaciones opcionales'],
+    ],
+  },
+  {
+    id: 'ventana',
+    icon: Clock,
+    gradient: 'from-secondary-fixed/60 to-primary-fixed',
+    title: 'Elige tu ventana de entrega',
+    text: 'Escoge la franja horaria que mejor se ajuste a tu día.',
+    chips: ['09–12', '12–15', '15–18', '18–21'],
+    details: [
+      ['Franjas', '4 por día'],
+      ['Horario', '09:00 a 21:00'],
+    ],
+  },
+  {
+    id: 'validacion',
+    icon: ShieldCheck,
+    gradient: 'from-primary-fixed to-secondary-fixed/50',
+    title: 'Validamos tu pedido',
+    text: 'Revisamos automáticamente que tu pedido se pueda atender.',
+    details: [
+      ['Zona', 'Cobertura de tu dirección'],
+      ['Fecha', 'Que sea una fecha válida'],
+      ['Capacidad', 'Cupo en la ventana elegida'],
+    ],
+  },
+  {
+    id: 'seguimiento',
+    icon: MapIcon,
+    gradient: 'from-surface-container to-primary-fixed',
+    title: 'Sigue tu pedido en el mapa',
+    text: 'Consulta el estado de tu pedido y la ruta hasta tu puerta.',
+    details: [
+      ['Estado', 'Visible desde tu cuenta'],
+      ['Ruta', 'Representada en el mapa'],
+    ],
+  },
+  {
+    id: 'cancelar',
+    icon: Undo2,
+    gradient: 'from-secondary-fixed/50 to-surface-container',
+    title: 'Cancela mientras no haya salido',
+    text: 'Si cambias de planes, puedes cancelar tu pedido antes de la recogida.',
+    details: [
+      ['Antes de la recogida', 'Puedes cancelar'],
+      ['Después', 'Ya no es posible'],
+    ],
+  },
+  {
+    id: 'excepciones',
+    icon: ShieldQuestion,
+    gradient: 'from-primary-fixed to-surface-container',
+    mascot: true,
+    title: 'Resolvemos excepciones y disputas',
+    text: 'Si algo no sale bien, un operador revisa tu caso.',
+    details: [
+      ['Pedidos con problemas', 'Los revisa un operador'],
+      ['Disputas', 'Se pueden abrir en un plazo'],
+    ],
+  },
+]
 
 export const STEPS = [
   {
