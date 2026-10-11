@@ -44,7 +44,7 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Rutas' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
-  await expect(page).toHaveURL(//login$/)
+  await expect(page).toHaveURL(/\/login$/)
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeVisible()
 })
