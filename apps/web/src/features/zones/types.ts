@@ -1,14 +1,9 @@
+import type { Coordinate } from '@/features/geo/types'
 import { number, object, ParseError, string } from '@/shared/api/parse'
 
-/**
- * Modelo de zona según zones.v1 (contracts/proto/zones/v1/zones.proto).
- * Las rutas REST de zonas aún no están en el OpenAPI del Gateway; este módulo
- * solo fija el modelo y las reglas que el backend ya define.
- */
-export interface Coordinate {
-  latitude: number
-  longitude: number
-}
+export type { Coordinate }
+
+/** Modelo de zona según zones.v1 (contracts/proto/zones/v1/zones.proto). */
 
 export interface Zone {
   id: string

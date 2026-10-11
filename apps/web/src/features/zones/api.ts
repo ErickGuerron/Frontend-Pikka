@@ -8,10 +8,7 @@ export interface NewZone {
   ring: Coordinate[]
 }
 
-/**
- * Rutas provisionales: el contrato del Gateway aún no expone zonas por REST
- * (zones.v1 es gRPC). Se integran cuando Backend publique el OpenAPI.
- */
+/** Rutas publicadas en contracts/openapi/openapi.yaml (Backend-Pikka). */
 export function getZone(id: string): Promise<Zone> {
   return http.get(`/api/v1/zones/${encodeURIComponent(id)}`, parseZone)
 }
@@ -25,10 +22,10 @@ export function createZone(input: NewZone): Promise<Zone> {
 }
 
 /** Devuelve la zona que contiene una coordenada. La API responde 404 si ninguna la contiene. */
-export function classifyPoint(point: Coordinate): Promise<Zone> {
+export function classifyPoint(point: Coordinate, signal?: AbortSignal): Promise<Zone> {
   const query = new URLSearchParams({
     latitude: String(point.latitude),
     longitude: String(point.longitude),
   })
-  return http.get(`/api/v1/zones/classify?${query.toString()}`, parseZone)
+  return http.get(`/api/v1/zones/classify?${query.toString()}`, parseZone, { signal })
 }
