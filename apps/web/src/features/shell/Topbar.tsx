@@ -44,7 +44,7 @@ export function Topbar() {
           className="flex items-center gap-1.5 px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-error-container text-on-surface-variant hover:text-on-error-container transition-all cursor-pointer"
           onClick={logout}
         >
-          <span className="material-symbols-outlined text-lg">logout</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-lg">logout</span>
           <span className="font-body-sm text-body-sm font-medium">Cerrar sesión</span>
         </button>
       </div>

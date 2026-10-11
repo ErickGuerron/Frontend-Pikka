@@ -1,14 +1,16 @@
 import { NavLink } from 'react-router'
 import { useCurrentUser } from '@/features/auth/hooks'
+import { canAccess, sectionLabels, type Section } from '@/features/auth/permissions'
 
-const navItems = [
-  { to: '/', label: 'Inicio', icon: 'dashboard', end: true },
-  { to: '/orders', label: 'Pedidos', icon: 'package_2' },
-  { to: '/zones', label: 'Zonas', icon: 'map' },
-  { to: '/routes', label: 'Rutas', icon: 'alt_route' },
-  { to: '/drivers', label: 'Repartidores', icon: 'two_wheeler' },
-  { to: '/tracking', label: 'Seguimiento', icon: 'radar' },
-  { to: '/users', label: 'Usuarios', icon: 'group' },
+const navItems: { section: Section; to: string; icon: string; end?: boolean }[] = [
+  { section: 'home', to: '/', icon: 'dashboard', end: true },
+  { section: 'orders', to: '/orders', icon: 'package_2' },
+  { section: 'exceptions', to: '/exceptions', icon: 'fact_check' },
+  { section: 'zones', to: '/zones', icon: 'map' },
+  { section: 'routes', to: '/routes', icon: 'alt_route' },
+  { section: 'drivers', to: '/drivers', icon: 'two_wheeler' },
+  { section: 'tracking', to: '/tracking', icon: 'radar' },
+  { section: 'users', to: '/users', icon: 'group' },
 ]
 
 export function Navbar() {
@@ -51,10 +53,10 @@ export function Navbar() {
 
         {/* Navigation */}
         <nav className="flex flex-col gap-1 px-space-sm">
-          {navItems.map((item) => {
-            // Hide users link for non-admins
-            if (item.to === '/users' && user?.role !== 'ADMIN') return null
-            return (
+          {/* Solo se muestran las secciones del rol; mientras carga el usuario, ninguna. */}
+          {navItems
+            .filter((item) => canAccess(user?.role, item.section))
+            .map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -67,11 +69,10 @@ export function Navbar() {
                   }`
                 }
               >
-                <span className="material-symbols-outlined text-xl text-white">{item.icon}</span>
-                <span className="font-body-md text-body-md text-white">{item.label}</span>
+                <span className="material-symbols-outlined text-xl text-white" aria-hidden="true">{item.icon}</span>
+                <span className="font-body-md text-body-md text-white">{sectionLabels[item.section]}</span>
               </NavLink>
-            )
-          })}
+            ))}
         </nav>
       </div>
 

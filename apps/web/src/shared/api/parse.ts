@@ -26,9 +26,20 @@ export function boolean(obj: Record<string, unknown>, key: string): boolean {
   return v
 }
 
-export function oneOf<T extends string>(obj: Record<string, unknown>, key: string, values: readonly T[]): T {
-  const v = string(obj, key)
-  const match = values.find((candidate) => candidate === v)
-  if (match === undefined) throw new ParseError(`${key}: unexpected value ${v}`)
+/** Valor de un conjunto cerrado; cualquier otro valor del contrato se rechaza. */
+export function enumValue<T extends string>(value: unknown, values: readonly T[], what: string): T {
+  const match = values.find((candidate) => candidate === value)
+  if (match === undefined) throw new ParseError(`${what}: unexpected value ${String(value)}`)
   return match
+}
+
+export function oneOf<T extends string>(obj: Record<string, unknown>, key: string, values: readonly T[]): T {
+  return enumValue(string(obj, key), values, key)
+}
+
+/** Lista de valores de un conjunto cerrado. */
+export function enumArray<T extends string>(obj: Record<string, unknown>, key: string, values: readonly T[]): T[] {
+  const v = obj[key]
+  if (!Array.isArray(v)) throw new ParseError(`${key}: expected array`)
+  return v.map((item) => enumValue(item, values, key))
 }

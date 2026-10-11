@@ -10,7 +10,7 @@ export interface HttpClientOptions {
 
 export interface RequestOptions {
   body?: unknown
-  signal?: AbortSignal
+  signal?: AbortSignal | undefined
 }
 
 export interface HttpClient {

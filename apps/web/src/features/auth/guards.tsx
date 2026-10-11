@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { useCurrentUser } from './hooks'
+import { canAccess, sectionLabels, type Section } from './permissions'
 import { useSession } from './session-store'
-import type { Role } from './types'
 
 /** Exige sesión. La autorización real la hace el backend; esto solo ordena la navegación. */
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -12,17 +12,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
-/** Oculta pantallas a roles que el backend rechazaría de todos modos. */
-export function RequireRole({ roles, children }: { roles: readonly Role[]; children: ReactNode }) {
+/**
+ * Muestra la sección solo si el rol la tiene. Si no, lleva a Inicio con un aviso
+ * para que el usuario sepa por qué no llegó a la página que pidió.
+ */
+export function RequireSection({ section, children }: { section: Section; children: ReactNode }) {
   const { data: user, isPending } = useCurrentUser()
   if (isPending) return <p className="muted">Cargando…</p>
-  if (!user || !roles.includes(user.role)) {
-    return (
-      <section className="card">
-        <h2>Sin acceso</h2>
-        <p className="muted">Tu rol no tiene permiso para esta sección.</p>
-      </section>
-    )
+  if (!canAccess(user?.role, section)) {
+    return <Navigate to="/" replace state={{ deniedSection: sectionLabels[section] }} />
   }
   return children
 }
