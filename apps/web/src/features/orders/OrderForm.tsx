@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
 import { userMessage } from '@/shared/api/errors'
+import { fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { createOrder } from './api'
 import type { NewOrder, Order } from './types'
 import { localToday, validateNewOrder, type OrderErrors } from './validation'
@@ -11,9 +12,6 @@ interface OrderFormProps {
 }
 
 const emptyOrder: NewOrder = { address: '', deliveryDate: '', windowStart: '', windowEnd: '' }
-
-const inputClass =
-  'w-full bg-surface-container-low border border-surface-container-high rounded-lg px-3 py-2 text-[12px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-60 aria-[invalid=true]:border-error'
 
 export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   const queryClient = useQueryClient()
@@ -61,7 +59,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
 
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-3" noValidate onSubmit={onSubmit}>
         <div className="lg:col-span-2 flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant" htmlFor="order-address">
+          <label className={fieldLabelClass} htmlFor="order-address">
             Dirección de entrega *
           </label>
           <input
@@ -83,7 +81,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant" htmlFor="order-date">
+          <label className={fieldLabelClass} htmlFor="order-date">
             Fecha de entrega *
           </label>
           <input
@@ -101,7 +99,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
         </div>
 
         <fieldset className="flex flex-col gap-1">
-          <legend className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Ventana aproximada *</legend>
+          <legend className={fieldLabelClass}>Ventana aproximada *</legend>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-on-surface-variant" htmlFor="order-window-start">Desde</label>
