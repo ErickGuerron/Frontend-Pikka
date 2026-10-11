@@ -5,12 +5,13 @@ import type { Role } from './types'
  * Esto solo controla la navegación y las consultas. La autorización real la
  * aplica cada servicio en la API.
  */
-export const sections = ['home', 'orders', 'zones', 'routes', 'drivers', 'tracking', 'users'] as const
+export const sections = ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users'] as const
 export type Section = (typeof sections)[number]
 
 export const sectionLabels: Record<Section, string> = {
   home: 'Inicio',
   orders: 'Pedidos',
+  exceptions: 'Excepciones',
   zones: 'Zonas',
   routes: 'Rutas',
   drivers: 'Repartidores',
@@ -23,6 +24,7 @@ const staffRoles: readonly Role[] = ['ADMIN', 'OPERATOR']
 const allowedRoles: Record<Section, readonly Role[]> = {
   home: staffRoles,
   orders: staffRoles,
+  exceptions: staffRoles,
   zones: staffRoles,
   routes: staffRoles,
   drivers: staffRoles,

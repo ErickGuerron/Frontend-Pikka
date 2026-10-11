@@ -4,7 +4,7 @@ import type { Role } from './types'
 
 const expectedAccess: Record<Role, Section[]> = {
   ADMIN: [...sections],
-  OPERATOR: ['home', 'orders', 'zones', 'routes', 'drivers', 'tracking'],
+  OPERATOR: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking'],
   DRIVER: [],
 }
 

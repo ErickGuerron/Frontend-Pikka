@@ -23,7 +23,7 @@ describe('menú según el rol', () => {
   it('el administrador ve todas las secciones', async () => {
     mockAs(adminUser)
     renderApp('/')
-    for (const label of ['Inicio', 'Pedidos', 'Zonas', 'Rutas', 'Repartidores', 'Seguimiento', 'Usuarios']) {
+    for (const label of ['Inicio', 'Pedidos', 'Excepciones', 'Zonas', 'Rutas', 'Repartidores', 'Seguimiento', 'Usuarios']) {
       expect(await screen.findByRole('link', { name: label })).toBeInTheDocument()
     }
   })

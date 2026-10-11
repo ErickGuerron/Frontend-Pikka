@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequireSection } from '@/features/auth/guards'
 import { DriversPage } from '@/features/drivers/DriversPage'
+import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { RoutesPage } from '@/features/routing/RoutesPage'
 import { AppLayout } from '@/features/shell/AppLayout'
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomeRoute /> },
       { path: 'orders', element: <RequireSection section="orders"><OrdersPage /></RequireSection> },
+      { path: 'exceptions', element: <RequireSection section="exceptions"><ExceptionsPage /></RequireSection> },
       { path: 'zones', element: <RequireSection section="zones"><ZonesPage /></RequireSection> },
       { path: 'routes', element: <RequireSection section="routes"><RoutesPage /></RequireSection> },
       { path: 'drivers', element: <RequireSection section="drivers"><DriversPage /></RequireSection> },

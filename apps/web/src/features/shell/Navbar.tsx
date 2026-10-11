@@ -5,6 +5,7 @@ import { canAccess, sectionLabels, type Section } from '@/features/auth/permissi
 const navItems: { section: Section; to: string; icon: string; end?: boolean }[] = [
   { section: 'home', to: '/', icon: 'dashboard', end: true },
   { section: 'orders', to: '/orders', icon: 'package_2' },
+  { section: 'exceptions', to: '/exceptions', icon: 'fact_check' },
   { section: 'zones', to: '/zones', icon: 'map' },
   { section: 'routes', to: '/routes', icon: 'alt_route' },
   { section: 'drivers', to: '/drivers', icon: 'two_wheeler' },
