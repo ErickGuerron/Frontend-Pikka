@@ -10,6 +10,7 @@ export const orderStatuses = [
   'PICKED_UP',
   'IN_TRANSIT',
   'DELIVERED',
+  'NOT_DELIVERED',
   'CANCELLED',
 ] as const
 export type OrderStatus = (typeof orderStatuses)[number]
@@ -20,6 +21,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   PICKED_UP: 'Recogido',
   IN_TRANSIT: 'En camino',
   DELIVERED: 'Entregado',
+  NOT_DELIVERED: 'No entregado',
   CANCELLED: 'Cancelado',
 }
 

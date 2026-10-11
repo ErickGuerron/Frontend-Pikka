@@ -13,6 +13,7 @@ const statusStyles: Record<OrderStatus, string> = {
   PICKED_UP: 'bg-primary-fixed/50 text-primary',
   IN_TRANSIT: 'bg-primary text-on-primary',
   DELIVERED: 'bg-emerald-100 text-emerald-800',
+  NOT_DELIVERED: 'bg-amber-100 text-amber-800',
   CANCELLED: 'bg-error-container text-on-error-container',
 }
 
