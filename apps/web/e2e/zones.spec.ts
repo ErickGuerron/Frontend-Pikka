@@ -533,7 +533,6 @@ test('buscar un lugar lejano y redibujar la zona despues de esperar, la encuadra
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
-  const shown = page.locator('path[stroke="#1bb3b8"]')
 
   await page.getByLabel('Buscar calle o lugar').fill('Miami')
   await page.getByRole('button', { name: /Miami/ }).click()
