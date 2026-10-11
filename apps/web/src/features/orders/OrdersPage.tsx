@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
 import { getOrders } from './api'
+import { formatDate, formatWindow } from './format'
 import { OrderForm } from './OrderForm'
 import { type Order, type OrderStatus, orderStatusLabels, orderStatuses } from './types'
 
@@ -9,6 +10,7 @@ type StatusFilter = OrderStatus | 'ALL'
 
 const statusStyles: Record<OrderStatus, string> = {
   PENDING: 'bg-secondary-container/40 text-on-secondary-container',
+  PENDING_REVIEW: 'bg-orange-100 text-orange-800',
   ROUTE_ASSIGNED: 'bg-primary-fixed/70 text-primary',
   PICKED_UP: 'bg-primary-fixed/50 text-primary',
   IN_TRANSIT: 'bg-primary text-on-primary',
@@ -23,11 +25,6 @@ const IN_ROUTE: readonly OrderStatus[] = ['ROUTE_ASSIGNED', 'PICKED_UP', 'IN_TRA
 function toStatusFilter(value: string): StatusFilter {
   if (value === 'ALL') return 'ALL'
   return orderStatuses.find((status) => status === value) ?? 'ALL'
-}
-
-/** Fecha YYYY-MM-DD mostrada en formato legible en español. */
-function formatDate(isoDate: string): string {
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 
 export function OrdersPage() {
@@ -47,7 +44,7 @@ export function OrdersPage() {
 
   const handleCreated = (order: Order) => {
     setShowForm(false)
-    setFeedback(`Pedido registrado para el ${formatDate(order.deliveryDate)}, ventana ${order.windowStart}–${order.windowEnd}.`)
+    setFeedback(`Pedido registrado para el ${formatDate(order.deliveryDate)}, ventana ${formatWindow(order.windowStart, order.windowEnd)}.`)
   }
 
   return (
@@ -169,7 +166,7 @@ export function OrdersPage() {
                 {visibleOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-surface-container-low/40">
                     <td className="px-4 py-2 font-semibold text-on-surface whitespace-nowrap">{formatDate(order.deliveryDate)}</td>
-                    <td className="px-4 py-2 text-on-surface-variant whitespace-nowrap">{order.windowStart}–{order.windowEnd}</td>
+                    <td className="px-4 py-2 text-on-surface-variant whitespace-nowrap">{formatWindow(order.windowStart, order.windowEnd)}</td>
                     <td className="px-4 py-2 text-on-surface">{order.address}</td>
                     <td className="px-4 py-2">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-[10px] ${statusStyles[order.status]}`}>

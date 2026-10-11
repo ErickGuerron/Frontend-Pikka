@@ -9,6 +9,7 @@ const base = {
   deliveryDate: '2026-10-12',
   windowStart: '09:00',
   windowEnd: '11:00',
+  reviewReasons: [],
   createdAt: '2026-10-11T12:00:00Z',
 }
 

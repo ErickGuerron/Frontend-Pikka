@@ -3,8 +3,9 @@ import { useState, type SyntheticEvent } from 'react'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import type { Place } from '@/features/geo/photon'
 import { userMessage } from '@/shared/api/errors'
-import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
+import { ErrorMessage, fieldLabelClass } from '@/shared/ui/form'
 import { createOrder } from './api'
+import { OrderDetailsFields } from './OrderDetailsFields'
 import type { Order } from './types'
 import { localToday, validateNewOrder, type OrderErrors, type OrderFields } from './validation'
 
@@ -81,79 +82,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
           )}
         </div>
 
-        <div className="lg:col-span-2 flex flex-col gap-1">
-          <label className={fieldLabelClass} htmlFor="order-address">
-            Dirección de entrega *
-          </label>
-          <input
-            id="order-address"
-            aria-describedby={errors.address ? 'order-address-error' : 'order-address-help'}
-            aria-invalid={errors.address ? true : undefined}
-            className={inputClass}
-            disabled={isPending}
-            onChange={(e) => { update('address', e.target.value); }}
-            placeholder="Calle, número, colonia y referencia"
-            type="text"
-            value={fields.address}
-          />
-          {errors.address ? (
-            <ErrorMessage id="order-address-error">{errors.address}</ErrorMessage>
-          ) : (
-            <p id="order-address-help" className={subLabelClass}>Incluye referencias para el repartidor.</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className={fieldLabelClass} htmlFor="order-date">
-            Fecha de entrega *
-          </label>
-          <input
-            id="order-date"
-            aria-describedby={errors.deliveryDate ? 'order-date-error' : undefined}
-            aria-invalid={errors.deliveryDate ? true : undefined}
-            className={inputClass}
-            disabled={isPending}
-            min={localToday()}
-            onChange={(e) => { update('deliveryDate', e.target.value); }}
-            type="date"
-            value={fields.deliveryDate}
-          />
-          {errors.deliveryDate ? <ErrorMessage id="order-date-error">{errors.deliveryDate}</ErrorMessage> : null}
-        </div>
-
-        <fieldset className="flex flex-col gap-1">
-          <legend className={fieldLabelClass}>Ventana aproximada *</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className={subLabelClass} htmlFor="order-window-start">Desde</label>
-              <input
-                id="order-window-start"
-                aria-describedby={errors.windowStart ? 'order-window-start-error' : undefined}
-                aria-invalid={errors.windowStart ? true : undefined}
-                className={inputClass}
-                disabled={isPending}
-                onChange={(e) => { update('windowStart', e.target.value); }}
-                type="time"
-                value={fields.windowStart}
-              />
-              {errors.windowStart ? <ErrorMessage id="order-window-start-error">{errors.windowStart}</ErrorMessage> : null}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className={subLabelClass} htmlFor="order-window-end">Hasta</label>
-              <input
-                id="order-window-end"
-                aria-describedby={errors.windowEnd ? 'order-window-end-error' : undefined}
-                aria-invalid={errors.windowEnd ? true : undefined}
-                className={inputClass}
-                disabled={isPending}
-                onChange={(e) => { update('windowEnd', e.target.value); }}
-                type="time"
-                value={fields.windowEnd}
-              />
-              {errors.windowEnd ? <ErrorMessage id="order-window-end-error">{errors.windowEnd}</ErrorMessage> : null}
-            </div>
-          </div>
-        </fieldset>
+        <OrderDetailsFields idPrefix="order" values={fields} errors={errors} disabled={isPending} onChange={update} />
 
         {mutation.isError ? (
           <div role="alert" className="lg:col-span-2 bg-error-container text-on-error-container rounded-lg px-3 py-2 text-[11px]">

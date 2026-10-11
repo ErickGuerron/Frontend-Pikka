@@ -10,7 +10,13 @@ async function mockOrdersApi(page: Page) {
       const body: unknown = route.request().postDataJSON()
       received.push(body)
       const fields = typeof body === 'object' && body !== null ? body : {}
-      const created = { ...fields, id: `o-${String(orders.length + 1)}`, status: 'PENDING', createdAt: '2026-10-10T12:00:00Z' }
+      const created = {
+        ...fields,
+        id: `o-${String(orders.length + 1)}`,
+        status: 'PENDING',
+        reviewReasons: [],
+        createdAt: '2026-10-10T12:00:00Z',
+      }
       orders.push(created)
       await route.fulfill({ status: 201, json: created })
       return

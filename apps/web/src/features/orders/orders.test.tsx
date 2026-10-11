@@ -27,6 +27,7 @@ const pendingOrder: Order = {
   windowStart: '09:00',
   windowEnd: '11:00',
   status: 'PENDING',
+  reviewReasons: [],
   createdAt: '2026-10-10T12:00:00Z',
 }
 
