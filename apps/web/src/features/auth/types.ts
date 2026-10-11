@@ -1,12 +1,16 @@
 import { boolean, object, oneOf, string } from '@/shared/api/parse'
 
-export const roles = ['ADMIN', 'OPERATOR', 'DRIVER'] as const
+export const roles = ['ADMIN', 'OPERATOR', 'DRIVER', 'CUSTOMER'] as const
 export type Role = (typeof roles)[number]
+
+/** Roles a back-office admin can assign (CUSTOMER only comes from self sign-up). */
+export const assignableRoles = ['ADMIN', 'OPERATOR', 'DRIVER'] as const
 
 export const roleLabels: Record<Role, string> = {
   ADMIN: 'Administrador',
   OPERATOR: 'Operador',
   DRIVER: 'Repartidor',
+  CUSTOMER: 'Cliente',
 }
 
 export interface User {

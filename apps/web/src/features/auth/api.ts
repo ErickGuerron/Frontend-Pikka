@@ -17,6 +17,19 @@ export function login(email: string, password: string): Promise<LoginResult> {
   return http.post('/api/v1/auth/login', parseLogin, { body: { email, password } })
 }
 
+export interface SignupInput {
+  email: string
+  password: string
+  fullName: string
+}
+
+/** Public self-registration. The server forces the CUSTOMER role and returns a session like login. */
+export function signup(input: SignupInput): Promise<LoginResult> {
+  return http.post('/api/v1/auth/signup', parseLogin, {
+    body: { email: input.email, password: input.password, fullName: input.fullName },
+  })
+}
+
 export function fetchCurrentUser(signal?: AbortSignal): Promise<User> {
   return http.get('/api/v1/auth/me', parseUser, signal ? { signal } : {})
 }
