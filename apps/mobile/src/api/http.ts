@@ -1,4 +1,5 @@
 import { ApiError } from './errors'
+import { isRecord } from './parse'
 
 export type Parser<T> = (data: unknown) => T
 
@@ -16,6 +17,8 @@ export interface RequestOptions {
 export interface HttpClient {
   get<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
   post<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  patch<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  delete<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
 }
 
 /** Single point in mobile that talks HTTP to the API Gateway. */
@@ -40,22 +43,29 @@ export function createHttpClient({ baseUrl, getToken, onUnauthorized }: HttpClie
         signal: options.signal ?? null,
       })
     } catch (cause) {
-      if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
+      if (cause instanceof Error && cause.name === 'AbortError') throw cause
       throw new ApiError(0, 'NETWORK', 'network error')
     }
 
     const data: unknown = await response.json().catch(() => null)
     if (!response.ok) {
       const error = toApiError(response.status, data)
+      // 401 with a token = expired/revoked session; without a token (login) it is just bad credentials.
       if (response.status === 401 && token) onUnauthorized()
       throw error
     }
-    return parse(data)
+    try {
+      return parse(data)
+    } catch {
+      throw new ApiError(response.status, 'BAD_RESPONSE', 'unexpected response shape')
+    }
   }
 
   return {
     get: (path, parse, options) => request('GET', path, parse, options),
     post: (path, parse, options) => request('POST', path, parse, options),
+    patch: (path, parse, options) => request('PATCH', path, parse, options),
+    delete: (path, parse, options) => request('DELETE', path, parse, options),
   }
 }
 
@@ -72,6 +82,3 @@ function toApiError(status: number, data: unknown): ApiError {
   return new ApiError(status, 'ERROR', `HTTP ${String(status)}`)
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
