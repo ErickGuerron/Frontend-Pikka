@@ -132,3 +132,19 @@ test('quita un vértice intermedio y al volver a marcarlo la forma vuelve a cuat
   await page.getByLabel('Nombre').fill('Zona Centro 2')
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
 })
+
+test('busca una calle antes de dibujar: centra el mapa y no marca puntos', async ({ page }) => {
+  await mockAuth(page)
+  await mockPhoton(page)
+  await blockTiles(page)
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  await page.getByLabel('Buscar calle o lugar').fill('Av. Central')
+  await page.getByRole('button', { name: /Av\. Central/ }).click()
+
+  await expect(page.getByText(/Vértices: 0/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
+})

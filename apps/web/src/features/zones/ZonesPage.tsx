@@ -3,6 +3,7 @@ import { useEffect, useState, type SyntheticEvent } from 'react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
+import { PlaceSearch } from '@/features/geo/PlaceSearch'
 import type { Place } from '@/features/geo/photon'
 import type { Coordinate } from '@/features/geo/types'
 import { ApiError, userMessage } from '@/shared/api/errors'
@@ -42,6 +43,8 @@ export function ZonesPage() {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<Zone | null>(null)
+  // Búsqueda de calle o lugar: solo centra el mapa, nunca marca un punto.
+  const [focusPoint, setFocusPoint] = useState<Coordinate | null>(null)
 
   const vertices = zoneVertices(points)
   const shapeError = zoneShapeError(vertices)
@@ -135,8 +138,9 @@ export function ZonesPage() {
           )}
         </section>
       ) : (
-        <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2">
-          <LazyMapCanvas drawing={vertices} onMapClick={onDrawClick} onVertexRemove={removeDrawVertex} />
+        <section className="relative bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2">
+          <PlaceSearch onSelect={(place) => { setFocusPoint({ latitude: place.latitude, longitude: place.longitude }); }} />
+          <LazyMapCanvas drawing={vertices} focus={focusPoint} onMapClick={onDrawClick} onVertexRemove={removeDrawVertex} />
         </section>
       )}
 
@@ -148,7 +152,7 @@ export function ZonesPage() {
               {vertices.length < 4 && <span className="text-on-surface-variant"> (mínimo 4)</span>}
             </p>
             <p className="text-[10px] text-on-surface-variant">
-              Clic: marcar un punto · Clic derecho sobre un vértice o Retroceso: quitar el último · Esc: limpiar.
+              Busca una calle o lugar para ubicar el mapa (la búsqueda no marca puntos). Clic: marcar un punto · Clic derecho sobre un vértice o Retroceso: quitar el último · Esc: limpiar.
             </p>
             {points.length > 0 && shapeError !== null && <p className="text-[11px] text-on-surface-variant">{shapeError}</p>}
           </div>
