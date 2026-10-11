@@ -252,7 +252,11 @@ test('clasificar punto muestra el hueco de la zona', async ({ page }) => {
   await clickMap(page, 200, 150)
 
   await expect(page.getByText('Zona Dona Centro (DONA).')).toBeVisible()
-  await expect(page.locator('path[stroke="#b45309"]')).toHaveCount(1)
+  // El contorno resaltado es un solo polígono con dos anillos: el exterior y el hueco.
+  const outline = page.locator('path[stroke="#1bb3b8"]')
+  await expect(outline).toHaveCount(1)
+  const rings = ((await outline.getAttribute('d')) ?? '').match(/M/g)?.length ?? 0
+  expect(rings).toBe(2)
 })
 
 test('redibuja una zona registrada: la carga en el editor y guarda los cambios con PUT', async ({ page }) => {

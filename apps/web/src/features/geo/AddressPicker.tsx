@@ -73,7 +73,7 @@ export function AddressPicker({ value, onChange, highlight = null, highlightHole
         <LazyMapCanvas
           picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
           highlight={highlight}
-          holes={highlightHoles}
+          highlightHoles={highlightHoles}
           focus={focus}
           onMapClick={pickPoint}
         />

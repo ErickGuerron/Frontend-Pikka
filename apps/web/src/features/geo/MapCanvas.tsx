@@ -62,11 +62,12 @@ export function MapCanvas({
       ))}
       {drawing.length > 0 && <Polygon positions={toLatLngTuples(drawing)} pathOptions={{ color: '#0e7075' }} />}
       {highlight !== null && highlight.length > 0 && (
-        <Polygon positions={toLatLngTuples(highlight)} pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }} />
+        // Un solo polígono con sus huecos como anillos interiores: el hueco queda transparente y se ve el mapa.
+        <Polygon
+          positions={[toLatLngTuples(highlight), ...highlightHoles.map((hole) => toLatLngTuples(hole))]}
+          pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }}
+        />
       )}
-      {highlightHoles.map((hole, i) => (
-        <Polygon key={`hl-${String(i)}`} positions={toLatLngTuples(hole)} pathOptions={{ color: '#b45309', fillOpacity: 0.35 }} />
-      ))}
       {drawing.map((vertex, i) => (
         <CircleMarker
           key={`v-${String(i)}`}
