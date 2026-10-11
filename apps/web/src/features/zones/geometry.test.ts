@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Coordinate } from '@/features/geo/types'
-import { convexHull, isConvexPolygon, zoneShapeError } from './geometry'
+import { convexHull, convexPolygonsDisjoint, holeFitError, isConvexPolygon, strictlyInsideConvex, zoneShapeError } from './geometry'
 
 const pt = (latitude: number, longitude: number): Coordinate => ({ latitude, longitude })
 const keyOf = (p: Coordinate): string => JSON.stringify([p.latitude, p.longitude])
@@ -86,5 +86,51 @@ describe('convexHull', () => {
         expect(isConvexPolygon(hull), `corrida ${String(run)}`).toBe(true)
       }
     }
+  })
+})
+
+describe('strictlyInsideConvex', () => {
+  it('acepta un punto interior y rechaza el borde y el exterior', () => {
+    expect(strictlyInsideConvex(pt(2, 2), square)).toBe(true)
+    expect(strictlyInsideConvex(pt(0, 2), square)).toBe(false)
+    expect(strictlyInsideConvex(pt(5, 5), square)).toBe(false)
+  })
+
+  it('funciona igual en sentido horario y antihorario', () => {
+    expect(strictlyInsideConvex(pt(2, 2), [...square].reverse())).toBe(true)
+  })
+})
+
+describe('convexPolygonsDisjoint', () => {
+  it('reconoce polígonos separados', () => {
+    expect(convexPolygonsDisjoint(square, [pt(10, 10), pt(10, 12), pt(12, 12), pt(12, 10)])).toBe(true)
+  })
+
+  it('considera superpuestos los que se cruzan, se contienen o se tocan', () => {
+    expect(convexPolygonsDisjoint(square, [pt(2, 2), pt(2, 6), pt(6, 6), pt(6, 2)])).toBe(false)
+    expect(convexPolygonsDisjoint(square, [pt(1, 1), pt(1, 2), pt(2, 2), pt(2, 1)])).toBe(false)
+    expect(convexPolygonsDisjoint(square, [pt(4, 4), pt(4, 6), pt(6, 6), pt(6, 4)])).toBe(false)
+  })
+})
+
+describe('holeFitError', () => {
+  const inner = [pt(1, 1), pt(1, 3), pt(3, 3), pt(3, 1)]
+
+  it('acepta un hueco estrictamente dentro del exterior', () => {
+    expect(holeFitError(inner, square, [])).toBeNull()
+  })
+
+  it('pide que el hueco quede dentro cuando sale o toca el borde', () => {
+    expect(holeFitError([pt(3, 3), pt(3, 6), pt(6, 6), pt(6, 3)], square, [])).toMatch(/completamente dentro/)
+    expect(holeFitError([pt(0, 1), pt(0, 3), pt(2, 3), pt(2, 1)], square, [])).toMatch(/completamente dentro/)
+  })
+
+  it('no permite un hueco que toque otro hueco', () => {
+    const other = [pt(3, 1), pt(3, 2), pt(3.5, 2), pt(3.5, 1)]
+    expect(holeFitError(inner, square, [other])).toMatch(/superponerse/)
+  })
+
+  it('sigue exigiendo que el hueco sea una figura válida', () => {
+    expect(holeFitError([pt(1, 1), pt(1, 3), pt(2, 1)], square, [])).toMatch(/al menos 4 vértices/)
   })
 })

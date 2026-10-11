@@ -148,3 +148,73 @@ test('busca una calle antes de dibujar: centra el mapa y no marca puntos', async
   await expect(page.getByText(/Vértices: 0/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
 })
+
+test('dibuja una zona con hueco (dona) y la guarda con el hueco incluido', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  const created: unknown[] = []
+  await page.route('**/api/v1/zones', async (route) => {
+    if (route.request().method() === 'POST') {
+      created.push(route.request().postDataJSON())
+      await route.fulfill({ status: 201, json: { ...centro, id: '44444444-4444-4444-4444-444444444444', code: 'DONA', name: 'Dona Centro' } })
+    }
+  })
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  // Exterior: cuadrado de 200 px.
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await expect(page.getByText(/Exterior · Vértices: 4/)).toBeVisible()
+
+  // Hueco centrado, dentro del exterior.
+  await page.getByRole('button', { name: 'Agregar hueco' }).click()
+  await expect(page.getByText(/Hueco · Vértices: 0/)).toBeVisible()
+  await clickMap(page, 150, 150)
+  await clickMap(page, 250, 150)
+  await clickMap(page, 250, 250)
+  await clickMap(page, 150, 250)
+  await expect(page.getByText(/Hueco · Vértices: 4/)).toBeVisible()
+  await page.getByRole('button', { name: 'Terminar hueco' }).click()
+  await expect(page.getByText(/Huecos: 1/)).toBeVisible()
+
+  await page.getByLabel('Código').fill('DONA')
+  await page.getByLabel('Nombre').fill('Dona Centro')
+  await page.getByRole('button', { name: 'Guardar zona' }).click()
+
+  await expect(page.getByRole('status')).toContainText('Zona DONA guardada.')
+  expect(created).toHaveLength(1)
+  const body = created[0] as { ring: unknown[]; holes: { latitude: number; longitude: number }[][] }
+  expect(body.ring).toHaveLength(5)
+  expect(body.holes).toHaveLength(1)
+  expect(body.holes[0]).toHaveLength(5)
+  expect(body.holes[0]?.[0]).toEqual(body.holes[0]?.[4])
+})
+
+test('no permite terminar un hueco que sale de la zona', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await page.getByRole('button', { name: 'Agregar hueco' }).click()
+
+  // Un cuadrado que se sale por la derecha de la zona.
+  await clickMap(page, 250, 150)
+  await clickMap(page, 380, 150)
+  await clickMap(page, 380, 250)
+  await clickMap(page, 250, 250)
+
+  await expect(page.getByText(/completamente dentro de la zona/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Terminar hueco' })).toBeDisabled()
+})

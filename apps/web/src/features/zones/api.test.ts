@@ -71,3 +71,34 @@ describe('classifyPoint', () => {
     await expect(classifyPoint(s1)).rejects.toMatchObject({ status: 404, code: 'NOT_FOUND' })
   })
 })
+
+describe('createZone con huecos', () => {
+  const hole = [
+    { latitude: -0.18, longitude: -78.48 },
+    { latitude: -0.18, longitude: -78.42 },
+    { latitude: -0.12, longitude: -78.42 },
+    { latitude: -0.12, longitude: -78.48 },
+    { latitude: -0.18, longitude: -78.48 },
+  ]
+
+  it('envía los huecos cuando están dentro de la zona', async () => {
+    const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
+    await createZone({ code: 'DONA', name: 'Dona', ring: closedRing, holes: [hole] })
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
+    expect(sentBody(call?.[1])).toEqual({ code: 'DONA', name: 'Dona', ring: closedRing, holes: [hole] })
+  })
+
+  it('no llama a la API si un hueco sale de la zona', async () => {
+    const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
+    const outside = hole.map((p) => ({ latitude: p.latitude - 1, longitude: p.longitude }))
+    await expect(createZone({ code: 'X', name: 'Fuera', ring: closedRing, holes: [outside] })).rejects.toThrow(/holes: .*dentro/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('no envía el campo holes cuando no hay huecos', async () => {
+    const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
+    await createZone({ code: 'CENTRO', name: 'Centro', ring: closedRing, holes: [] })
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
+    expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro', ring: closedRing })
+  })
+})

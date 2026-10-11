@@ -10,8 +10,10 @@ export interface Zone {
   id: string
   code: string
   name: string
-  /** Anillo cerrado: el primer punto coincide con el último. */
+  /** Anillo exterior cerrado: el primer punto coincide con el último. */
   ring: Coordinate[]
+  /** Huecos (dona): anillos cerrados dentro del exterior. Vacío si no hay. */
+  holes: Coordinate[][]
   /** RFC 3339, UTC. */
   createdAt: string
 }
@@ -21,17 +23,28 @@ export function parseCoordinate(data: unknown): Coordinate {
   return { latitude: number(o, 'latitude'), longitude: number(o, 'longitude') }
 }
 
+function parseRing(data: unknown, what: string): Coordinate[] {
+  if (!Array.isArray(data)) throw new ParseError(`${what}: expected array`)
+  return data.map((point) => parseCoordinate(point))
+}
+
 export function parseZone(data: unknown): Zone {
   const o = object(data, 'zone')
-  const ring = o.ring
-  if (!Array.isArray(ring)) throw new ParseError('ring: expected array')
+  // Las zonas anteriores a los huecos no traen el campo: se leen como sin huecos.
+  const holes = o.holes === undefined ? [] : parseHoles(o.holes)
   return {
     id: string(o, 'id'),
     code: string(o, 'code'),
     name: string(o, 'name'),
-    ring: ring.map((point) => parseCoordinate(point)),
+    ring: parseRing(o.ring, 'ring'),
+    holes,
     createdAt: string(o, 'createdAt'),
   }
+}
+
+function parseHoles(data: unknown): Coordinate[][] {
+  if (!Array.isArray(data)) throw new ParseError('holes: expected array')
+  return data.map((hole) => parseRing(hole, 'hole'))
 }
 
 /** Un anillo cerrado tiene los vértices más el punto de cierre, y el primero coincide con el último. */

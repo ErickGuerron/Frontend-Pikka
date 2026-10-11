@@ -19,10 +19,23 @@ export interface MapCanvasProps {
   onMapClick: (point: Coordinate) => void
   /** Clic derecho sobre un vértice de `drawing`: recibe sus coordenadas. */
   onVertexRemove?: (point: Coordinate) => void
+  /** Huecos ya guardados de la zona (dona), en ámbar. */
+  holes?: readonly (readonly Coordinate[])[]
+  /** Contorno de referencia que no se edita, por ejemplo el exterior mientras se dibuja un hueco. */
+  reference?: readonly Coordinate[] | null
 }
 
 /** Mapa base de OpenStreetMap, sin API key. Respeta la política de uso de sus teselas. */
-export function MapCanvas({ drawing = [], picked = null, highlight = null, focus = null, onMapClick, onVertexRemove }: MapCanvasProps) {
+export function MapCanvas({
+  drawing = [],
+  picked = null,
+  highlight = null,
+  focus = null,
+  onMapClick,
+  onVertexRemove,
+  holes = [],
+  reference = null,
+}: MapCanvasProps) {
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-[420px] w-full rounded-xl z-0">
       <TileLayer
@@ -31,6 +44,12 @@ export function MapCanvas({ drawing = [], picked = null, highlight = null, focus
       />
       <ClickListener onMapClick={onMapClick} />
       <FocusController target={focus} />
+      {reference !== null && reference.length > 0 && (
+        <Polygon positions={toLatLngTuples(reference)} pathOptions={{ color: '#0e7075', weight: 1, dashArray: '4 4', fill: false }} />
+      )}
+      {holes.map((hole, i) => (
+        <Polygon key={`h-${String(i)}`} positions={toLatLngTuples(hole)} pathOptions={{ color: '#b45309', fillOpacity: 0.35 }} />
+      ))}
       {drawing.length > 0 && <Polygon positions={toLatLngTuples(drawing)} pathOptions={{ color: '#0e7075' }} />}
       {highlight !== null && highlight.length > 0 && (
         <Polygon positions={toLatLngTuples(highlight)} pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }} />

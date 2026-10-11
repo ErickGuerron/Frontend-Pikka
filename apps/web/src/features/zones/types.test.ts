@@ -38,3 +38,15 @@ describe('isClosedRing', () => {
     expect(isClosedRing([s1, s2, s3, s1])).toBe(false)
   })
 })
+
+describe('parseZone con huecos', () => {
+  it('lee los huecos cuando el backend los envía', () => {
+    const hole = [s1, s2, s3, s1]
+    const zone = parseZone({ ...zoneJson, holes: [hole] })
+    expect(zone.holes).toEqual([hole])
+  })
+
+  it('trata una zona sin el campo holes como zona sin huecos', () => {
+    expect(parseZone(zoneJson).holes).toEqual([])
+  })
+})

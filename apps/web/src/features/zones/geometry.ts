@@ -97,3 +97,83 @@ export function zoneShapeError(vertices: readonly Coordinate[]): string | null {
   }
   return null
 }
+
+/** Mismo signo de área que el dominio (holes.go): positivo si el anillo va en sentido antihorario. */
+function signedArea(vertices: readonly Coordinate[]): number {
+  let sum = 0
+  const n = vertices.length
+  for (let i = 0; i < n; i++) {
+    const a = vertices[i]
+    const b = vertices[(i + 1) % n]
+    if (a === undefined || b === undefined) continue
+    sum += a.longitude * b.latitude - b.longitude * a.latitude
+  }
+  return sum
+}
+
+/** Interior estricto de un polígono convexo: ni en el borde ni fuera. Funciona con cualquier orientación. */
+export function strictlyInsideConvex(p: Coordinate, polygon: readonly Coordinate[]): boolean {
+  const n = polygon.length
+  if (n < MIN_ZONE_VERTICES) return false
+  const side = signedArea(polygon) < 0 ? -1 : 1
+  for (let i = 0; i < n; i++) {
+    const a = polygon[i]
+    const b = polygon[(i + 1) % n]
+    if (a === undefined || b === undefined) return false
+    if (side * cross(a, b, p) <= 0) return false
+  }
+  return true
+}
+
+/** Proyección de un polígono sobre un eje: intervalo [mínimo, máximo]. */
+function project(polygon: readonly Coordinate[], x: number, y: number): [number, number] {
+  let lo = Infinity
+  let hi = -Infinity
+  for (const p of polygon) {
+    const v = p.longitude * x + p.latitude * y
+    if (v < lo) lo = v
+    if (v > hi) hi = v
+  }
+  return [lo, hi]
+}
+
+/** Eje separador: un lado de `owner` define una recta que deja a `other` completamente de un lado. */
+function separatedByAxesOf(owner: readonly Coordinate[], other: readonly Coordinate[]): boolean {
+  const n = owner.length
+  for (let i = 0; i < n; i++) {
+    const p = owner[i]
+    const q = owner[(i + 1) % n]
+    if (p === undefined || q === undefined) continue
+    const axisX = -(q.latitude - p.latitude)
+    const axisY = q.longitude - p.longitude
+    const [minO, maxO] = project(owner, axisX, axisY)
+    const [minR, maxR] = project(other, axisX, axisY)
+    if (maxO < minR || maxR < minO) return true
+  }
+  return false
+}
+
+/** Dos polígonos convexos no se tocan ni se superponen (tocarse cuenta como superponerse). */
+export function convexPolygonsDisjoint(a: readonly Coordinate[], b: readonly Coordinate[]): boolean {
+  return separatedByAxesOf(a, b) || separatedByAxesOf(b, a)
+}
+
+/**
+ * Motivo por el que un hueco no puede agregarse a la zona, o null si cabe.
+ * `hole` y `outer` son vértices sin repetir el cierre; `otherHoles` son los huecos ya guardados.
+ */
+export function holeFitError(
+  hole: readonly Coordinate[],
+  outer: readonly Coordinate[],
+  otherHoles: readonly (readonly Coordinate[])[],
+): string | null {
+  const shape = zoneShapeError(hole)
+  if (shape !== null) return shape
+  if (!hole.every((p) => strictlyInsideConvex(p, outer))) {
+    return 'El hueco debe quedar completamente dentro de la zona, sin tocar su borde.'
+  }
+  if (otherHoles.some((other) => !convexPolygonsDisjoint(hole, other))) {
+    return 'El hueco no puede superponerse ni tocar otro hueco.'
+  }
+  return null
+}
