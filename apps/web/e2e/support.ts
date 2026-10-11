@@ -50,8 +50,8 @@ export async function loginAsAdmin(page: Page) {
 }
 
 /** Hace clic en el mapa Leaflet en una posición relativa al contenedor. */
-export async function clickMap(page: Page, x: number, y: number) {
+export async function clickMap(page: Page, x: number, y: number, button: 'left' | 'right' = 'left') {
   const map = page.locator('.leaflet-container').first()
   await expect(map).toBeVisible()
-  await map.click({ position: { x, y } })
+  await map.click({ position: { x, y }, button })
 }

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { type Coordinate, isClosedRing, parseZone } from './types'
 
-const p1: Coordinate = { latitude: 19.43, longitude: -99.13 }
-const p2: Coordinate = { latitude: 19.44, longitude: -99.13 }
-const p3: Coordinate = { latitude: 19.44, longitude: -99.12 }
-const closedRing: Coordinate[] = [p1, p2, p3, p1]
+const s1: Coordinate = { latitude: -0.2, longitude: -78.5 }
+const s2: Coordinate = { latitude: -0.2, longitude: -78.4 }
+const s3: Coordinate = { latitude: -0.1, longitude: -78.4 }
+const s4: Coordinate = { latitude: -0.1, longitude: -78.5 }
+const closedRing: Coordinate[] = [s1, s2, s3, s4, s1]
 
 const zoneJson = { id: 'z-1', code: 'CENTRO', name: 'Centro', ring: closedRing, createdAt: '2026-10-10T12:00:00Z' }
 
@@ -25,16 +26,15 @@ describe('parseZone', () => {
 })
 
 describe('isClosedRing', () => {
-  it('acepta un anillo cerrado de al menos 4 puntos', () => {
+  it('acepta un anillo cerrado de 4 vértices y el punto de cierre', () => {
     expect(isClosedRing(closedRing)).toBe(true)
   })
 
   it('rechaza un anillo abierto', () => {
-    expect(isClosedRing([p1, p2, p3])).toBe(false)
-    expect(isClosedRing([p1, p2, p3, p2])).toBe(false)
+    expect(isClosedRing([s1, s2, s3, s4])).toBe(false)
   })
 
-  it('rechaza un anillo con menos de 4 puntos aunque cierre', () => {
-    expect(isClosedRing([p1, p2, p1])).toBe(false)
+  it('rechaza un anillo de 3 vértices aunque cierre: un triángulo no es una zona', () => {
+    expect(isClosedRing([s1, s2, s3, s1])).toBe(false)
   })
 })

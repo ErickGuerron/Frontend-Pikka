@@ -17,10 +17,12 @@ export interface MapCanvasProps {
   /** Punto al que el mapa se centra (por ejemplo, un resultado de búsqueda). */
   focus?: Coordinate | null
   onMapClick: (point: Coordinate) => void
+  /** Clic derecho sobre un vértice del trazo: recibe su posición en `drawing`. */
+  onVertexRemove?: (index: number) => void
 }
 
 /** Mapa base de OpenStreetMap, sin API key. Respeta la política de uso de sus teselas. */
-export function MapCanvas({ drawing = [], picked = null, highlight = null, focus = null, onMapClick }: MapCanvasProps) {
+export function MapCanvas({ drawing = [], picked = null, highlight = null, focus = null, onMapClick, onVertexRemove }: MapCanvasProps) {
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-[420px] w-full rounded-xl z-0">
       <TileLayer
@@ -34,7 +36,21 @@ export function MapCanvas({ drawing = [], picked = null, highlight = null, focus
         <Polygon positions={toLatLngTuples(highlight)} pathOptions={{ color: '#1bb3b8', fillOpacity: 0.2 }} />
       )}
       {drawing.map((p, i) => (
-        <CircleMarker key={`v-${String(i)}`} center={[p.latitude, p.longitude]} radius={4} pathOptions={{ color: '#0e7075' }} />
+        <CircleMarker
+          key={`v-${String(i)}`}
+          center={[p.latitude, p.longitude]}
+          radius={6}
+          pathOptions={{ color: '#0e7075', fillOpacity: 1 }}
+          eventHandlers={{
+            // Un clic sobre un vértice no cuenta como un nuevo vértice del trazo.
+            click: (event) => { event.originalEvent.stopPropagation(); },
+            contextmenu: (event) => {
+              event.originalEvent.preventDefault()
+              event.originalEvent.stopPropagation()
+              onVertexRemove?.(i)
+            },
+          }}
+        />
       ))}
       {picked !== null && (
         <CircleMarker center={[picked.latitude, picked.longitude]} radius={7} pathOptions={{ color: '#b42318' }} />

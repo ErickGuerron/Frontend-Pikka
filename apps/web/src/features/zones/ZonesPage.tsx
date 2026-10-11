@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useState, type SyntheticEvent } from 'react'
+import { useEffect, useState, type SyntheticEvent } from 'react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
@@ -8,7 +8,8 @@ import type { Coordinate } from '@/features/geo/types'
 import { ApiError, userMessage } from '@/shared/api/errors'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
 import { classifyPoint, createZone } from './api'
-import { appendVertex, closeRing, MIN_VERTICES } from './ring'
+import { zoneShapeError } from './geometry'
+import { addVertex, closeRing, removeVertex } from './ring'
 import type { Zone } from './types'
 
 type Mode = 'classify' | 'draw'
@@ -38,16 +39,20 @@ export function ZonesPage() {
 
   // Dibujo de zonas (solo ADMIN).
   const [drawing, setDrawing] = useState<Coordinate[]>([])
+  const [drawError, setDrawError] = useState<string | null>(null)
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<Zone | null>(null)
-  const ring = closeRing(drawing)
+
+  const shapeError = zoneShapeError(drawing)
+  const ring = shapeError === null ? closeRing(drawing) : null
 
   const save = useMutation({
     mutationFn: createZone,
     onSuccess: (created) => {
       setSaved(created)
       setDrawing([])
+      setDrawError(null)
       setCode('')
       setName('')
     },
@@ -55,8 +60,39 @@ export function ZonesPage() {
 
   const onDrawClick = (point: Coordinate) => {
     setSaved(null)
-    setDrawing((current) => appendVertex(current, point))
+    const result = addVertex(drawing, point)
+    setDrawing(result.points)
+    setDrawError(result.error)
   }
+
+  const removeDrawVertex = (index: number) => {
+    setDrawing((current) => removeVertex(current, index))
+    setDrawError(null)
+  }
+
+  const clearDrawing = () => {
+    setDrawing([])
+    setDrawError(null)
+  }
+
+  // Atajos de teclado para dibujar: Retroceso o Supr quitan el último vértice y Esc limpia el trazo.
+  // No se activan mientras el usuario escribe en un campo, para no borrar el código de la zona.
+  useEffect(() => {
+    if (effectiveMode !== 'draw') return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        event.preventDefault()
+        setDrawing((current) => removeVertex(current, current.length - 1))
+        setDrawError(null)
+      } else if (event.key === 'Escape') {
+        setDrawing([])
+        setDrawError(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => { window.removeEventListener('keydown', onKeyDown); }
+  }, [effectiveMode])
 
   const onSave = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -78,7 +114,7 @@ export function ZonesPage() {
         <p className="text-[11px] text-on-surface-variant leading-tight">
           {effectiveMode === 'classify'
             ? 'Busca una calle o haz clic en el mapa para ver su dirección y a qué zona pertenece.'
-            : 'Haz clic en el mapa para marcar los vértices de la zona. Cierra el anillo cuando termines.'}
+            : 'Marca un trapecio o cuadrado de al menos 4 vértices: sin lados cruzados ni esquinas hacia adentro.'}
         </p>
       </div>
 
@@ -107,16 +143,23 @@ export function ZonesPage() {
         </section>
       ) : (
         <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-2">
-          <LazyMapCanvas drawing={drawing} onMapClick={onDrawClick} />
+          <LazyMapCanvas drawing={drawing} onMapClick={onDrawClick} onVertexRemove={removeDrawVertex} />
         </section>
       )}
 
       {effectiveMode === 'draw' && (
         <section className="bg-surface-container-lowest rounded-xl border border-surface-container-high/60 p-3">
-          <p className="text-[12px] text-on-surface mb-2">
-            Vértices: <span className="font-bold">{drawing.length}</span>
-            {ring === null && <span className="text-on-surface-variant"> (mínimo {MIN_VERTICES})</span>}
-          </p>
+          <div className="flex flex-col gap-1 mb-2 text-[12px] text-on-surface">
+            <p>
+              Vértices: <span className="font-bold">{drawing.length}</span>
+              {drawing.length < 4 && <span className="text-on-surface-variant"> (mínimo 4)</span>}
+            </p>
+            <p className="text-[10px] text-on-surface-variant">
+              Clic: añadir vértice · Clic derecho sobre un vértice o Retroceso: quitar el último · Esc: limpiar el trazo.
+            </p>
+            {drawing.length > 0 && shapeError !== null && <p className="text-[11px] text-on-surface-variant">{shapeError}</p>}
+            {drawError !== null && <ErrorMessage>{drawError}</ErrorMessage>}
+          </div>
           <form className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-end" onSubmit={onSave}>
             <Field label="Código">
               <input className={inputClass} maxLength={32} onChange={(e) => { setCode(e.target.value); }} value={code} />
@@ -127,7 +170,7 @@ export function ZonesPage() {
             <div className="flex gap-2">
               <button
                 className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
-                onClick={() => { setDrawing([]); }}
+                onClick={clearDrawing}
                 type="button"
               >
                 Limpiar trazo
@@ -147,6 +190,12 @@ export function ZonesPage() {
       )}
     </div>
   )
+}
+
+/** Campos de texto: ahí las teclas escriben y no editan el trazo. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
 }
 
 function ModeButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {

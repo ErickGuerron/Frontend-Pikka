@@ -1,5 +1,6 @@
 import type { Coordinate } from '@/features/geo/types'
 import { number, object, ParseError, string } from '@/shared/api/parse'
+import { MIN_ZONE_VERTICES } from './geometry'
 
 export type { Coordinate }
 
@@ -33,9 +34,9 @@ export function parseZone(data: unknown): Zone {
   }
 }
 
-/** Un anillo es válido si tiene al menos 4 puntos (triángulo cerrado) y el primero coincide con el último. */
+/** Un anillo cerrado tiene los vértices más el punto de cierre, y el primero coincide con el último. */
 export function isClosedRing(ring: readonly Coordinate[]): boolean {
-  if (ring.length < 4) return false
+  if (ring.length < MIN_ZONE_VERTICES + 1) return false
   const first = ring[0]
   const last = ring[ring.length - 1]
   if (first === undefined || last === undefined) return false
