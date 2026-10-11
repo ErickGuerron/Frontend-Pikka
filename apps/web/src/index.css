@@ -18,6 +18,15 @@
 }
 
 @theme {
+  /* Marca Pikka (antes en tailwind.config.js, migrado a Tailwind v4). */
+  --color-pikka-dark: #082f32;
+  --color-pikka-deep: #0c3d40;
+  --color-pikka-teal: #0e7075;
+  --color-pikka-cyan: #1bb3b8;
+  --color-pikka-light: #3ec5c9;
+  --color-pikka-mint: #d4f2ee;
+  --font-brand: 'Quicksand', sans-serif;
+
   --color-primary: #004b4e;
   --color-background: #effcff;
   --color-on-primary-fixed: #002021;

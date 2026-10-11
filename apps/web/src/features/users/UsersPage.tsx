@@ -59,12 +59,12 @@ function getRoleBadgeClass(role: Role): string {
 // ─── Modal Component ────────────────────────────────────────────────────────
 
 interface CreateUserModalProps {
-  isOpen: boolean
   onClose: () => void
   onSuccess: () => void
 }
 
-function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
+// Se monta solo mientras está abierto: el estado del formulario empieza limpio en cada apertura.
+function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
   const [form, setForm] = useState<NewUser>(empty)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -78,25 +78,16 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
   })
 
   useEffect(() => {
-    if (!isOpen) {
-      setForm(empty)
-      setShowPassword(false)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-    if (isOpen) {
-      document.addEventListener('keydown', handleEsc)
-      document.body.classList.add('overflow-hidden')
-    }
+    document.addEventListener('keydown', handleEsc)
+    document.body.classList.add('overflow-hidden')
     return () => {
       document.removeEventListener('keydown', handleEsc)
       document.body.classList.remove('overflow-hidden')
     }
-  }, [isOpen, onClose])
+  }, [onClose])
 
   const update = <K extends keyof NewUser>(key: K, value: NewUser[K]) => {
     setForm((f) => ({ ...f, [key]: key === 'role' ? value : value }))
@@ -106,8 +97,6 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
     e.preventDefault()
     mutation.mutate({ ...form, email: form.email.trim(), fullName: form.fullName.trim() })
   }
-
-  if (!isOpen) return null
 
   return (
     <div
@@ -171,7 +160,7 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
                 required
                 type="text"
                 value={form.fullName}
-                onChange={(e) => update('fullName', e.target.value)}
+                onChange={(e) => { update('fullName', e.target.value); }}
               />
             </div>
           </div>
@@ -191,7 +180,7 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
                 required
                 type="email"
                 value={form.email}
-                onChange={(e) => update('email', e.target.value)}
+                onChange={(e) => { update('email', e.target.value); }}
               />
             </div>
           </div>
@@ -212,12 +201,12 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
                 required
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
-                onChange={(e) => update('password', e.target.value)}
+                onChange={(e) => { update('password', e.target.value); }}
               />
               <button
                 aria-label="Mostrar/ocultar contraseña"
                 className="absolute right-3 text-outline hover:text-primary transition-colors cursor-pointer p-1"
-                onClick={() => setShowPassword((v) => !v)}
+                onClick={() => { setShowPassword((v) => !v); }}
                 type="button"
               >
                 <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
@@ -255,7 +244,7 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
                     type="radio"
                     value={r}
                     checked={form.role === r}
-                    onChange={() => update('role', r)}
+                    onChange={() => { update('role', r); }}
                   />
                   <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary text-on-surface transition-all flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
                     <span className="material-symbols-outlined text-2xl">{roleIcons[r]}</span>
@@ -353,7 +342,7 @@ export function UsersPage() {
 
   const handleSuccess = () => {
     setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 2800)
+    setTimeout(() => { setShowSuccess(false); }, 2800)
     void refetch()
   }
 
@@ -374,7 +363,7 @@ export function UsersPage() {
         </div>
         <button
           className="flex items-center gap-1 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-2.5 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer text-[11px] font-semibold self-start lg:self-auto"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setIsModalOpen(true); }}
           type="button"
         >
           <span className="material-symbols-outlined text-sm">person_add</span>
@@ -472,7 +461,7 @@ export function UsersPage() {
               placeholder="Buscar por nombre o correo..."
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); }}
             />
           </div>
           <div className="relative w-full sm:w-40 flex items-center flex-shrink-0">
@@ -480,7 +469,7 @@ export function UsersPage() {
             <select
               className="w-full bg-surface-container-low/70 text-on-surface text-xs pl-8 pr-7 py-2 rounded-lg border-0 focus:ring-2 focus:ring-secondary focus:bg-surface-container-lowest transition-all appearance-none outline-none cursor-pointer font-medium"
               value={hubFilter}
-              onChange={(e) => setHubFilter(e.target.value)}
+              onChange={(e) => { setHubFilter(e.target.value); }}
             >
               <option value="">Todos los Centros</option>
               {hubs.map((h) => (
@@ -496,7 +485,7 @@ export function UsersPage() {
           <div className="flex items-center gap-1 bg-surface-container-low/60 p-0.5 rounded-lg">
             <button
               className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-bold transition-all ${roleFilter === 'ALL' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-              onClick={() => setRoleFilter('ALL')}
+              onClick={() => { setRoleFilter('ALL'); }}
             >
               Todos ({users.length})
             </button>
@@ -504,7 +493,7 @@ export function UsersPage() {
               <button
                 key={r}
                 className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-bold transition-all ${roleFilter === r ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                onClick={() => setRoleFilter(r)}
+                onClick={() => { setRoleFilter(r); }}
               >
                 {roleLabels[r]}s
               </button>
@@ -537,7 +526,7 @@ export function UsersPage() {
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-on-surface">Directorio General de Personal</h2>
             <span className={`font-label-code bg-surface-container-high text-primary px-2 py-0.5 rounded-md font-bold transition-all text-[10px] ${showSuccess ? 'bg-secondary-container text-on-secondary-container' : ''}`}>
-              {showSuccess ? '¡Usuario creado con éxito!' : `${filteredUsers.length} registros activos`}
+              {showSuccess ? '¡Usuario creado con éxito!' : `${String(filteredUsers.length)} registros activos`}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -673,11 +662,12 @@ export function UsersPage() {
       </div>
 
       {/* Modal */}
-      <CreateUserModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={handleSuccess}
-      />
+      {isModalOpen && (
+        <CreateUserModal
+          onClose={() => { setIsModalOpen(false); }}
+          onSuccess={handleSuccess}
+        />
+      )}
     </div>
   )
 }

@@ -26,13 +26,13 @@ describe('login', () => {
     const { router } = renderApp('/orders')
     const user = userEvent.setup()
 
-    await user.type(await screen.findByLabelText('Correo'), ' admin@example.com ')
+    await user.type(await screen.findByLabelText(/^Correo/), ' admin@example.com ')
     await user.type(screen.getByLabelText('Contraseña'), 'admin-password')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
+    await user.click(screen.getByRole('button', { name: 'Iniciar Sesión en Pikka' }))
 
     await waitFor(() => { expect(router.state.location.pathname).toBe('/orders') })
     expect(useSession.getState().token).toBe('tok-123')
-    expect(await screen.findByText('Ana Admin')).toBeInTheDocument()
+    expect(await screen.findByText(/Ana Admin/)).toBeInTheDocument()
     const loginCall = fetchMock.mock.calls.find(([u]) => u.endsWith('/auth/login'))
     expect(sentBody(loginCall?.[1])).toEqual({ email: 'admin@example.com', password: 'admin-password' })
   })
@@ -42,9 +42,9 @@ describe('login', () => {
     renderApp('/login')
     const user = userEvent.setup()
 
-    await user.type(await screen.findByLabelText('Correo'), 'admin@example.com')
+    await user.type(await screen.findByLabelText(/^Correo/), 'admin@example.com')
     await user.type(screen.getByLabelText('Contraseña'), 'mala')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
+    await user.click(screen.getByRole('button', { name: 'Iniciar Sesión en Pikka' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos.')
     expect(useSession.getState().token).toBeNull()
@@ -76,7 +76,8 @@ describe('navegación por rol', () => {
     mockApi((url) => (url.endsWith('/auth/me') ? { status: 200, body: driverUser } : { status: 200, body: { status: 'ready' } }))
     renderApp('/users/new')
 
-    expect(await screen.findByText('Sin acceso')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('No tienes acceso a Usuarios.')
+    expect(screen.getByRole('heading', { name: 'Usa la app móvil de Pikka' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
   })
 })

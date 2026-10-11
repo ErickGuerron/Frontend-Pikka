@@ -26,13 +26,13 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/login$/)
 
-  await page.getByLabel('Correo').fill('admin@example.com')
-  await page.getByLabel('Contraseña').fill('mala-clave')
-  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await page.getByLabel(/^Correo/).fill('admin@example.com')
+  await page.getByLabel('Contraseña', { exact: true }).fill('mala-clave')
+  await page.getByRole('button', { name: 'Iniciar Sesión en Pikka' }).click()
   await expect(page.getByRole('alert')).toHaveText('Correo o contraseña incorrectos.')
 
-  await page.getByLabel('Contraseña').fill('admin-password')
-  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await page.getByLabel('Contraseña', { exact: true }).fill('admin-password')
+  await page.getByRole('button', { name: 'Iniciar Sesión en Pikka' }).click()
   await expect(page.getByRole('heading', { name: 'Hola, Ana Admin' })).toBeVisible()
   await expect(page.getByTestId('system-status')).toHaveText('Backend disponible')
 

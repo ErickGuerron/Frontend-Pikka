@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react'
 import { userMessage } from '@/shared/api/errors'
+import pikkaMascot from '@/assets/pikka.png'
 import { useLogin } from './hooks'
 import { useSession } from './session-store'
 
@@ -54,9 +55,8 @@ export function LoginPage() {
     )
   }
 
-  const handleQuickAccess = (_action: string) => {
-    // Placeholder - no backend logic implemented
-  }
+  // Placeholder - no backend logic implemented
+  const handleQuickAccess = () => {}
 
   const isLoading = loginMutation.isPending
   const isDisabled = isLoading || !email || !password
@@ -120,7 +120,7 @@ export function LoginPage() {
                   <button
                     key={r.id}
                     type="button"
-                    onClick={() => setRole(r.id)}
+                    onClick={() => { setRole(r.id); }}
                     className={`role-btn py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${
                       isSelected
                         ? 'text-white bg-[#0e7075] shadow-md border border-[#1bb3b8]/40'
@@ -155,7 +155,7 @@ export function LoginPage() {
                     autoComplete="username"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); }}
                     disabled={isLoading}
                     className="w-full bg-[#072427]/90 border border-[#1a5457] hover:border-[#1bb3b8]/60 focus:border-[#1bb3b8] text-white text-xs rounded-lg pl-9 pr-3 py-2.5 placeholder-slate-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#1bb3b8]/30 shadow-inner"
                     placeholder="operaciones@pikka.com"
@@ -190,14 +190,14 @@ export function LoginPage() {
                     autoComplete="current-password"
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); }}
                     disabled={isLoading}
                     className="w-full bg-[#072427]/90 border border-[#1a5457] hover:border-[#1bb3b8]/60 focus:border-[#1bb3b8] text-white text-xs rounded-lg pl-9 pr-10 py-2.5 placeholder-slate-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#1bb3b8]/30 shadow-inner"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => { setShowPassword(!showPassword); }}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   >
@@ -257,7 +257,7 @@ export function LoginPage() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => handleQuickAccess('scan')}
+                  onClick={handleQuickAccess}
                   className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#082b2e]/80 hover:bg-[#0c383c] border border-[#1a5457] hover:border-[#1bb3b8]/50 text-slate-200 text-[11px] font-semibold rounded-lg transition duration-150"
                 >
                   <QrCode className="w-3 h-3 text-[#1bb3b8]" />
@@ -265,7 +265,7 @@ export function LoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickAccess('token')}
+                  onClick={handleQuickAccess}
                   className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#082b2e]/80 hover:bg-[#0c383c] border border-[#1a5457] hover:border-[#1bb3b8]/50 text-slate-200 text-[11px] font-semibold rounded-lg transition duration-150"
                 >
                   <Fingerprint className="w-3 h-3 text-[#1bb3b8]" />
@@ -353,7 +353,7 @@ export function LoginPage() {
             <div className="relative group max-w-[320px] w-full flex flex-col items-center justify-center">
               <div className="relative animate-float-slow filter drop-shadow-2xl">
                 <img
-                  src="/src/assets/pikka.png"
+                  src={pikkaMascot}
                   alt="Pikka Nutria Mensajera con paquete y mochila"
                   className="w-full max-h-[240px] sm:max-h-[280px] object-contain select-none transition-transform duration-500 group-hover:scale-105"
                 />

@@ -83,6 +83,23 @@ Las fechas de inicio se definen al arrancar el Sprint 1.
 
 **Criterio de cierre:** suite E2E verde, quality gate aprobado y revisión de seguridad móvil archivada.
 
+## Operador: cola de excepciones (web)
+
+Según el ADR 0007 del backend, el sistema valida los pedidos automáticamente. La web del operador:
+
+- Muestra la cola de pedidos con excepción (dirección fuera de zona, fecha sin capacidad, cliente bloqueado).
+- Confirma, corrige o rechaza cada excepción, con motivo obligatorio.
+- Atiende las disputas de clientes dentro de su plazo.
+
+## Cliente y repartidor en la app móvil
+
+Decisión: una sola app móvil para los roles `CUSTOMER` y `DRIVER` (ADR 0007 del backend). La web no la usa un repartidor.
+
+- **Cliente**: se registra, crea pedidos, sigue su estado y la ruta de su pedido, cancela en `PENDING` o `ROUTE_ASSIGNED`, y presenta disputas dentro del plazo.
+- **Repartidor**: consulta su ruta, marca cada parada y registra el resultado (entregado o no entregado con motivo).
+
+Esto reemplaza las tareas de Mabe en `apps/mobile` de Sprints 2 a 5 y debe reflejarse en sus wireframes.
+
 ## Riesgos del frontend
 
 - **Dependencia del backend:** si un endpoint no está listo, la pantalla se construye contra mocks y se marca como pendiente de integración.
