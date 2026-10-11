@@ -50,3 +50,19 @@ describe('parseZone con huecos', () => {
     expect(parseZone(zoneJson).holes).toEqual([])
   })
 })
+
+describe('parseZone con estado', () => {
+  it('lee el estado y el motivo cuando el backend los envía', () => {
+    const zone = parseZone({ ...zoneJson, status: 'INACTIVE', statusReason: 'Obras' })
+    expect(zone.status).toBe('INACTIVE')
+    expect(zone.statusReason).toBe('Obras')
+  })
+
+  it('lee como activa una zona sin estado (respuesta anterior)', () => {
+    expect(parseZone(zoneJson).status).toBe('ACTIVE')
+  })
+
+  it('rechaza un estado que el contrato no define', () => {
+    expect(() => parseZone({ ...zoneJson, status: 'BORRADA' })).toThrow('unexpected value')
+  })
+})

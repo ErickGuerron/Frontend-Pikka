@@ -1,9 +1,9 @@
 import { http } from '@/shared/api/client'
 import { holeFitError, zoneShapeError } from './geometry'
-import { type Coordinate, type Zone, isClosedRing, parseZone } from './types'
+import { type Coordinate, type Zone, type ZoneStatus, isClosedRing, parseZone } from './types'
 
-export interface NewZone {
-  code: string
+/** Geometría y nombre de una zona. El código lo genera el servidor al crearla y no cambia después. */
+export interface ZoneDraft {
   name: string
   /** Anillo exterior cerrado: el primer punto coincide con el último. */
   ring: Coordinate[]
@@ -16,7 +16,7 @@ export function getZone(id: string): Promise<Zone> {
   return http.get(`/api/v1/zones/${encodeURIComponent(id)}`, parseZone)
 }
 
-/** Todas las zonas registradas. Lo usan ADMIN y OPERATOR. */
+/** Todas las zonas registradas, activas o no. Lo usan ADMIN y OPERATOR. */
 export function listZones(): Promise<Zone[]> {
   return http.get('/api/v1/zones', (data) => {
     if (!Array.isArray(data)) throw new RangeError('zones: se esperaba una lista')
@@ -28,14 +28,14 @@ export function listZones(): Promise<Zone[]> {
  * Valida la figura en el cliente: anillo exterior y huecos cerrados, convexos, y cada hueco
  * dentro del exterior sin tocar otro. Devuelve el motivo o null. El backend vuelve a validarlo.
  */
-function zoneInputError(input: NewZone): string | null {
-  if (!isClosedRing(input.ring)) return 'ring: el anillo debe cerrarse sobre su primer punto'
-  const outer = input.ring.slice(0, -1)
+function zoneDraftError(draft: ZoneDraft): string | null {
+  if (!isClosedRing(draft.ring)) return 'ring: el anillo debe cerrarse sobre su primer punto'
+  const outer = draft.ring.slice(0, -1)
   const shapeError = zoneShapeError(outer)
   if (shapeError !== null) return `ring: ${shapeError}`
 
   const placed: Coordinate[][] = []
-  for (const hole of input.holes ?? []) {
+  for (const hole of draft.holes ?? []) {
     if (!isClosedRing(hole)) return 'holes: cada hueco debe cerrarse sobre su primer punto'
     const vertices = hole.slice(0, -1)
     const fitError = holeFitError(vertices, outer, placed)
@@ -45,28 +45,39 @@ function zoneInputError(input: NewZone): string | null {
   return null
 }
 
-/** Cuerpo de la petición: sin huecos se envía como antes; el backend acepta el campo opcional. */
-function zoneBody(input: NewZone): NewZone {
-  return (input.holes ?? []).length > 0 ? input : { code: input.code, name: input.name, ring: input.ring }
+/** Cuerpo de la petición: sin huecos se envía solo lo necesario; el backend acepta el campo opcional. */
+function zoneBody(draft: ZoneDraft): ZoneDraft {
+  return (draft.holes ?? []).length > 0 ? draft : { name: draft.name, ring: draft.ring }
 }
 
 /**
- * Registra una zona. Rechaza en el cliente figuras inválidas antes de llamar a la API.
+ * Crea una zona. El código lo asigna el servidor a partir del nombre (NORTE-001).
+ * Rechaza en el cliente figuras inválidas antes de llamar a la API.
  */
-export function createZone(input: NewZone): Promise<Zone> {
-  const error = zoneInputError(input)
+export function createZone(draft: ZoneDraft): Promise<Zone> {
+  const error = zoneDraftError(draft)
   if (error !== null) return Promise.reject(new RangeError(error))
-  return http.post('/api/v1/zones', parseZone, { body: zoneBody(input) })
+  return http.post('/api/v1/zones', parseZone, { body: zoneBody(draft) })
 }
 
-/** Redibuja una zona existente con las mismas reglas que la creación. */
-export function updateZone(id: string, input: NewZone): Promise<Zone> {
-  const error = zoneInputError(input)
+/** Redibuja una zona activa con las mismas reglas que la creación. El código no cambia. */
+export function updateZone(id: string, draft: ZoneDraft): Promise<Zone> {
+  const error = zoneDraftError(draft)
   if (error !== null) return Promise.reject(new RangeError(error))
-  return http.put(`/api/v1/zones/${encodeURIComponent(id)}`, parseZone, { body: zoneBody(input) })
+  return http.put(`/api/v1/zones/${encodeURIComponent(id)}`, parseZone, { body: zoneBody(draft) })
 }
 
-/** Devuelve la zona que contiene una coordenada. La API responde 404 si ninguna la contiene. */
+/** Activa o desactiva una zona. El motivo es obligatorio y queda en la bitácora. */
+export function setZoneStatus(id: string, status: ZoneStatus, reason: string): Promise<Zone> {
+  return http.patch(`/api/v1/zones/${encodeURIComponent(id)}/status`, parseZone, { body: { status, reason } })
+}
+
+/** Borra una zona inactiva. La API responde 204 sin cuerpo. */
+export function deleteZone(id: string, reason: string): Promise<void> {
+  return http.delete(`/api/v1/zones/${encodeURIComponent(id)}`, () => undefined, { body: { reason } })
+}
+
+/** Devuelve la zona activa que contiene una coordenada. La API responde 404 si ninguna la contiene. */
 export function classifyPoint(point: Coordinate, signal?: AbortSignal): Promise<Zone> {
   const query = new URLSearchParams({
     latitude: String(point.latitude),

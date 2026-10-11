@@ -5,9 +5,11 @@ import { PlaceSearch } from '@/features/geo/PlaceSearch'
 import type { Coordinate } from '@/features/geo/types'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
-import { createZone, listZones, type NewZone, updateZone } from './api'
+import { createZone, listZones, updateZone, type ZoneDraft } from './api'
+import { codePreview } from './code'
 import { holeFitError, MIN_ZONE_VERTICES, zoneShapeError } from './geometry'
 import { addPoint, closeRing, removeLastVertex, removePoint, zoneVertices } from './ring'
+import { ZoneList } from './ZoneList'
 import type { Zone } from './types'
 
 /** Qué anillo se está trazando: el exterior de la zona o un hueco (dona). */
@@ -22,24 +24,23 @@ interface Saved {
 interface SaveRequest {
   /** Identificador de la zona que se redibuja, o null si es una zona nueva. */
   id: string | null
-  input: NewZone
+  draft: ZoneDraft
 }
 
 /**
  * Dibujo de zonas (solo ADMIN). Se traza el exterior y, opcionalmente, huecos dentro de él.
- * Las zonas registradas se pueden seleccionar para redibujarlas: se cargan en el editor y
- * al guardar reemplazan a la zona original.
+ * El código lo asigna el servidor al crear la zona (se muestra una vista previa mientras se escribe).
+ * Las zonas registradas se pueden redibujar: se cargan en el editor y al guardar reemplazan a la original.
  */
 export function DrawZonePanel() {
   const queryClient = useQueryClient()
   const zonesQuery = useQuery({ queryKey: ['zones', 'list'], queryFn: listZones })
 
-  const [editingZoneId, setEditingZoneId] = useState<string | null>(null)
+  const [editingZone, setEditingZone] = useState<Zone | null>(null)
   const [outerPoints, setOuterPoints] = useState<Coordinate[]>([])
   const [holePoints, setHolePoints] = useState<Coordinate[]>([])
   const [holes, setHoles] = useState<Coordinate[][]>([])
   const [editing, setEditing] = useState<Editing>('outer')
-  const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<Saved | null>(null)
   // Búsqueda de calle o lugar: solo centra el mapa, nunca marca un punto.
@@ -62,17 +63,16 @@ export function DrawZonePanel() {
   const activeVertices = editing === 'outer' ? outerVertices : holeVertices
 
   const resetDraft = () => {
-    setEditingZoneId(null)
+    setEditingZone(null)
     setOuterPoints([])
     setHolePoints([])
     setHoles([])
     setEditing('outer')
-    setCode('')
     setName('')
   }
 
   const save = useMutation({
-    mutationFn: ({ id, input }: SaveRequest) => (id === null ? createZone(input) : updateZone(id, input)),
+    mutationFn: ({ id, draft }: SaveRequest) => (id === null ? createZone(draft) : updateZone(id, draft)),
     onSuccess: (zone, { id }) => {
       setSaved({ zone, updated: id !== null })
       resetDraft()
@@ -83,12 +83,11 @@ export function DrawZonePanel() {
   /** Carga una zona registrada en el editor para redibujarla. */
   const startRedraw = (zone: Zone) => {
     setSaved(null)
-    setEditingZoneId(zone.id)
+    setEditingZone(zone)
     setOuterPoints(zone.ring.slice(0, -1))
     setHoles(zone.holes.map((hole) => hole.slice(0, -1)))
     setHolePoints([])
     setEditing('outer')
-    setCode(zone.code)
     setName(zone.name)
   }
 
@@ -98,7 +97,7 @@ export function DrawZonePanel() {
   }
 
   // Atajos: Retroceso o Supr quitan el último vértice y Esc limpia el anillo en edición.
-  // No se activan mientras el usuario escribe en un campo, para no borrar el código de la zona.
+  // No se activan mientras el usuario escribe en un campo, para no borrar el nombre de la zona.
   useEffect(() => {
     const setActive = editing === 'outer' ? setOuterPoints : setHolePoints
     const onKeyDown = (event: KeyboardEvent) => {
@@ -135,7 +134,7 @@ export function DrawZonePanel() {
     setHoles((current) => current.filter((_, i) => i !== index))
   }
 
-  const canSave = editing === 'outer' && outerRing !== null && code.trim() !== '' && name.trim() !== '' && !save.isPending
+  const canSave = editing === 'outer' && outerRing !== null && name.trim() !== '' && !save.isPending
   const activeError = editing === 'outer' ? outerShapeError : holeError
 
   const onSave = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -143,8 +142,8 @@ export function DrawZonePanel() {
     if (outerRing === null || !canSave) return
     const closedHoles = holes.map((hole) => closeRing(hole)).filter((hole): hole is Coordinate[] => hole !== null)
     save.mutate({
-      id: editingZoneId,
-      input: { code: code.trim(), name: name.trim(), ring: outerRing, holes: closedHoles },
+      id: editingZone?.id ?? null,
+      draft: { name: name.trim(), ring: outerRing, holes: closedHoles },
     })
   }
 
@@ -166,36 +165,14 @@ export function DrawZonePanel() {
         <h2 className="text-[12px] font-bold text-on-surface mb-2">Zonas registradas</h2>
         {zonesQuery.isPending && <p className="text-[11px] text-on-surface-variant">Cargando zonas…</p>}
         {zonesQuery.isError && <ErrorMessage>No pudimos cargar las zonas. {userMessage(zonesQuery.error)}</ErrorMessage>}
-        {zonesQuery.isSuccess && zonesQuery.data.length === 0 && (
-          <p className="text-[11px] text-on-surface-variant">Aún no hay zonas. Dibuja la primera abajo.</p>
-        )}
-        {zonesQuery.isSuccess && zonesQuery.data.length > 0 && (
-          <ul className="flex flex-col gap-1">
-            {zonesQuery.data.map((zone) => (
-              <li
-                key={zone.id}
-                className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-[11px] ${zone.id === editingZoneId ? 'bg-primary-fixed/60' : ''}`}
-              >
-                <span className="text-on-surface">
-                  <span className="font-bold">{zone.name}</span> ({zone.code}) · {zone.holes.length} {zone.holes.length === 1 ? 'hueco' : 'huecos'}
-                </span>
-                <button
-                  aria-label={`Redibujar ${zone.code}`}
-                  className="px-2 py-1 rounded-md text-[11px] font-semibold text-primary hover:bg-surface-container cursor-pointer"
-                  onClick={() => { startRedraw(zone); }}
-                  type="button"
-                >
-                  Redibujar
-                </button>
-              </li>
-            ))}
-          </ul>
+        {zonesQuery.isSuccess && (
+          <ZoneList zones={zonesQuery.data} editingZoneId={editingZone?.id ?? null} onRedraw={startRedraw} />
         )}
       </section>
 
       <section className="bg-surface-container-lowest rounded-xl border border-surface-container-high/60 p-3">
         <div className="flex flex-col gap-1 mb-2 text-[12px] text-on-surface">
-          <p className="font-bold">{editingZoneId === null ? 'Nueva zona' : `Redibujando ${code}`}</p>
+          <p className="font-bold">{editingZone === null ? 'Nueva zona' : `Redibujando ${editingZone.code}`}</p>
           {saved !== null && (
             <p role="status" className="text-[11px] text-on-surface">
               Zona {saved.zone.code} {saved.updated ? 'actualizada' : 'guardada'}.
@@ -257,12 +234,13 @@ export function DrawZonePanel() {
         )}
 
         <form className="grid grid-cols-1 lg:grid-cols-3 gap-2 items-end" onSubmit={onSave}>
-          <Field label="Código">
-            <input className={inputClass} maxLength={32} onChange={(e) => { setCode(e.target.value); }} value={code} />
-          </Field>
           <Field label="Nombre">
             <input className={inputClass} maxLength={120} onChange={(e) => { setName(e.target.value); }} value={name} />
           </Field>
+          <p className="text-[11px] text-on-surface-variant">
+            Código: <span className="font-bold text-on-surface">{editingZone?.code ?? codePreview(name)}</span>
+            {editingZone === null && <span> · se asigna al guardar</span>}
+          </p>
           <div className="flex flex-wrap gap-2">
             <button
               className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
@@ -271,7 +249,7 @@ export function DrawZonePanel() {
             >
               Limpiar trazo
             </button>
-            {editingZoneId !== null && (
+            {editingZone !== null && (
               <button
                 className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
                 onClick={resetDraft}
@@ -285,7 +263,7 @@ export function DrawZonePanel() {
               disabled={!canSave}
               type="submit"
             >
-              {save.isPending ? 'Guardando…' : editingZoneId === null ? 'Guardar zona' : 'Guardar cambios'}
+              {save.isPending ? 'Guardando…' : editingZone === null ? 'Guardar zona' : 'Guardar cambios'}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mockApi, sentBody } from '@/test/utils'
-import { classifyPoint, createZone, getZone, listZones, updateZone } from './api'
+import { classifyPoint, createZone, deleteZone, getZone, listZones, setZoneStatus, updateZone } from './api'
 import type { Coordinate } from './types'
 
 const s1: Coordinate = { latitude: -0.2, longitude: -78.5 }
@@ -37,20 +37,20 @@ describe('getZone', () => {
 describe('createZone', () => {
   it('envía la zona con un cuadrado cerrado', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ code: 'CENTRO', name: 'Centro', ring: closedRing })
+    await createZone({ name: 'Centro', ring: closedRing })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing })
   })
 
   it('no llama a la API si el anillo está abierto', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await expect(createZone({ code: 'X', name: 'Abierta', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
+    await expect(createZone({ name: 'Abierta', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('no llama a la API si la figura no es convexa', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await expect(createZone({ code: 'X', name: 'Dardo', ring: dartRing })).rejects.toThrow(/convexa/)
+    await expect(createZone({ name: 'Dardo', ring: dartRing })).rejects.toThrow(/convexa/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
@@ -83,23 +83,23 @@ describe('createZone con huecos', () => {
 
   it('envía los huecos cuando están dentro de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ code: 'DONA', name: 'Dona', ring: closedRing, holes: [hole] })
+    await createZone({ name: 'Dona', ring: closedRing, holes: [hole] })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ code: 'DONA', name: 'Dona', ring: closedRing, holes: [hole] })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Dona', ring: closedRing, holes: [hole] })
   })
 
   it('no llama a la API si un hueco sale de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
     const outside = hole.map((p) => ({ latitude: p.latitude - 1, longitude: p.longitude }))
-    await expect(createZone({ code: 'X', name: 'Fuera', ring: closedRing, holes: [outside] })).rejects.toThrow(/holes: .*dentro/)
+    await expect(createZone({ name: 'Fuera', ring: closedRing, holes: [outside] })).rejects.toThrow(/holes: .*dentro/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('no envía el campo holes cuando no hay huecos', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ code: 'CENTRO', name: 'Centro', ring: closedRing, holes: [] })
+    await createZone({ name: 'Centro', ring: closedRing, holes: [] })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing })
   })
 })
 
@@ -113,15 +113,35 @@ describe('listZones y updateZone', () => {
 
   it('redibuja con PUT sobre el identificador de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
-    await updateZone('z-1', { code: 'CENTRO', name: 'Centro 2', ring: closedRing })
+    await updateZone('z-1', { name: 'Centro 2', ring: closedRing })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
     expect(call?.[0]).toMatch(/\/api\/v1\/zones\/z-1$/)
-    expect(sentBody(call?.[1])).toEqual({ code: 'CENTRO', name: 'Centro 2', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro 2', ring: closedRing })
   })
 
   it('no llama a la API al redibujar con una figura inv�lida', async () => {
     const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
-    await expect(updateZone('z-1', { code: 'X', name: 'X', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
+    await expect(updateZone('z-1', { name: 'X', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('setZoneStatus y deleteZone', () => {
+  it('desactiva con PATCH enviando el motivo', async () => {
+    const fetchMock = mockApi(() => ({ status: 200, body: { ...zoneBody, status: 'INACTIVE', statusReason: 'Obras' } }))
+    const zone = await setZoneStatus('z-1', 'INACTIVE', 'Obras en la avenida')
+    expect(zone.status).toBe('INACTIVE')
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(call?.[0]).toMatch(/\/api\/v1\/zones\/z-1\/status$/)
+    expect(sentBody(call?.[1])).toEqual({ status: 'INACTIVE', reason: 'Obras en la avenida' })
+  })
+
+  it('borra con DELETE enviando el motivo y acepta la respuesta 204 sin cuerpo', async () => {
+    // El simulador no puede enviar un 204 sin cuerpo; el cliente trata cualquier cuerpo vacío como null.
+    const fetchMock = mockApi(() => ({ status: 200, body: null }))
+    await expect(deleteZone('z-1', 'Zona creada por error')).resolves.toBeUndefined()
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'DELETE')
+    expect(call?.[0]).toMatch(/\/api\/v1\/zones\/z-1$/)
+    expect(sentBody(call?.[1])).toEqual({ reason: 'Zona creada por error' })
   })
 })

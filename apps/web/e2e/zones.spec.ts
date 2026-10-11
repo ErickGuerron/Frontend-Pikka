@@ -57,7 +57,7 @@ test('dibuja una zona: un punto interior no cambia la forma, se quita con clic d
   await page.route('**/api/v1/zones', async (route) => {
     if (route.request().method() === 'POST') {
       created.push(route.request().postDataJSON())
-      await route.fulfill({ status: 201, json: { ...centro, id: '33333333-3333-3333-3333-333333333333', code: 'NORTE', name: 'Zona Norte' } })
+      await route.fulfill({ status: 201, json: { ...centro, id: '33333333-3333-3333-3333-333333333333', code: 'NORTE-001', name: 'Zona Norte' } })
     }
   })
   await loginAsAdmin(page)
@@ -88,7 +88,6 @@ test('dibuja una zona: un punto interior no cambia la forma, se quita con clic d
   await expect(page.getByText(/Vértices: 3/)).toBeVisible()
 
   // Se vuelve a marcar el cuadrado en el mismo orden.
-  await page.getByLabel('Código').fill('NORTE')
   await page.getByLabel('Nombre').fill('Zona Norte')
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
   await clickMap(page, 300, 300)
@@ -97,8 +96,9 @@ test('dibuja una zona: un punto interior no cambia la forma, se quita con clic d
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
   await page.getByRole('button', { name: 'Guardar zona' }).click()
 
-  await expect(page.getByRole('status')).toContainText('Zona NORTE guardada.')
+  await expect(page.getByRole('status')).toContainText('Zona NORTE-001 guardada.')
   expect(created).toHaveLength(1)
+  expect(created[0]).not.toHaveProperty('code')
   const body = created[0] as { ring: { latitude: number; longitude: number }[] }
   expect(body.ring).toHaveLength(5)
   expect(body.ring[0]).toEqual(body.ring[4])
@@ -128,7 +128,6 @@ test('quita un vértice intermedio y al volver a marcarlo la forma vuelve a cuat
   await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
 
-  await page.getByLabel('Código').fill('CENTRO-2')
   await page.getByLabel('Nombre').fill('Zona Centro 2')
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
 })
@@ -156,7 +155,7 @@ test('dibuja una zona con hueco (dona) y la guarda con el hueco incluido', async
   await page.route('**/api/v1/zones', async (route) => {
     if (route.request().method() === 'POST') {
       created.push(route.request().postDataJSON())
-      await route.fulfill({ status: 201, json: { ...centro, id: '44444444-4444-4444-4444-444444444444', code: 'DONA', name: 'Dona Centro' } })
+      await route.fulfill({ status: 201, json: { ...centro, id: '44444444-4444-4444-4444-444444444444', code: 'DONA-001', name: 'Dona Centro' } })
     }
   })
   await loginAsAdmin(page)
@@ -182,12 +181,12 @@ test('dibuja una zona con hueco (dona) y la guarda con el hueco incluido', async
   await page.getByRole('button', { name: 'Terminar hueco' }).click()
   await expect(page.getByText(/Huecos: 1/)).toBeVisible()
 
-  await page.getByLabel('Código').fill('DONA')
   await page.getByLabel('Nombre').fill('Dona Centro')
   await page.getByRole('button', { name: 'Guardar zona' }).click()
 
-  await expect(page.getByRole('status')).toContainText('Zona DONA guardada.')
+  await expect(page.getByRole('status')).toContainText('Zona DONA-001 guardada.')
   expect(created).toHaveLength(1)
+  expect(created[0]).not.toHaveProperty('code')
   const body = created[0] as { ring: unknown[]; holes: { latitude: number; longitude: number }[][] }
   expect(body.ring).toHaveLength(5)
   expect(body.holes).toHaveLength(1)
@@ -276,7 +275,7 @@ test('redibuja una zona registrada: la carga en el editor y guarda los cambios c
   await expect(page.getByText('Redibujando DONA')).toBeVisible()
   await expect(page.getByText(/Exterior · Vértices: 4/)).toBeVisible()
   await expect(page.getByText(/Huecos: 1/)).toBeVisible()
-  await expect(page.getByLabel('Código')).toHaveValue('DONA')
+  await expect(page.locator('p', { hasText: 'Código:' })).toContainText('DONA')
 
   await page.getByLabel('Nombre').fill('Dona nueva')
   await page.getByRole('button', { name: 'Guardar cambios' }).click()
@@ -287,4 +286,48 @@ test('redibuja una zona registrada: la carga en el editor y guarda los cambios c
   const body = updates[0]?.body as { name: string; holes: unknown[] }
   expect(body.name).toBe('Dona nueva')
   expect(body.holes).toHaveLength(1)
+})
+test('desactiva, reactiva y borra una zona: cada cambio pide motivo', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  let zones: unknown[] = [{ ...dona, status: 'ACTIVE', statusReason: '' }]
+  const statusChanges: unknown[] = []
+  const deletions: unknown[] = []
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: zones }))
+  await page.route('**/api/v1/zones/*/status', async (route) => {
+    const body = route.request().postDataJSON() as { status: string; reason: string }
+    statusChanges.push(body)
+    zones = [{ ...dona, status: body.status, statusReason: body.reason }]
+    await route.fulfill({ json: zones[0] })
+  })
+  await page.route('**/api/v1/zones/*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      deletions.push(route.request().postDataJSON())
+      zones = []
+      await route.fulfill({ status: 204, body: '' })
+    }
+  })
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  // Desactivar: el motivo es obligatorio.
+  await page.getByRole('button', { name: 'Desactivar DONA' }).click()
+  await page.getByRole('button', { name: 'Confirmar desactivación' }).click()
+  await expect(page.getByText('Escribe el motivo (mínimo 5 caracteres).')).toBeVisible()
+  expect(statusChanges).toHaveLength(0)
+
+  await page.getByLabel('Motivo').fill('Obras en la avenida principal')
+  await page.getByRole('button', { name: 'Confirmar desactivación' }).click()
+  await expect(page.getByText('Inactiva', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Redibujar DONA' })).toHaveCount(0)
+  expect(statusChanges).toEqual([{ status: 'INACTIVE', reason: 'Obras en la avenida principal' }])
+
+  // Borrar: solo disponible para zonas inactivas, y también pide motivo.
+  await page.getByRole('button', { name: 'Eliminar DONA' }).click()
+  await page.getByLabel('Motivo').fill('Zona creada por error de captura')
+  await page.getByRole('button', { name: 'Confirmar borrado' }).click()
+  await expect(page.getByText('Aún no hay zonas')).toBeVisible()
+  expect(deletions).toEqual([{ reason: 'Zona creada por error de captura' }])
 })

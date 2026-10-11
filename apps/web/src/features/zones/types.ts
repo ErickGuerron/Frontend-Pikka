@@ -1,5 +1,5 @@
 import type { Coordinate } from '@/features/geo/types'
-import { number, object, ParseError, string } from '@/shared/api/parse'
+import { enumValue, number, object, ParseError, string } from '@/shared/api/parse'
 import { MIN_ZONE_VERTICES } from './geometry'
 
 export type { Coordinate }
@@ -14,8 +14,20 @@ export interface Zone {
   ring: Coordinate[]
   /** Huecos (dona): anillos cerrados dentro del exterior. Vacío si no hay. */
   holes: Coordinate[][]
+  /** Activa: clasifica puntos y valida pedidos. Inactiva: se conserva para el historial. */
+  status: ZoneStatus
+  /** Motivo del último cambio de estado. Vacío si nunca se ha desactivado. */
+  statusReason: string
   /** RFC 3339, UTC. */
   createdAt: string
+}
+
+export const zoneStatuses = ['ACTIVE', 'INACTIVE'] as const
+export type ZoneStatus = (typeof zoneStatuses)[number]
+
+export const zoneStatusLabels: Record<ZoneStatus, string> = {
+  ACTIVE: 'Activa',
+  INACTIVE: 'Inactiva',
 }
 
 export function parseCoordinate(data: unknown): Coordinate {
@@ -32,12 +44,16 @@ export function parseZone(data: unknown): Zone {
   const o = object(data, 'zone')
   // Las zonas anteriores a los huecos no traen el campo: se leen como sin huecos.
   const holes = o.holes === undefined ? [] : parseHoles(o.holes)
+  // Las respuestas anteriores a la desactivación no traen estado: se leen como activas.
+  const status = o.status === undefined ? 'ACTIVE' : enumValue(o.status, zoneStatuses, 'status')
   return {
     id: string(o, 'id'),
     code: string(o, 'code'),
     name: string(o, 'name'),
     ring: parseRing(o.ring, 'ring'),
     holes,
+    status,
+    statusReason: o.statusReason === undefined ? '' : string(o, 'statusReason'),
     createdAt: string(o, 'createdAt'),
   }
 }
