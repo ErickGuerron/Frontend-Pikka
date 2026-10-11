@@ -447,3 +447,100 @@ test('despues de redibujar y buscar un lugar, volver a redibujar la zona la encu
   await page.getByRole('button', { name: 'Redibujar GUAY-003' }).click()
   await expect(outline).toBeInViewport()
 })
+
+test('buscar un lugar lejano y elegir la zona de inmediato la encuadra, aunque el mapa siga viajando', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  // Photon devuelve Miami: un viaje largo del mapa, que debe detenerse al pedir la zona.
+  await page.route('**/photon.komoot.io/**', (route) =>
+    route.fulfill({
+      json: {
+        features: [
+          {
+            geometry: { type: 'Point', coordinates: [-80.1918, 25.7617] },
+            properties: { name: 'Miami', city: 'Miami', country: 'Estados Unidos' },
+          },
+        ],
+      },
+    }),
+  )
+  const guayaquil = {
+    id: '99999999-9999-9999-9999-999999999999',
+    code: 'GUAY-004',
+    name: 'Guayaquil Oeste',
+    ring: [
+      { latitude: -2.19, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.91 },
+    ],
+    holes: [],
+    status: 'ACTIVE',
+    statusReason: '',
+    createdAt: '2026-10-03T00:00:00Z',
+  }
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  const shown = page.locator('path[stroke="#1bb3b8"]')
+
+  await page.getByLabel('Buscar calle o lugar').fill('Miami')
+  await page.getByRole('button', { name: /Miami/ }).click()
+
+  // Esperar a que el mapa llegue a Miami, como lo hace una persona.
+  await page.waitForTimeout(4000)
+  await page.getByRole('button', { name: 'Ver GUAY-004 en el mapa' }).click()
+  await expect(shown).toBeInViewport()
+})
+
+test('buscar un lugar lejano y redibujar la zona despues de esperar, la encuadra', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  // Photon devuelve Miami: un viaje largo del mapa, que debe detenerse al pedir la zona.
+  await page.route('**/photon.komoot.io/**', (route) =>
+    route.fulfill({
+      json: {
+        features: [
+          {
+            geometry: { type: 'Point', coordinates: [-80.1918, 25.7617] },
+            properties: { name: 'Miami', city: 'Miami', country: 'Estados Unidos' },
+          },
+        ],
+      },
+    }),
+  )
+  const guayaquil = {
+    id: '99999999-9999-9999-9999-999999999999',
+    code: 'GUAY-004',
+    name: 'Guayaquil Oeste',
+    ring: [
+      { latitude: -2.19, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.89 },
+      { latitude: -2.17, longitude: -79.91 },
+      { latitude: -2.19, longitude: -79.91 },
+    ],
+    holes: [],
+    status: 'ACTIVE',
+    statusReason: '',
+    createdAt: '2026-10-03T00:00:00Z',
+  }
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  const shown = page.locator('path[stroke="#1bb3b8"]')
+
+  await page.getByLabel('Buscar calle o lugar').fill('Miami')
+  await page.getByRole('button', { name: /Miami/ }).click()
+
+  // Esperar a que el mapa llegue a Miami, como lo hace una persona.
+  await page.waitForTimeout(4000)
+  await page.getByRole('button', { name: 'Redibujar GUAY-004' }).click()
+  await expect(page.getByText('Redibujando GUAY-004')).toBeVisible()
+  await expect(page.locator('path[stroke="#0e7075"]').first()).toBeInViewport()
+})
