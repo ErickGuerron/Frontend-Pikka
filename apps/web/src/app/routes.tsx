@@ -3,6 +3,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequireSection } from '@/features/auth/guards'
 import { DriversPage } from '@/features/drivers/DriversPage'
 import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
+import { LandingPage } from '@/features/landing/LandingPage'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { RoutesPage } from '@/features/routing/RoutesPage'
 import { AppLayout } from '@/features/shell/AppLayout'
@@ -15,6 +16,7 @@ import { NotFoundPage } from './NotFoundPage'
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
+  { path: '/inicio', element: <LandingPage /> },
   {
     path: '/',
     element: (

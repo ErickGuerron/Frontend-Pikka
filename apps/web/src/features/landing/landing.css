@@ -1,0 +1,54 @@
+/* Landing-only styles. Color tokens come from the shared Tailwind theme. */
+.landing {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: #effcff;
+  color: #061f23;
+  overflow-x: hidden;
+}
+
+html:has(.landing) {
+  scroll-behavior: smooth;
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.landing-float {
+  animation: landing-float 5s ease-in-out infinite;
+}
+
+@keyframes landing-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.landing-route {
+  animation: landing-dash 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing) {
+    scroll-behavior: auto;
+  }
+  .landing-float,
+  .landing-route {
+    animation: none;
+  }
+}
+
+/*
+ * The back-office stylesheet sets a global `a { color }` that is unlayered, so it
+ * beats Tailwind utilities (which live in a cascade layer). Links in the landing
+ * that carry a text-* utility must get their color from that utility.
+ */
+.landing a[class*='text-'] {
+  color: revert-layer;
+}
