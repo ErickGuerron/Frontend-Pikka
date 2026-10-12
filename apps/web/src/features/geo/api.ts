@@ -12,6 +12,9 @@ export const PHOTON_URL = 'https://photon.komoot.io'
 
 const SEARCH_LIMIT = 5
 
+/** Sin respuesta en este tiempo, la búsqueda se da por fallida para no dejar la UI esperando. */
+export const PHOTON_TIMEOUT_MS = 8000
+
 /** Busca calles y lugares. Devuelve hasta SEARCH_LIMIT resultados. */
 export function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
   const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(query)}&limit=${String(SEARCH_LIMIT)}`
@@ -25,9 +28,19 @@ export async function reversePlace(latitude: number, longitude: number, signal?:
   return first ?? null
 }
 
+/** Cancela si el llamante cancela o si pasa el tiempo límite; lo que ocurra primero. */
 async function fetchPlaces(url: string, signal?: AbortSignal): Promise<Place[]> {
-  const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: signal ?? null })
-  if (!response.ok) throw new Error(`geocoder HTTP ${String(response.status)}`)
-  const body: unknown = await response.json()
-  return parsePhotonFeatures(body)
+  const controller = new AbortController()
+  const cancel = () => { controller.abort(); }
+  const timer = setTimeout(cancel, PHOTON_TIMEOUT_MS)
+  signal?.addEventListener('abort', cancel)
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
+    if (!response.ok) throw new Error(`geocoder HTTP ${String(response.status)}`)
+    const body: unknown = await response.json()
+    return parsePhotonFeatures(body)
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', cancel)
+  }
 }

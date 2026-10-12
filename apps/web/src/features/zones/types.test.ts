@@ -38,3 +38,31 @@ describe('isClosedRing', () => {
     expect(isClosedRing([s1, s2, s3, s1])).toBe(false)
   })
 })
+
+describe('parseZone con huecos', () => {
+  it('lee los huecos cuando el backend los envía', () => {
+    const hole = [s1, s2, s3, s1]
+    const zone = parseZone({ ...zoneJson, holes: [hole] })
+    expect(zone.holes).toEqual([hole])
+  })
+
+  it('trata una zona sin el campo holes como zona sin huecos', () => {
+    expect(parseZone(zoneJson).holes).toEqual([])
+  })
+})
+
+describe('parseZone con estado', () => {
+  it('lee el estado y el motivo cuando el backend los envía', () => {
+    const zone = parseZone({ ...zoneJson, status: 'INACTIVE', statusReason: 'Obras' })
+    expect(zone.status).toBe('INACTIVE')
+    expect(zone.statusReason).toBe('Obras')
+  })
+
+  it('lee como activa una zona sin estado (respuesta anterior)', () => {
+    expect(parseZone(zoneJson).status).toBe('ACTIVE')
+  })
+
+  it('rechaza un estado que el contrato no define', () => {
+    expect(() => parseZone({ ...zoneJson, status: 'BORRADA' })).toThrow('unexpected value')
+  })
+})
