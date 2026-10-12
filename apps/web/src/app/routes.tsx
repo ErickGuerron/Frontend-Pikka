@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequireSection } from '@/features/auth/guards'
+import { MyOrdersPage } from '@/features/customer-orders/MyOrdersPage'
 import { DriversPage } from '@/features/drivers/DriversPage'
 import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
 import { LandingPage } from '@/features/landing/LandingPage'
@@ -34,6 +35,7 @@ export const routes: RouteObject[] = [
       { path: 'tracking', element: <RequireSection section="tracking"><TrackingPage /></RequireSection> },
       { path: 'users', element: <RequireSection section="users"><UsersPage /></RequireSection> },
       { path: 'users/new', element: <RequireSection section="users"><CreateUserPage /></RequireSection> },
+      { path: 'mis-pedidos', element: <RequireSection section="myOrders"><MyOrdersPage /></RequireSection> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
