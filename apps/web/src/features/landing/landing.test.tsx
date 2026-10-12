@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderApp } from '@/test/utils'
+import { adminUser, mockApi, renderApp } from '@/test/utils'
 import { useSession } from '@/features/auth/session-store'
 import { Carousel } from './Carousel'
 
@@ -163,5 +163,28 @@ describe('autoplay del carrusel', () => {
       vi.advanceTimersByTime(20000)
     })
     expect(screen.getAllByRole('button', dotsQuery)[0]).toHaveAttribute('aria-current', 'true')
+  })
+})
+
+describe('índice del sitio', () => {
+  it('/ sin sesión muestra la landing, sin redirigir a /login', () => {
+    const { router } = renderApp('/')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pide tu entrega')
+    expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('/ con sesión sigue mostrando el back-office', async () => {
+    useSession.getState().setToken('tok')
+    mockApi((url) => (url.endsWith('/auth/me') ? { status: 200, body: adminUser } : { status: 200, body: { status: 'ready' } }))
+    renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Hola, Ana Admin' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: /Pide tu entrega/ })).not.toBeInTheDocument()
+  })
+
+  it('/orders sin sesión redirige a /login', async () => {
+    const { router } = renderApp('/orders')
+    await vi.waitFor(() => {
+      expect(router.state.location.pathname).toBe('/login')
+    })
   })
 })

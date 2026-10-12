@@ -24,6 +24,8 @@ async function mockGateway(page: Page) {
 test('login, navegación y cierre de sesión', async ({ page }) => {
   await mockGateway(page)
   await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeVisible()
+  await page.goto('/orders')
   await expect(page).toHaveURL(/\/login$/)
 
   await page.getByLabel(/^Correo/).fill('admin@example.com')
@@ -33,6 +35,8 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
 
   await page.getByLabel('Contraseña', { exact: true }).fill('admin-password')
   await page.getByRole('button', { name: 'Iniciar Sesión en Pikka' }).click()
+  await expect(page).toHaveURL(/\/orders$/)
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Hola, Ana Admin' })).toBeVisible()
   await expect(page.getByTestId('system-status')).toHaveText('Backend disponible')
 
@@ -41,4 +45,6 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page).toHaveURL(/\/login$/)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeVisible()
 })
