@@ -20,6 +20,7 @@ const messages: Record<string, string> = {
   RATE_LIMITED: 'Demasiados intentos. Espera un momento y vuelve a intentar.',
   UPSTREAM_UNAVAILABLE: 'El servicio no está disponible. Intenta más tarde.',
   UPSTREAM_TIMEOUT: 'El servicio tardó demasiado en responder.',
+  BAD_RESPONSE: 'Respuesta inesperada del servidor.',
   NETWORK: 'No se pudo conectar con el servidor.',
 }
 

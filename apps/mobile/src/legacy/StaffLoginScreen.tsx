@@ -16,7 +16,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { colors, spacing, borderRadius } from '../theme/colors'
 import { useSessionStore } from '../store/session-store'
-import { authApi } from '../api/auth'
+import { login } from '../features/auth/api'
 import { userMessage } from '../api/errors'
 
 type Role = 'despacho' | 'conductor' | 'admin'
@@ -49,7 +49,8 @@ const ROLES: RoleConfig[] = [
   },
 ]
 
-export function LoginScreen() {
+/** LEGACY staff login (Despacho/Conductor/Admin). Not routed: the customer build uses src/app/(auth)/login. */
+export function StaffLoginScreen() {
   const [role, setRole] = useState<Role>('despacho')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -57,7 +58,7 @@ export function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const setToken = useSessionStore((s) => s.setToken)
+  const setSession = useSessionStore((s) => s.setSession)
 
   const currentRole = ROLES.find((r) => r.id === role)!
 
@@ -71,8 +72,8 @@ export function LoginScreen() {
     setError(null)
 
     try {
-      const response = await authApi.login(email.trim(), password)
-      setToken(response.token)
+      const response = await login(email.trim(), password)
+      await setSession(response.accessToken, response.user)
       // Navigation would happen here - for now just show success
       Alert.alert('Éxito', 'Has iniciado sesión correctamente.')
     } catch (err) {
