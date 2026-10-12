@@ -95,21 +95,122 @@
 }
 
 @layer components {
+  /* Auth screen: light mobile layout below lg, dark split layout from lg. Page scrolls instead of clipping. */
   .login-split-container {
-    @apply bg-white min-h-screen flex items-center justify-center p-3 sm:p-5 lg:p-8;
+    @apply bg-surface min-h-screen flex items-start justify-center px-4 py-6 sm:py-8 lg:bg-white lg:items-center lg:p-8;
   }
 
   .login-main {
-    @apply bg-white rounded-2xl shadow-xl max-w-[1280px] w-full max-h-[90vh] overflow-hidden flex flex-col lg:flex-row border border-surface-container relative;
+    @apply w-full max-w-md flex flex-col relative lg:max-w-[1280px] lg:flex-row lg:bg-white lg:rounded-2xl lg:shadow-xl lg:border lg:border-surface-container lg:min-h-[640px];
   }
 
   .login-left {
-    @apply w-full lg:w-[48%] xl:w-[46%] bg-gradient-to-br from-[#0c3c3e] via-[#092e31] to-[#062022] text-white p-5 lg:p-6 xl:p-7 flex flex-col justify-between relative z-10 overflow-hidden;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    @apply w-full text-on-surface flex flex-col gap-5 relative z-10 lg:w-[48%] xl:w-[46%] lg:text-white lg:p-6 xl:p-7 lg:justify-between lg:overflow-hidden lg:rounded-l-2xl lg:bg-gradient-to-br lg:from-[#0c3c3e] lg:via-[#092e31] lg:to-[#062022];
+    --auth-label: #3f4949;
+    --auth-muted: #3f4949;
+    --auth-icon: #004b4e;
+    --auth-link: #004b4e;
+    --auth-input-bg: #ffffff;
+    --auth-input-border: #bec8c8;
+    --auth-input-border-hover: #0a6568;
+    --auth-input-text: #061f23;
+    --auth-placeholder: #6f7979;
+    --auth-ok: #006b5f;
+    --auth-error: #ba1a1a;
+    --auth-error-bg: #ffdad6;
+    --auth-divider: #bec8c8;
+    --auth-btn-bg: #004b4e;
+    --auth-btn-text: #ffffff;
+  }
+
+  @media (min-width: 1024px) {
+    .login-left {
+      --auth-label: #e2e8f0;
+      --auth-muted: #94a3b8;
+      --auth-icon: #1bb3b8;
+      --auth-link: #1bb3b8;
+      --auth-input-bg: rgba(7, 36, 39, 0.9);
+      --auth-input-border: #1a5457;
+      --auth-input-border-hover: rgba(27, 179, 184, 0.6);
+      --auth-input-text: #ffffff;
+      --auth-placeholder: #64748b;
+      --auth-ok: #6ee7b7;
+      --auth-error: #f87171;
+      --auth-error-bg: rgba(239, 68, 68, 0.1);
+      --auth-divider: rgba(26, 84, 87, 0.6);
+      --auth-btn-bg: linear-gradient(to right, #1bb3b8, #13a2a7, #0e7075);
+      --auth-btn-text: #020617;
+    }
+  }
+
+  /* White card holding the form on mobile; transparent on the dark desktop panel. */
+  .auth-card {
+    @apply bg-white rounded-2xl p-5 shadow-sm lg:bg-transparent lg:rounded-none lg:p-0 lg:shadow-none lg:my-auto;
+  }
+
+  .auth-label {
+    @apply block text-[10px] font-bold uppercase tracking-wider;
+    color: var(--auth-label);
+  }
+
+  .auth-muted {
+    color: var(--auth-muted);
+  }
+
+  .auth-link {
+    @apply font-semibold hover:underline transition-colors;
+    color: var(--auth-link);
+  }
+
+  .auth-icon {
+    @apply w-3.5 h-3.5;
+    color: var(--auth-icon);
+  }
+
+  .auth-input {
+    @apply w-full text-sm lg:text-xs rounded-xl lg:rounded-lg pl-11 lg:pl-9 pr-3 py-3 lg:py-2.5 border transition-all focus:outline-none focus:ring-2 focus:ring-pikka-cyan/30;
+    background: var(--auth-input-bg);
+    border-color: var(--auth-input-border);
+    color: var(--auth-input-text);
+  }
+
+  .auth-input::placeholder {
+    color: var(--auth-placeholder);
+  }
+
+  .auth-input:hover,
+  .auth-input:focus {
+    border-color: var(--auth-input-border-hover);
+  }
+
+  .auth-input[aria-invalid='true'] {
+    border-color: var(--auth-error);
+  }
+
+  .auth-error {
+    @apply text-[11px];
+    color: var(--auth-error);
+  }
+
+  .auth-alert {
+    @apply rounded-xl lg:rounded-lg p-2.5 text-xs border;
+    color: var(--auth-error);
+    background: var(--auth-error-bg);
+    border-color: var(--auth-error);
+  }
+
+  .auth-submit {
+    @apply w-full py-3 px-5 rounded-xl lg:rounded-lg font-bold text-sm lg:text-xs tracking-wide shadow-sm transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60;
+    background: var(--auth-btn-bg);
+    color: var(--auth-btn-text);
+  }
+
+  .auth-divider {
+    border-color: var(--auth-divider);
   }
 
   .login-right {
-    @apply w-full lg:w-[52%] xl:w-[54%] bg-white p-5 lg:p-6 xl:p-7 flex flex-col justify-between relative overflow-hidden;
+    @apply hidden lg:flex lg:w-[52%] xl:w-[54%] bg-white lg:p-6 xl:p-7 flex-col justify-between relative overflow-hidden lg:rounded-r-2xl;
     background-image: radial-gradient(circle, rgba(14, 112, 117, 0.12) 1.5px, transparent 1.5px);
     background-size: 28px 28px;
   }

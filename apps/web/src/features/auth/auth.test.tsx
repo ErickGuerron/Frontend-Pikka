@@ -37,6 +37,16 @@ describe('login', () => {
     expect(sentBody(loginCall?.[1])).toEqual({ email: 'admin@example.com', password: 'admin-password' })
   })
 
+  it('no ofrece selector de rol (Despacho, Repartidor, Admin)', async () => {
+    mockApi(() => ({ status: 200, body: { status: 'ready' } }))
+    renderApp('/login')
+
+    await screen.findByLabelText(/^Correo/)
+    for (const name of ['Despacho', 'Repartidor', 'Admin']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
+  })
+
   it('muestra el error de credenciales', async () => {
     mockApi(() => apiError(401, 'UNAUTHENTICATED', 'invalid credentials'))
     renderApp('/login')
@@ -79,5 +89,12 @@ describe('navegación por rol', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No tienes acceso a Usuarios.')
     expect(screen.getByRole('heading', { name: 'Usa la app móvil de Pikka' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+  })
+})
+
+describe('registro desde la landing', () => {
+  it('/login?modo=registro abre el formulario de registro', () => {
+    renderApp('/login?modo=registro')
+    expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument()
   })
 })

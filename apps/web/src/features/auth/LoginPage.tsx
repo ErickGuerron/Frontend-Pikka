@@ -1,14 +1,11 @@
 import { useState, type SyntheticEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import {
-  Bike,
   ShieldCheck,
   Mail,
   Lock,
   Eye,
   EyeOff,
-  QrCode,
-  Fingerprint,
   KeyRound,
   ArrowRight,
   Headphones,
@@ -17,30 +14,24 @@ import {
   PackageCheck,
   Sparkles,
   Lock as LockIcon,
-  LayoutDashboard,
 } from 'lucide-react'
 import { userMessage } from '@/shared/api/errors'
 import pikkaMascot from '@/assets/pikka.png'
 import { useLogin } from './hooks'
+import { SignupForm } from './SignupForm'
 import { useSession } from './session-store'
-
-const ROLES = [
-  { id: 'dispatch', label: 'Despacho', icon: LayoutDashboard },
-  { id: 'driver', label: 'Repartidor', icon: Bike },
-  { id: 'admin', label: 'Admin', icon: ShieldCheck },
-] as const
-
-type Role = typeof ROLES[number]['id']
 
 export function LoginPage() {
   const token = useSession((s) => s.token)
   const navigate = useNavigate()
   const location = useLocation()
   const loginMutation = useLogin()
-  const [role, setRole] = useState<Role>('dispatch')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [mode, setMode] = useState<'login' | 'signup'>(
+    () => (new URLSearchParams(location.search).get('modo') === 'registro' ? 'signup' : 'login'),
+  )
 
   const state: unknown = location.state
   const from = redirectTarget(state)
@@ -56,7 +47,6 @@ export function LoginPage() {
   }
 
   // Placeholder - no backend logic implemented
-  const handleQuickAccess = () => {}
 
   const isLoading = loginMutation.isPending
   const isDisabled = isLoading || !email || !password
@@ -67,11 +57,11 @@ export function LoginPage() {
         {/* LEFT PANEL - Dark Teal Form */}
         <section className="login-left panel-inner-glow">
           {/* Ambient light decorative backdrops */}
-          <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-pikka-cyan/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-28 -right-20 w-80 h-80 rounded-full bg-pikka-teal/20 blur-3xl pointer-events-none" />
+          <div className="absolute -top-24 -left-24 hidden lg:block w-80 h-80 rounded-full bg-pikka-cyan/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-28 -right-20 hidden lg:block w-80 h-80 rounded-full bg-pikka-teal/20 blur-3xl pointer-events-none" />
 
           {/* Top Section: Brand Identity & Portal Pill */}
-          <header className="relative z-10 flex items-center justify-between shrink-0">
+          <header className="relative z-10 hidden lg:flex items-center justify-between shrink-0">
             {/* Logo Pikka */}
             <div className="flex items-center gap-2">
               <div className="flex items-baseline tracking-tight font-brand font-extrabold text-2xl sm:text-3xl text-white select-none">
@@ -95,58 +85,62 @@ export function LoginPage() {
             </div>
           </header>
 
+          {/* Mobile brand hero (hidden from lg, where the dark panel header and white visual panel take over) */}
+          <div className="flex flex-col items-center text-center lg:hidden">
+            <div className="relative w-36 h-36 rounded-full bg-surface-container-low shadow-sm flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-secondary/10 via-primary/5 to-transparent" />
+              <img
+                src={pikkaMascot}
+                alt="Pikka, la nutria mensajera"
+                className="relative w-28 object-contain select-none"
+              />
+              <span className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-sm">
+                <Zap className="w-4 h-4" aria-hidden="true" />
+              </span>
+            </div>
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-secondary-container/50 px-3 py-1 text-[11px] font-semibold text-on-secondary-container">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary motion-safe:animate-pulse" />
+              Entregas en tiempo real
+            </span>
+            <p className="mt-2 text-[28px] leading-tight font-bold font-brand text-primary">Pikka</p>
+            <p className="text-sm text-on-surface-variant">Logística de última milla, con calidez.</p>
+          </div>
+
           {/* Center Section: Welcome & Form Content */}
-          <div className="relative z-10 my-auto py-3">
+          <div className="relative z-10 auth-card">
             {/* Welcome Headings */}
             <div className="mb-4">
-              <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#1bb3b8] font-bold mb-1">
+              <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-secondary lg:text-[#1bb3b8] font-bold mb-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Acceso Corporativo Seguro
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-brand leading-tight">
-                ¡Bienvenido de nuevo!
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface lg:text-white font-brand leading-tight">
+                {mode === 'login' ? '¡Bienvenido de nuevo!' : 'Crea tu cuenta'}
               </h1>
-              <p className="text-slate-300/80 text-xs mt-1 leading-snug">
-                Ingresa a tu cuenta para sincronizar entregas, flota y rutas activas.
+              <p className="auth-muted text-xs mt-1 leading-snug">
+                {mode === 'login'
+                  ? 'Ingresa a tu cuenta para sincronizar entregas, flota y rutas activas.'
+                  : 'Regístrate como cliente para solicitar y seguir tus pedidos.'}
               </p>
             </div>
 
-            {/* Role Selector Switcher */}
-            <div className="mb-4 p-1 bg-black/25 backdrop-blur-md rounded-xl border border-[#1a5457]/60 grid grid-cols-3 gap-1">
-              {ROLES.map((r) => {
-                const Icon = r.icon
-                const isSelected = role === r.id
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => { setRole(r.id); }}
-                    className={`role-btn py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                      isSelected
-                        ? 'text-white bg-[#0e7075] shadow-md border border-[#1bb3b8]/40'
-                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    <span>{r.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
+            {mode === 'signup' ? (
+              <SignupForm onSuccess={() => void navigate(from, { replace: true })} />
+            ) : (
+              <>
             {/* Authentication Form */}
             <form className="space-y-3" onSubmit={onSubmit}>
               {/* Email Input */}
               <div className="space-y-1">
                 <label
-                  className="block text-[10px] font-bold text-slate-200 uppercase tracking-wider"
+                  className="auth-label"
                   htmlFor="corporate-email"
                 >
                   Correo corporativo / ID Conductor
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Mail className="w-3.5 h-3.5 text-[#1bb3b8]" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 lg:pl-3 flex items-center pointer-events-none">
+                    <Mail className="auth-icon" />
                   </div>
                   <input
                     id="corporate-email"
@@ -157,7 +151,7 @@ export function LoginPage() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); }}
                     disabled={isLoading}
-                    className="w-full bg-[#072427]/90 border border-[#1a5457] hover:border-[#1bb3b8]/60 focus:border-[#1bb3b8] text-white text-xs rounded-lg pl-9 pr-3 py-2.5 placeholder-slate-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#1bb3b8]/30 shadow-inner"
+                    className="auth-input"
                     placeholder="operaciones@pikka.com"
                   />
                 </div>
@@ -167,21 +161,21 @@ export function LoginPage() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label
-                    className="block text-[10px] font-bold text-slate-200 uppercase tracking-wider"
+                    className="auth-label"
                     htmlFor="corporate-password"
                   >
                     Contraseña
                   </label>
                   <a
                     href="#"
-                    className="text-[10px] text-[#1bb3b8] hover:text-white transition-colors duration-150 font-medium hover:underline"
+                    className="text-[10px] auth-link font-medium"
                   >
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-3.5 h-3.5 text-[#1bb3b8]" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 lg:pl-3 flex items-center pointer-events-none">
+                    <Lock className="auth-icon" />
                   </div>
                   <input
                     id="corporate-password"
@@ -192,13 +186,13 @@ export function LoginPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); }}
                     disabled={isLoading}
-                    className="w-full bg-[#072427]/90 border border-[#1a5457] hover:border-[#1bb3b8]/60 focus:border-[#1bb3b8] text-white text-xs rounded-lg pl-9 pr-10 py-2.5 placeholder-slate-500 transition-all focus:outline-none focus:ring-2 focus:ring-[#1bb3b8]/30 shadow-inner"
+                    className="auth-input pr-10"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => { setShowPassword(!showPassword); }}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center auth-muted hover:opacity-70 transition-colors"
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   >
                     {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -212,14 +206,14 @@ export function LoginPage() {
                   <input
                     type="checkbox"
                     defaultChecked
-                    className="w-3.5 h-3.5 rounded border-[#1a5457] bg-[#072427] text-[#1bb3b8] focus:ring-[#1bb3b8]/40 focus:ring-offset-0 focus:ring-1 transition cursor-pointer"
+                    className="w-3.5 h-3.5 rounded accent-primary lg:accent-[#1bb3b8] cursor-pointer"
                   />
-                  <span className="text-[11px] text-slate-300 group-hover:text-white transition-colors">
+                  <span className="text-[11px] auth-muted">
                     Mantener sesión abierta (8 hrs)
                   </span>
                 </label>
-                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <KeyRound className="w-2.5 h-2.5 text-[#1bb3b8]/80" />
+                <span className="text-[10px] auth-muted flex items-center gap-1">
+                  <KeyRound className="w-2.5 h-2.5 auth-icon" />
                   MFA Activo
                 </span>
               </div>
@@ -228,7 +222,7 @@ export function LoginPage() {
               {loginMutation.isError && (
                 <div
                   role="alert"
-                  className="bg-red-500/10 border border-red-500/50 rounded-lg p-2.5 text-red-400 text-xs"
+                  className="auth-alert"
                 >
                   {userMessage(loginMutation.error)}
                 </div>
@@ -238,59 +232,44 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={isDisabled}
-                className="w-full py-3 px-5 rounded-lg font-bold text-xs tracking-wide bg-gradient-to-r from-[#1bb3b8] via-[#13a2a7] to-[#0e7075] hover:from-[#21c2c8] hover:to-[#0f8288] text-slate-950 shadow-lg shadow-[#1bb3b8]/25 hover:shadow-[#1bb3b8]/40 transition-all duration-200 transform active:scale-[0.99] flex items-center justify-center gap-2 group"
+                className="auth-submit group"
               >
                 <span>{isLoading ? 'Ingresando…' : 'Iniciar Sesión en Pikka'}</span>
                 <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
               </button>
-
-              {/* Alternative Quick Access Divider */}
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-[#1a5457]/60" />
-                <span className="flex-shrink mx-2 text-[10px] uppercase tracking-wider text-slate-400">
-                  o ingresa con
-                </span>
-                <div className="flex-grow border-t border-[#1a5457]/60" />
-              </div>
-
-              {/* Quick Access Buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickAccess}
-                  className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#082b2e]/80 hover:bg-[#0c383c] border border-[#1a5457] hover:border-[#1bb3b8]/50 text-slate-200 text-[11px] font-semibold rounded-lg transition duration-150"
-                >
-                  <QrCode className="w-3 h-3 text-[#1bb3b8]" />
-                  <span>Escanear Gafete</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleQuickAccess}
-                  className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#082b2e]/80 hover:bg-[#0c383c] border border-[#1a5457] hover:border-[#1bb3b8]/50 text-slate-200 text-[11px] font-semibold rounded-lg transition duration-150"
-                >
-                  <Fingerprint className="w-3 h-3 text-[#1bb3b8]" />
-                  <span>Pikka Token ID</span>
-                </button>
-              </div>
             </form>
+              </>
+            )}
+
+            {/* Login / sign-up toggle */}
+            <p className="mt-3 text-center text-[11px] auth-muted">
+              {mode === 'login' ? '¿Eres cliente nuevo?' : '¿Ya tienes cuenta?'}{' '}
+              <button
+                type="button"
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login') }}
+                className="auth-link"
+              >
+                {mode === 'login' ? 'Crear cuenta' : 'Iniciar sesión'}
+              </button>
+            </p>
           </div>
 
           {/* Footer Section: Compliance & Support */}
-          <footer className="relative z-10 pt-2 border-t border-[#1a5457]/60 flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-400 shrink-0">
+          <footer className="relative z-10 pt-2 border-t auth-divider flex flex-wrap items-center justify-between gap-1 text-[10px] auth-muted shrink-0">
             <div className="flex items-center gap-1">
-              <LockIcon className="w-2.5 h-2.5 text-[#1bb3b8]" />
+              <LockIcon className="w-2.5 h-2.5 auth-icon" />
               <span>Cifrado TLS 256-bit v1.3</span>
             </div>
             <div className="flex items-center gap-2">
-              <a href="#" className="hover:text-slate-200 transition-colors">
+              <a href="#" className="hover:underline transition-colors">
                 Términos
               </a>
               <span>•</span>
-              <a href="#" className="hover:text-slate-200 transition-colors">
+              <a href="#" className="hover:underline transition-colors">
                 Privacidad
               </a>
               <span>•</span>
-              <a href="#" className="text-[#1bb3b8] hover:underline flex items-center gap-1">
+              <a href="#" className="auth-link flex items-center gap-1">
                 <Headphones className="w-2.5 h-2.5" />
                 Soporte 24/7
               </a>
