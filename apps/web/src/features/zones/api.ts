@@ -1,14 +1,19 @@
 import { http } from '@/shared/api/client'
 import { holeFitError, zoneShapeError } from './geometry'
+import type { ZoneSettings } from './settings'
 import { type Coordinate, type Zone, type ZoneStatus, isClosedRing, parseZone } from './types'
 
-/** Geometría y nombre de una zona. El código lo genera el servidor al crearla y no cambia después. */
+/** Geometría, nombre y configuración de una zona. El código lo genera el servidor y no cambia después. */
 export interface ZoneDraft {
   name: string
   /** Anillo exterior cerrado: el primer punto coincide con el último. */
   ring: Coordinate[]
   /** Huecos opcionales (dona), cada uno cerrado. */
   holes?: Coordinate[][]
+  /** Depósito, capacidad, horario, cortes y prioridad. Obligatoria: el backend la exige. */
+  settings: ZoneSettings
+  /** Versión que el usuario vio al abrir la zona. Solo al redibujar; 0 o ausente = sin control. */
+  expectedVersion?: number | undefined
 }
 
 /** Rutas publicadas en contracts/openapi/openapi.yaml (Backend-Pikka). */
@@ -45,9 +50,13 @@ function zoneDraftError(draft: ZoneDraft): string | null {
   return null
 }
 
-/** Cuerpo de la petición: sin huecos se envía solo lo necesario; el backend acepta el campo opcional. */
+/** Cuerpo de la petición: sin huecos ni versión se omiten, como espera el backend. */
 function zoneBody(draft: ZoneDraft): ZoneDraft {
-  return (draft.holes ?? []).length > 0 ? draft : { name: draft.name, ring: draft.ring }
+  const body: ZoneDraft = { name: draft.name, ring: draft.ring, settings: draft.settings }
+  const holes = draft.holes ?? []
+  if (holes.length > 0) body.holes = holes
+  if (draft.expectedVersion !== undefined && draft.expectedVersion > 0) body.expectedVersion = draft.expectedVersion
+  return body
 }
 
 /**

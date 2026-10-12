@@ -1,8 +1,10 @@
 import type { Coordinate } from '@/features/geo/types'
 import { enumValue, number, object, ParseError, string } from '@/shared/api/parse'
 import { MIN_ZONE_VERTICES } from './geometry'
+import { parseSettings, type ZoneSettings } from './settings'
 
 export type { Coordinate }
+export type { ZoneSettings }
 
 /** Modelo de zona según zones.v1 (contracts/proto/zones/v1/zones.proto). */
 
@@ -20,6 +22,14 @@ export interface Zone {
   statusReason: string
   /** RFC 3339, UTC. */
   createdAt: string
+  /** Configuración operativa: depósito, capacidad, horario, cortes y prioridad. */
+  settings: ZoneSettings
+  /** Versión que sube en cada cambio. Se envía como expectedVersion al redibujar. */
+  version: number
+  /** RFC 3339, UTC. */
+  updatedAt: string
+  createdBy: string
+  updatedBy: string
 }
 
 export const zoneStatuses = ['ACTIVE', 'INACTIVE'] as const
@@ -55,6 +65,12 @@ export function parseZone(data: unknown): Zone {
     status,
     statusReason: o.statusReason === undefined ? '' : string(o, 'statusReason'),
     createdAt: string(o, 'createdAt'),
+    // Respuestas anteriores a la configuración no traen estos campos: se leen con valores neutros.
+    settings: parseSettings(o.settings),
+    version: o.version === undefined ? 0 : number(o, 'version'),
+    updatedAt: o.updatedAt === undefined ? '' : string(o, 'updatedAt'),
+    createdBy: o.createdBy === undefined ? '' : string(o, 'createdBy'),
+    updatedBy: o.updatedBy === undefined ? '' : string(o, 'updatedBy'),
   }
 }
 
