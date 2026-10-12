@@ -16,6 +16,16 @@ export interface AddressPickerProps {
   highlight?: readonly Coordinate[] | null
   /** Huecos de la zona resaltada (dona). */
   highlightHoles?: readonly (readonly Coordinate[])[]
+  /** Puntos que el mapa debe mostrar completos; cada arreglo nuevo vuelve a encuadrar. */
+  fitBounds?: readonly Coordinate[] | null
+  /** Bodega de salida a mostrar en el mapa, con su nombre y la distancia al punto elegido. */
+  depot?: Coordinate | null
+  depotName?: string | null
+  depotDistanceLabel?: string | null
+  /** Clases del contenedor raíz, para que el padre le dé altura (por ejemplo, un área de trabajo fija). */
+  className?: string
+  /** Clases del mapa. Por defecto, 420 px de alto. */
+  mapClassName?: string
 }
 
 /**
@@ -23,7 +33,18 @@ export interface AddressPickerProps {
  * punto, y nombre editable. Reutilizable en cualquier formulario que necesite una
  * ubicación (zonas hoy; pedidos cuando el contrato acepte coordenadas).
  */
-export function AddressPicker({ value, onChange, highlight = null, highlightHoles = [] }: AddressPickerProps) {
+export function AddressPicker({
+  value,
+  onChange,
+  highlight = null,
+  highlightHoles = [],
+  fitBounds = null,
+  depot = null,
+  depotName = null,
+  depotDistanceLabel = null,
+  className = '',
+  mapClassName = 'h-[420px] w-full rounded-xl z-0',
+}: AddressPickerProps) {
   const [focus, setFocus] = useState<Coordinate | null>(null)
   const [addressPending, setAddressPending] = useState(false)
   const lookup = useRef<AbortController | null>(null)
@@ -67,17 +88,20 @@ export function AddressPicker({ value, onChange, highlight = null, highlightHole
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <PlaceSearch onSelect={pickFromSearch} />
-        <LazyMapCanvas
-          picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
-          highlight={highlight}
-          highlightHoles={highlightHoles}
-          focus={focus}
-          onMapClick={pickPoint}
-        />
-      </div>
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <PlaceSearch onSelect={pickFromSearch} variant="inline" />
+      <LazyMapCanvas
+        className={mapClassName}
+        picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
+        highlight={highlight}
+        highlightHoles={highlightHoles}
+        focus={focus}
+        fitBounds={fitBounds}
+        depot={depot}
+        depotName={depotName}
+        depotDistanceLabel={depotDistanceLabel}
+        onMapClick={pickPoint}
+      />
 
       {value !== null && (
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-[12px]">
