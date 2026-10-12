@@ -735,3 +735,34 @@ test('con la herramienta de exclusion activa, la tecla 1 sale del modo hueco', a
   await expect(page.getByRole('button', { name: 'Agregar exclusión (hole)' })).toBeVisible()
   await expect(page.getByText(/Exterior .*rtices/)).toBeVisible()
 })
+
+test('conflicto de version al redibujar: avisa y permite recargar la version actual', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  let serverName = 'Dona'
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [{ ...dona, name: serverName }] }))
+  await page.route('**/api/v1/zones/*', (route) => {
+    if (route.request().method() === 'PUT') {
+      return route.fulfill({ status: 409, json: { error: { code: 'CONFLICT', message: 'version', requestId: 'r-1' } } })
+    }
+    return route.fallback()
+  })
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
+  await page.getByRole('button', { name: 'Redibujar DONA' }).click()
+
+  // Mientras editaba, otra persona cambio el nombre en el servidor.
+  serverName = 'Dona actualizada por otro'
+  await page.getByLabel('Nombre').fill('Mi cambio')
+  await page.getByRole('button', { name: 'Guardar cambios' }).click()
+
+  await expect(page.getByText(/Otra persona modific/)).toBeVisible()
+  await expect(page.getByText('CONFLICT')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Recargar zona' }).click()
+
+  await expect(page.getByLabel('Nombre')).toHaveValue('Dona actualizada por otro')
+  await expect(page.getByText(/Otra persona modific/)).toHaveCount(0)
+})

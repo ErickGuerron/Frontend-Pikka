@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
 import { PlaceSearch } from '@/features/geo/PlaceSearch'
 import type { Coordinate } from '@/features/geo/types'
-import { userMessage } from '@/shared/api/errors'
+import { ApiError, userMessage } from '@/shared/api/errors'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
 import { createZone, listZones, updateZone, type ZoneDraft } from './api'
 import { codePreview } from './code'
@@ -78,6 +78,9 @@ export function DrawZonePanel() {
   const [panel, setPanel] = useState<Panel>('editor')
   // Listado completo de vértices del anillo en edición (modal).
   const [vertexModal, setVertexModal] = useState(false)
+  // Recarga tras un conflicto de versión: pendiente o fallida.
+  const [reloading, setReloading] = useState(false)
+  const [reloadError, setReloadError] = useState<string | null>(null)
 
   const outerPoints = shape.outer
   const holePoints = shape.hole
@@ -277,6 +280,29 @@ export function DrawZonePanel() {
   ].filter((message): message is string => message !== null)
   const canSave = editing === 'outer' && outerRing !== null && zoneNameIssue(name) === null && configured !== null && !save.isPending
   const activeError = editing === 'outer' ? outerShapeError : holeError
+
+  // 409 al redibujar: el backend rechazó la edición porque la versión ya no es la que se leyó.
+  const versionConflict = save.isError && save.error instanceof ApiError && save.error.status === 409 && editingZone !== null
+
+  /** Trae la versión actual de la zona y reemplaza el editor con ella. Si ya no existe, sale del modo redibujo. */
+  const reloadAfterConflict = async () => {
+    if (editingZone === null) return
+    const zoneId = editingZone.id
+    setReloading(true)
+    setReloadError(null)
+    try {
+      const list = await listZones()
+      queryClient.setQueryData(['zones', 'list'], list)
+      const current = list.find((z) => z.id === zoneId)
+      save.reset()
+      if (current === undefined) resetDraft()
+      else startRedraw(current)
+    } catch (error) {
+      setReloadError(`No pudimos recargar la zona. ${userMessage(error)}`)
+    } finally {
+      setReloading(false)
+    }
+  }
 
   const onSave = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -526,7 +552,19 @@ export function DrawZonePanel() {
               </PrimaryButton>
             </div>
           </div>
-          {save.isError && <ErrorMessage>No se pudo guardar la zona. {userMessage(save.error)}</ErrorMessage>}
+          {versionConflict && (
+            <div role="alert" className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-900">
+              <p className="font-semibold">Otra persona modificó esta zona mientras la editabas.</p>
+              <p>Recárgala para ver la versión actual. Los cambios que hiciste en el editor se descartarán.</p>
+              {reloadError !== null && <p className="text-error">{reloadError}</p>}
+              <div>
+                <SecondaryButton disabled={reloading} onClick={() => { void reloadAfterConflict(); }}>
+                  {reloading ? 'Recargando…' : 'Recargar zona'}
+                </SecondaryButton>
+              </div>
+            </div>
+          )}
+          {save.isError && !versionConflict && <ErrorMessage>No se pudo guardar la zona. {userMessage(save.error)}</ErrorMessage>}
         </form>
         )}
       </div>
