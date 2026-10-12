@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { blockTiles, clickMap, loginAsAdmin, mockAuth, mockPhoton } from './support'
+import { blockTiles, clickMap, depotSettings, fillDepot, loginAsAdmin, mockAuth, mockPhoton } from './support'
 
 const centro = {
   id: '22222222-2222-2222-2222-222222222222',
@@ -89,6 +89,7 @@ test('dibuja una zona: un punto interior no cambia la forma, se quita con clic d
 
   // Se vuelve a marcar el cuadrado en el mismo orden.
   await page.getByLabel('Nombre').fill('Zona Norte')
+  await fillDepot(page)
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
   await clickMap(page, 300, 300)
   await clickMap(page, 100, 300)
@@ -129,6 +130,7 @@ test('quita un vértice intermedio y al volver a marcarlo la forma vuelve a cuat
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
 
   await page.getByLabel('Nombre').fill('Zona Centro 2')
+  await fillDepot(page)
   await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
 })
 
@@ -171,7 +173,7 @@ test('dibuja una zona con hueco (dona) y la guarda con el hueco incluido', async
   await expect(page.getByText(/Exterior · Vértices: 4/)).toBeVisible()
 
   // Hueco centrado, dentro del exterior.
-  await page.getByRole('button', { name: 'Agregar hueco' }).click()
+  await page.getByRole('button', { name: 'Agregar exclusión' }).click()
   await expect(page.getByText(/Hueco · Vértices: 0/)).toBeVisible()
   await clickMap(page, 150, 150)
   await clickMap(page, 250, 150)
@@ -182,6 +184,7 @@ test('dibuja una zona con hueco (dona) y la guarda con el hueco incluido', async
   await expect(page.getByText(/Huecos: 1/)).toBeVisible()
 
   await page.getByLabel('Nombre').fill('Dona Centro')
+  await fillDepot(page)
   await page.getByRole('button', { name: 'Guardar zona' }).click()
 
   await expect(page.getByRole('status')).toContainText('Zona DONA-001 guardada.')
@@ -206,7 +209,7 @@ test('no permite terminar un hueco que sale de la zona', async ({ page }) => {
   await clickMap(page, 300, 100)
   await clickMap(page, 300, 300)
   await clickMap(page, 100, 300)
-  await page.getByRole('button', { name: 'Agregar hueco' }).click()
+  await page.getByRole('button', { name: 'Agregar exclusión' }).click()
 
   // Un cuadrado que se sale por la derecha de la zona.
   await clickMap(page, 250, 150)
@@ -238,6 +241,8 @@ const dona = {
       { latitude: -0.22, longitude: -78.52 },
     ],
   ],
+  settings: depotSettings,
+  version: 1,
   createdAt: '2026-10-03T00:00:00Z',
 }
 
@@ -259,6 +264,54 @@ test('clasificar punto muestra el hueco de la zona', async ({ page }) => {
   expect(rings).toBe(2)
 })
 
+test('guarda la configuración operativa de una zona nueva: días, prioridad y cupo', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  const created: { settings: Record<string, unknown> }[] = []
+  await page.route('**/api/v1/zones', async (route) => {
+    if (route.request().method() === 'POST') {
+      created.push(route.request().postDataJSON() as { settings: Record<string, unknown> })
+      await route.fulfill({
+        status: 201,
+        json: { ...centro, id: '12121212-1212-1212-1212-121212121212', code: 'CONF-001', name: 'Zona Configurada', settings: depotSettings, version: 1 },
+      })
+    }
+  })
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await page.getByLabel('Nombre').fill('Zona Configurada')
+
+  // Sin bodega no se puede guardar, y el formulario lo dice antes de intentarlo.
+  await expect(page.getByText(/Faltan \d+ datos para guardar/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeDisabled()
+
+  await fillDepot(page)
+  await page.getByRole('button', { name: 'Dom', exact: true }).click()
+  await page.getByLabel('Máx. pedidos por ruta').fill('18')
+  await page.getByLabel('Prioridad').selectOption('HIGH')
+  await page.getByLabel('Límite diario (pedidos/día)').fill('300')
+  await expect(page.getByRole('button', { name: 'Guardar zona' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Guardar zona' }).click()
+
+  await expect(page.getByRole('status')).toContainText('Zona CONF-001 guardada.')
+  expect(created).toHaveLength(1)
+  expect(created[0]?.settings).toMatchObject({
+    depotName: 'Hub Norte',
+    depotLatitude: -0.179,
+    depotLongitude: -78.483,
+    maxOrdersPerRoute: 18,
+    priority: 'HIGH',
+    dailyOrderLimit: 300,
+  })
+  expect(created[0]?.settings.serviceDays).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'])
+})
+
 test('redibuja una zona registrada: la carga en el editor y guarda los cambios con PUT', async ({ page }) => {
   await mockAuth(page)
   await blockTiles(page)
@@ -274,6 +327,7 @@ test('redibuja una zona registrada: la carga en el editor y guarda los cambios c
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
   await page.getByRole('button', { name: 'Redibujar DONA' }).click()
 
   await expect(page.getByText('Redibujando DONA')).toBeVisible()
@@ -290,6 +344,8 @@ test('redibuja una zona registrada: la carga en el editor y guarda los cambios c
   const body = updates[0]?.body as { name: string; holes: unknown[] }
   expect(body.name).toBe('Dona nueva')
   expect(body.holes).toHaveLength(1)
+  // La versión que vio el usuario viaja con la edición para detectar cambios ajenos.
+  expect(body).toMatchObject({ expectedVersion: 1, settings: { depotName: 'Hub Norte', priority: 'NORMAL' } })
 })
 test('desactiva, reactiva y borra una zona: cada cambio pide motivo', async ({ page }) => {
   await mockAuth(page)
@@ -315,6 +371,7 @@ test('desactiva, reactiva y borra una zona: cada cambio pide motivo', async ({ p
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
 
   // Desactivar: el motivo es obligatorio.
   await page.getByRole('button', { name: 'Desactivar DONA' }).click()
@@ -354,6 +411,8 @@ test('al elegir una zona la muestra en el mapa, y al redibujarla el mapa la encu
     holes: [],
     status: 'ACTIVE',
     statusReason: '',
+    settings: depotSettings,
+    version: 1,
     createdAt: '2026-10-03T00:00:00Z',
   }
   await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
@@ -361,6 +420,7 @@ test('al elegir una zona la muestra en el mapa, y al redibujarla el mapa la encu
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
 
   const shown = page.locator('path[stroke="#1bb3b8"]')
   await expect(shown).toHaveCount(0)
@@ -392,6 +452,8 @@ test('despues de buscar un lugar, volver a elegir la zona la encuadra de nuevo',
     holes: [],
     status: 'ACTIVE',
     statusReason: '',
+    settings: depotSettings,
+    version: 1,
     createdAt: '2026-10-03T00:00:00Z',
   }
   await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
@@ -399,6 +461,7 @@ test('despues de buscar un lugar, volver a elegir la zona la encuadra de nuevo',
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
   const shown = page.locator('path[stroke="#1bb3b8"]')
 
   await page.getByRole('button', { name: 'Ver GUAY-002 en el mapa' }).click()
@@ -432,6 +495,8 @@ test('despues de redibujar y buscar un lugar, volver a redibujar la zona la encu
     holes: [],
     status: 'ACTIVE',
     statusReason: '',
+    settings: depotSettings,
+    version: 1,
     createdAt: '2026-10-03T00:00:00Z',
   }
   await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
@@ -439,6 +504,7 @@ test('despues de redibujar y buscar un lugar, volver a redibujar la zona la encu
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
   const outline = page.locator('path[stroke="#0e7075"]').first()
 
   await page.getByRole('button', { name: 'Redibujar GUAY-003' }).click()
@@ -448,6 +514,9 @@ test('despues de redibujar y buscar un lugar, volver a redibujar la zona la encu
   await page.getByRole('button', { name: /Av\. Central/ }).click()
   await expect(outline).not.toBeInViewport()
 
+  // Al redibujar, la pestaña pasa al editor: para salir y volver a entrar hay que volver a la lista.
+  await page.getByRole('button', { name: 'Cancelar redibujo', exact: true }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
   await page.getByRole('button', { name: 'Redibujar GUAY-003' }).click()
   await expect(outline).toBeInViewport()
 })
@@ -482,6 +551,8 @@ test('buscar un lugar lejano y elegir la zona de inmediato la encuadra, aunque e
     holes: [],
     status: 'ACTIVE',
     statusReason: '',
+    settings: depotSettings,
+    version: 1,
     createdAt: '2026-10-03T00:00:00Z',
   }
   await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
@@ -489,6 +560,7 @@ test('buscar un lugar lejano y elegir la zona de inmediato la encuadra, aunque e
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
   const shown = page.locator('path[stroke="#1bb3b8"]')
 
   await page.getByLabel('Buscar calle o lugar').fill('Miami')
@@ -530,6 +602,8 @@ test('buscar un lugar lejano y redibujar la zona despues de esperar, la encuadra
     holes: [],
     status: 'ACTIVE',
     statusReason: '',
+    settings: depotSettings,
+    version: 1,
     createdAt: '2026-10-03T00:00:00Z',
   }
   await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [guayaquil] }))
@@ -537,6 +611,7 @@ test('buscar un lugar lejano y redibujar la zona despues de esperar, la encuadra
 
   await page.getByRole('link', { name: 'Zonas' }).click()
   await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
 
   await page.getByLabel('Buscar calle o lugar').fill('Miami')
   await page.getByRole('button', { name: /Miami/ }).click()
@@ -546,4 +621,117 @@ test('buscar un lugar lejano y redibujar la zona despues de esperar, la encuadra
   await page.getByRole('button', { name: 'Redibujar GUAY-004' }).click()
   await expect(page.getByText('Redibujando GUAY-004')).toBeVisible()
   await expect(page.locator('path[stroke="#0e7075"]').first()).toBeInViewport()
+})
+
+test('al dibujar, un hueco guardado se ve transparente: el contorno en edición tiene exterior y hueco', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await page.getByRole('button', { name: 'Agregar exclusión' }).click()
+  await clickMap(page, 150, 150)
+  await clickMap(page, 250, 150)
+  await clickMap(page, 250, 250)
+  await clickMap(page, 150, 250)
+  await page.getByRole('button', { name: 'Terminar hueco' }).click()
+  await expect(page.getByText(/Huecos: 1/)).toBeVisible()
+
+  // El polígono en edición (color de trazo del editor) debe tener dos anillos: exterior y hueco.
+  const trazos = page.locator('path[stroke="#0e7075"]')
+  const rings: number[] = []
+  for (const trazo of await trazos.all()) {
+    rings.push((await trazo.getAttribute('d') ?? '').match(/M/g)?.length ?? 0)
+  }
+  expect(rings).toContain(2)
+})
+
+test('la barra de herramientas fija la bodega con un clic y quita un vértice con la herramienta de borrar', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+
+  await clickMap(page, 100, 100)
+  await clickMap(page, 300, 100)
+  await clickMap(page, 300, 300)
+  await clickMap(page, 100, 300)
+  await expect(page.getByText(/Vértices: 4/)).toBeVisible()
+
+  // Herramienta bodega: el siguiente clic fija la bodega y la herramienta vuelve a agregar vértices.
+  await page.getByRole('button', { name: 'Fijar bodega de salida' }).click()
+  await clickMap(page, 200, 200)
+  await expect(page.getByLabel('Latitud de la bodega')).not.toHaveValue('')
+  await expect(page.getByText(/Vértices: 4/)).toBeVisible()
+
+  // Herramienta quitar: un clic sobre un vértice lo quita.
+  await page.getByRole('button', { name: /Quitar vértice \(3\)/ }).click()
+  await clickMap(page, 100, 100)
+  await expect(page.getByText(/Vértices: 3/)).toBeVisible()
+})
+
+test('atajos, herramientas persistentes, deshacer y cancelar redibujo', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [dona] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
+  await page.getByRole('button', { name: 'Redibujar DONA' }).click()
+  await expect(page.getByText(/Exterior . V.rtices: 4/)).toBeVisible()
+
+  // Estado inicial del redibujo: deshacer no puede borrar sus vertices.
+  await page.keyboard.press('Control+z')
+  await expect(page.getByText(/rtices: 4/)).toBeVisible()
+
+  // Quitar el ultimo vertice con Retroceso y deshacerlo con Ctrl+Z.
+  await page.locator('body').click({ position: { x: 5, y: 5 } })
+  await page.keyboard.press('Backspace')
+  await expect(page.getByText(/rtices: 3/)).toBeVisible()
+  await page.keyboard.press('Control+z')
+  await expect(page.getByText(/rtices: 4/)).toBeVisible()
+
+  // La herramienta de bodega sigue activa entre clics hasta elegir otra.
+  const depot = page.getByRole('button', { name: /Fijar bodega/ })
+  await depot.click()
+  await expect(depot).toHaveAttribute('aria-pressed', 'true')
+  await clickMap(page, 200, 150)
+  await clickMap(page, 220, 170)
+  await expect(depot).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText(/rtices: 4/)).toBeVisible()
+  await page.keyboard.press('1')
+  await expect(depot).toHaveAttribute('aria-pressed', 'false')
+
+  // Cancelar redibujo sale del modo sin cambiar de pantalla: el editor vuelve a una zona nueva.
+  await page.getByRole('button', { name: 'Cancelar redibujo', exact: true }).click()
+  await expect(page.getByText('Nueva zona', { exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
+  await expect(page.getByRole('button', { name: 'Redibujar DONA' })).toBeVisible()
+})
+
+test('con la herramienta de exclusion activa, la tecla 1 sale del modo hueco', async ({ page }) => {
+  await mockAuth(page)
+  await blockTiles(page)
+  await page.route('**/api/v1/zones', (route) => route.fulfill({ json: [dona] }))
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Zonas' }).click()
+  await page.getByRole('button', { name: 'Dibujar zona' }).click()
+  await page.getByRole('tab', { name: /Zonas registradas/ }).click()
+  await page.getByRole('button', { name: 'Redibujar DONA' }).click()
+  await page.keyboard.press('2')
+  await expect(page.getByText(/Hueco .*rtices/)).toBeVisible()
+  await page.keyboard.press('1')
+  await expect(page.getByRole('button', { name: 'Agregar exclusión (hole)' })).toBeVisible()
+  await expect(page.getByText(/Exterior .*rtices/)).toBeVisible()
 })

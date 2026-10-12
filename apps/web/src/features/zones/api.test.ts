@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mockApi, sentBody } from '@/test/utils'
 import { classifyPoint, createZone, deleteZone, getZone, listZones, setZoneStatus, updateZone } from './api'
+import type { ZoneSettings } from './settings'
 import type { Coordinate } from './types'
 
 const s1: Coordinate = { latitude: -0.2, longitude: -78.5 }
@@ -20,6 +21,24 @@ const dartRing: Coordinate[] = [
 
 const zoneBody = { id: 'z-1', code: 'CENTRO', name: 'Centro', ring: closedRing, createdAt: '2026-10-10T12:00:00Z' }
 
+// Configuración válida que el formulario envía junto con la geometría.
+const settings: ZoneSettings = {
+  description: '',
+  depotName: 'Hub Norte',
+  depotLatitude: -0.179,
+  depotLongitude: -78.483,
+  maxOrdersPerRoute: 4,
+  routeCapacityKg: 45,
+  timezone: 'America/Guayaquil',
+  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+  deliveryWindowFrom: '08:00',
+  deliveryWindowTo: '20:00',
+  cutoffTime: '14:00',
+  dispatchTime: '15:30',
+  priority: 'NORMAL',
+  dailyOrderLimit: 250,
+}
+
 describe('getZone', () => {
   it('consulta la zona por id y devuelve el modelo validado', async () => {
     const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
@@ -37,20 +56,20 @@ describe('getZone', () => {
 describe('createZone', () => {
   it('envía la zona con un cuadrado cerrado', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ name: 'Centro', ring: closedRing })
+    await createZone({ name: 'Centro', ring: closedRing, settings })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing, settings })
   })
 
   it('no llama a la API si el anillo está abierto', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await expect(createZone({ name: 'Abierta', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
+    await expect(createZone({ name: 'Abierta', ring: [s1, s2, s3, s4], settings })).rejects.toThrow(RangeError)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('no llama a la API si la figura no es convexa', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await expect(createZone({ name: 'Dardo', ring: dartRing })).rejects.toThrow(/convexa/)
+    await expect(createZone({ name: 'Dardo', ring: dartRing, settings })).rejects.toThrow(/convexa/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
@@ -83,23 +102,23 @@ describe('createZone con huecos', () => {
 
   it('envía los huecos cuando están dentro de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ name: 'Dona', ring: closedRing, holes: [hole] })
+    await createZone({ name: 'Dona', ring: closedRing, holes: [hole], settings })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ name: 'Dona', ring: closedRing, holes: [hole] })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Dona', ring: closedRing, holes: [hole], settings })
   })
 
   it('no llama a la API si un hueco sale de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
     const outside = hole.map((p) => ({ latitude: p.latitude - 1, longitude: p.longitude }))
-    await expect(createZone({ name: 'Fuera', ring: closedRing, holes: [outside] })).rejects.toThrow(/holes: .*dentro/)
+    await expect(createZone({ name: 'Fuera', ring: closedRing, holes: [outside], settings })).rejects.toThrow(/holes: .*dentro/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('no envía el campo holes cuando no hay huecos', async () => {
     const fetchMock = mockApi(() => ({ status: 201, body: zoneBody }))
-    await createZone({ name: 'Centro', ring: closedRing, holes: [] })
+    await createZone({ name: 'Centro', ring: closedRing, holes: [], settings })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro', ring: closedRing, settings })
   })
 })
 
@@ -113,15 +132,22 @@ describe('listZones y updateZone', () => {
 
   it('redibuja con PUT sobre el identificador de la zona', async () => {
     const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
-    await updateZone('z-1', { name: 'Centro 2', ring: closedRing })
+    await updateZone('z-1', { name: 'Centro 2', ring: closedRing, settings })
     const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
     expect(call?.[0]).toMatch(/\/api\/v1\/zones\/z-1$/)
-    expect(sentBody(call?.[1])).toEqual({ name: 'Centro 2', ring: closedRing })
+    expect(sentBody(call?.[1])).toEqual({ name: 'Centro 2', ring: closedRing, settings })
+  })
+
+  it('envía la versión esperada al redibujar para detectar cambios ajenos', async () => {
+    const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
+    await updateZone('z-1', { name: 'Centro 2', ring: closedRing, settings, expectedVersion: 3 })
+    const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(sentBody(call?.[1])).toMatchObject({ expectedVersion: 3 })
   })
 
   it('no llama a la API al redibujar con una figura inv�lida', async () => {
     const fetchMock = mockApi(() => ({ status: 200, body: zoneBody }))
-    await expect(updateZone('z-1', { name: 'X', ring: [s1, s2, s3, s4] })).rejects.toThrow(RangeError)
+    await expect(updateZone('z-1', { name: 'X', ring: [s1, s2, s3, s4], settings })).rejects.toThrow(RangeError)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

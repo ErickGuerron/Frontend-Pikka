@@ -51,6 +51,31 @@ export async function loginAsAdmin(page: Page) {
   await expect(page.getByRole('link', { name: 'Pedidos' })).toBeVisible()
 }
 
+/** Configuración operativa de zonas de prueba, en el formato que devuelve el backend. */
+export const depotSettings = {
+  description: '',
+  depotName: 'Hub Norte',
+  depotLatitude: -0.179,
+  depotLongitude: -78.483,
+  maxOrdersPerRoute: 4,
+  routeCapacityKg: 45,
+  timezone: 'America/Guayaquil',
+  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+  deliveryWindowFrom: '08:00',
+  deliveryWindowTo: '20:00',
+  cutoffTime: '14:00',
+  dispatchTime: '15:30',
+  priority: 'NORMAL',
+  dailyOrderLimit: 250,
+}
+
+/** Llena la bodega de salida: obligatoria para guardar cualquier zona. */
+export async function fillDepot(page: Page) {
+  await page.getByLabel('Bodega / almacén de salida').fill('Hub Norte')
+  await page.getByLabel('Latitud de la bodega').fill('-0.179')
+  await page.getByLabel('Longitud de la bodega').fill('-78.483')
+}
+
 /** Hace clic en el mapa Leaflet en una posición relativa al contenedor. */
 export async function clickMap(page: Page, x: number, y: number, button: 'left' | 'right' = 'left') {
   const map = page.locator('.leaflet-container').first()
