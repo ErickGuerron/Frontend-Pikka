@@ -1,8 +1,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState, useEffect, type SyntheticEvent } from 'react'
-import { roleLabels, roles, type Role } from '@/features/auth/types'
+import { assignableRoles, roleLabels, roles, type Role } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
 import { createUser, getUsers, type NewUser } from './api'
+
+const rolePlurals: Record<Role, string> = {
+  ADMIN: 'Administradores',
+  OPERATOR: 'Operadores',
+  DRIVER: 'Repartidores',
+  CUSTOMER: 'Clientes',
+}
 
 const empty: NewUser = { email: '', password: '', fullName: '', role: 'OPERATOR' }
 
@@ -19,12 +26,17 @@ const roleDescriptions: Record<Role, { title: string; description: string }> = {
     title: 'Repartidor / Flota Móvil',
     description: 'Acceso a la app de entregas Pikka, confirmación con firma/foto y telemetría de ruta.',
   },
+  CUSTOMER: {
+    title: 'Cliente',
+    description: 'Cuenta creada por autoregistro para solicitar y seguir sus pedidos.',
+  },
 }
 
 const roleIcons: Record<Role, string> = {
   ADMIN: 'admin_panel_settings',
   OPERATOR: 'tune',
   DRIVER: 'two_wheeler',
+  CUSTOMER: 'person',
 }
 
 const hubs = [
@@ -53,6 +65,8 @@ function getRoleBadgeClass(role: Role): string {
       return 'bg-surface-variant text-primary'
     case 'DRIVER':
       return 'bg-secondary-container text-on-secondary-container'
+    case 'CUSTOMER':
+      return 'bg-surface-variant text-on-surface-variant'
   }
 }
 
@@ -236,7 +250,7 @@ function CreateUserModal({ onClose, onSuccess }: CreateUserModalProps) {
               <span className="font-label-badge text-outline">Define permisos</span>
             </label>
             <div className="grid grid-cols-3 gap-2.5">
-              {roles.map((r) => (
+              {assignableRoles.map((r) => (
                 <label key={r} className="cursor-pointer">
                   <input
                     className="peer sr-only"
@@ -322,7 +336,7 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | 'ALL'>('ALL')
   const [showSuccess, setShowSuccess] = useState(false)
 
-  const { data: users = [], refetch, isLoading } = useQuery({
+  const { data: users = [], refetch, isLoading, isError } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
   })
@@ -495,7 +509,7 @@ export function UsersPage() {
                 className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-bold transition-all ${roleFilter === r ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
                 onClick={() => { setRoleFilter(r); }}
               >
-                {roleLabels[r]}s
+                {rolePlurals[r]}
               </button>
             ))}
           </div>
@@ -554,7 +568,14 @@ export function UsersPage() {
                   <td className="py-6 text-center text-on-surface-variant" colSpan={6}>Cargando...</td>
                 </tr>
               )}
-              {!isLoading && filteredUsers.length === 0 && (
+              {isError && (
+                <tr>
+                  <td className="py-6 text-center" colSpan={6}>
+                    <p role="alert" className="text-error">No se pudo cargar la lista de usuarios. Intenta de nuevo.</p>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !isError && filteredUsers.length === 0 && (
                 <tr>
                   <td className="py-6 text-center text-on-surface-variant" colSpan={6}>
                     {search || hubFilter || roleFilter !== 'ALL'

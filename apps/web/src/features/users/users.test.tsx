@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
@@ -37,4 +37,42 @@ it('muestra el conflicto de correo duplicado', async () => {
   renderApp('/users/new')
   await fillForm('dup@example.com')
   expect(await screen.findByRole('alert')).toHaveTextContent('Ya existe un registro con esos datos.')
+})
+
+const customerUser = {
+  ...adminUser,
+  id: '33333333-3333-3333-3333-333333333333',
+  email: 'cliente@example.com',
+  fullName: 'Carla Cliente',
+  role: 'CUSTOMER',
+}
+
+function listApi() {
+  mockApi((url, init) => {
+    if (url.endsWith('/api/v1/users') && init.method === 'GET') {
+      return { status: 200, body: { users: [adminUser, customerUser] } }
+    }
+    return { status: 200, body: adminUser }
+  })
+}
+
+it('lista los usuarios devueltos por la API y filtra por Clientes', async () => {
+  listApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+
+  expect(await screen.findByText('Carla Cliente')).toBeInTheDocument()
+  expect(screen.getAllByText('Ana Admin').length).toBeGreaterThan(0)
+
+  await user.click(screen.getByRole('button', { name: 'Clientes' }))
+  expect(screen.getByText('Carla Cliente')).toBeInTheDocument()
+  expect(within(screen.getByRole('table')).queryByText('Ana Admin')).toBeNull()
+})
+
+it('muestra un error cuando falla la carga de usuarios', async () => {
+  mockApi((url, init) =>
+    url.endsWith('/api/v1/users') && init.method === 'GET' ? apiError(500, 'INTERNAL') : { status: 200, body: adminUser },
+  )
+  renderApp('/users')
+  expect(await screen.findByRole('alert')).toBeInTheDocument()
 })

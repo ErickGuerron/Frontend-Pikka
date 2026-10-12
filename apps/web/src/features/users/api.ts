@@ -12,9 +12,11 @@ export function createUser(input: NewUser): Promise<User> {
   return http.post('/api/v1/users', parseUser, { body: input })
 }
 
+/** El gateway responde `{ users: [...] }`; se acepta también un array plano. */
 function parseUsers(data: unknown): User[] {
-  if (!Array.isArray(data)) return []
-  return data.map((item) => parseUser(item))
+  const list = Array.isArray(data) ? data : (data as { users?: unknown } | null)?.users
+  if (!Array.isArray(list)) return []
+  return list.map((item) => parseUser(item))
 }
 
 export function getUsers(): Promise<User[]> {

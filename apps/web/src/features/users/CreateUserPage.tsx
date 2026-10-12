@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
-import { roleLabels, roles, type Role } from '@/features/auth/types'
+import { assignableRoles, roleLabels, type Role } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
 import { createUser, type NewUser } from './api'
 
@@ -37,8 +37,8 @@ export function CreateUserPage() {
         </label>
         <label className="field">
           <span>Rol</span>
-          <select value={form.role} onChange={(e) => { const r = roles.find((x) => x === e.target.value); if (r) update('role', r satisfies Role) }}>
-            {roles.map((r) => (
+          <select value={form.role} onChange={(e) => { const r = assignableRoles.find((x) => x === e.target.value); if (r) update('role', r satisfies Role) }}>
+            {assignableRoles.map((r) => (
               <option key={r} value={r}>{roleLabels[r]}</option>
             ))}
           </select>
