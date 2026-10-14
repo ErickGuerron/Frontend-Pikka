@@ -87,26 +87,28 @@ describe('route rules', () => {
   })
 })
 
+const here = { latitude: -0.181, longitude: -78.468 }
+
 describe('demo driver route', () => {
   beforeEach(() => {
     resetDemoRoute()
   })
 
   it('registers a delivered result and reflects it in the route', async () => {
-    const updated = await registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })
+    const updated = await registerDemoResult('route-demo-1', 'stop-1', { location: here, outcome: 'DELIVERED' })
     expect(updated.status).toBe('DELIVERED')
     const route = await getDemoRoute()
     expect(route.stops.find((s) => s.id === 'stop-1')?.status).toBe('DELIVERED')
   })
 
   it('registers a failed stop with its reason', async () => {
-    const updated = await registerDemoResult('route-demo-1', 'stop-2', { outcome: 'NOT_DELIVERED', reason: 'WRONG_ADDRESS' })
+    const updated = await registerDemoResult('route-demo-1', 'stop-2', { location: here, outcome: 'NOT_DELIVERED', reason: 'WRONG_ADDRESS' })
     expect(updated).toMatchObject({ status: 'NOT_DELIVERED', reason: 'WRONG_ADDRESS' })
   })
 
   it('refuses a second result for the same stop', async () => {
-    await registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })
-    await expect(registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 409 })
+    await registerDemoResult('route-demo-1', 'stop-1', { location: here, outcome: 'DELIVERED' })
+    await expect(registerDemoResult('route-demo-1', 'stop-1', { location: here, outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 409 })
   })
 
   it('advances a stop through recogido and en camino, in order', async () => {
@@ -118,20 +120,20 @@ describe('demo driver route', () => {
 
   it('refuses to skip a step or to advance a stop that already has a result', async () => {
     await expect(advanceDemoStatus('route-demo-1', 'stop-1', 'IN_TRANSIT')).rejects.toMatchObject({ status: 409 })
-    await registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })
+    await registerDemoResult('route-demo-1', 'stop-1', { location: here, outcome: 'DELIVERED' })
     await expect(advanceDemoStatus('route-demo-1', 'stop-1', 'PICKED_UP')).rejects.toMatchObject({ status: 409 })
   })
 
   it('accepts a result while the stop is in transit', async () => {
     await advanceDemoStatus('route-demo-1', 'stop-2', 'PICKED_UP')
     await advanceDemoStatus('route-demo-1', 'stop-2', 'IN_TRANSIT')
-    const done = await registerDemoResult('route-demo-1', 'stop-2', { outcome: 'DELIVERED' })
+    const done = await registerDemoResult('route-demo-1', 'stop-2', { location: here, outcome: 'DELIVERED' })
     expect(done.status).toBe('DELIVERED')
   })
 
   it('refuses an invalid result and unknown ids', async () => {
-    await expect(registerDemoResult('route-demo-1', 'stop-3', { outcome: 'NOT_DELIVERED' })).rejects.toBeInstanceOf(ApiError)
-    await expect(registerDemoResult('route-demo-1', 'nope', { outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 404 })
-    await expect(registerDemoResult('otra', 'stop-1', { outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 404 })
+    await expect(registerDemoResult('route-demo-1', 'stop-3', { location: here, outcome: 'NOT_DELIVERED' })).rejects.toBeInstanceOf(ApiError)
+    await expect(registerDemoResult('route-demo-1', 'nope', { location: here, outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 404 })
+    await expect(registerDemoResult('otra', 'stop-1', { location: here, outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 404 })
   })
 })

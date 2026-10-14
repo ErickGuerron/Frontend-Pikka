@@ -25,7 +25,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicación solo al registrar una entrega, para comprobar que llegaste a la parada."
+        }
+      ]
     ],
     "scheme": "pikka"
   }

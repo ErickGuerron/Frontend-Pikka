@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
+import { captureDriverLocation, LOCATION_DENIED_MESSAGE, type DriverLocation } from './location'
 import {
   canRegisterResult,
   nextProgressStatus,
@@ -42,14 +43,22 @@ export function RouteStopCard({ stop, onSubmit, onAdvance }: Props) {
   const pending = canRegisterResult(stop)
   const next = nextProgressStatus(stop)
 
-  const send = async (input: StopResultInput) => {
+  /** Registers a result. The GPS position is taken now, at the moment of the result. */
+  const send = async (input: Omit<StopResultInput, 'location'>) => {
     const invalid = validateStopResult(input)
     if (invalid !== null) {
       setLocalError(invalid)
       return
     }
     setLocalError(null)
-    await onSubmit(stop.id, input)
+    let location: DriverLocation
+    try {
+      location = await captureDriverLocation()
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : LOCATION_DENIED_MESSAGE)
+      return
+    }
+    await onSubmit(stop.id, { ...input, location })
     setChoosingReason(false)
     setReason(null)
   }

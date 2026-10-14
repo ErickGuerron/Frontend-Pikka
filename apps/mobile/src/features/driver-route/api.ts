@@ -18,8 +18,8 @@ import {
  * (GET /api/v1/drivers/me/route and the stop result below). Until then
  * EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true swaps in an in-memory demo.
  *
- * GPS: the result must carry the driver's location (ADR 0007, section 4). Capturing it
- * needs expo-location, which is not installed yet, so the body sends no location.
+ * GPS: the result carries the driver's location (ADR 0007, section 4), captured with
+ * expo-location at the moment of registration.
  */
 
 /** The endpoint is missing or unreachable: show "service not available", not a crash. */

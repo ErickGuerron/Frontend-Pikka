@@ -1,4 +1,5 @@
 import { enumValue, number, object, oneOf, ParseError, string } from '../../api/parse'
+import type { DriverLocation } from './location'
 
 /**
  * Progress of one stop. PENDING -> PICKED_UP -> IN_TRANSIT -> DELIVERED | NOT_DELIVERED.
@@ -71,6 +72,8 @@ export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
 export interface StopResultInput {
   outcome: StopOutcome
   reason?: NotDeliveredReason
+  /** Driver position at registration (ADR 0007, section 4). Required by the backend. */
+  location: DriverLocation
 }
 
 export function parseRouteStop(data: unknown): RouteStop {
@@ -104,7 +107,7 @@ export function canRegisterResult(stop: RouteStop): boolean {
 }
 
 /** Returns the reason the input is invalid, or null when it can be sent. */
-export function validateStopResult(input: StopResultInput): string | null {
+export function validateStopResult(input: Omit<StopResultInput, 'location'>): string | null {
   if (input.outcome === 'NOT_DELIVERED' && input.reason === undefined) {
     return 'Elige el motivo por el que no se entregó.'
   }
