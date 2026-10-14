@@ -7,7 +7,7 @@ import { Field } from '../../components/Field'
 import { colors } from '../../theme/colors'
 import { useSessionStore } from '../../store/session-store'
 import { login } from './api'
-import { isCustomerRole, NON_CUSTOMER_MESSAGE } from './guards'
+import { isMobileRole, NON_MOBILE_MESSAGE } from './guards'
 import { ToggleVisibility } from './SignupForm'
 
 export function LoginForm() {
@@ -27,9 +27,9 @@ export function LoginForm() {
     setLoading(true)
     try {
       const result = await login(email.trim(), password)
-      if (!isCustomerRole(result.user.role)) {
-        // This build is customers-only: never keep a staff/driver session.
-        setError(NON_CUSTOMER_MESSAGE)
+      if (!isMobileRole(result.user.role)) {
+        // This app serves only customers and drivers: never keep a staff session.
+        setError(NON_MOBILE_MESSAGE)
         return
       }
       // The (auth) layout redirects to /mis-pedidos as soon as the session exists.

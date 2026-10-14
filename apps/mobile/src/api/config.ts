@@ -24,3 +24,8 @@ export const API_BASE_URL = resolveBaseUrlForPlatform(normalizeBaseUrl(process.e
 export function isDemoMode(): boolean {
   return process.env.EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS === 'true'
 }
+
+/** True when the in-memory demo replaces the (not yet existing) driver route endpoints. */
+export function isDriverDemoMode(): boolean {
+  return process.env.EXPO_PUBLIC_MOCK_DRIVER_ROUTE === 'true'
+}

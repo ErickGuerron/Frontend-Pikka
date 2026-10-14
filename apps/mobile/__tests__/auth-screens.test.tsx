@@ -71,14 +71,23 @@ describe('LoginForm', () => {
     }
   })
 
-  it('does not keep a session for non-customer roles', async () => {
+  it('does not keep a session for staff roles', async () => {
+    mockFetch(200, { ...session, user: { ...user, role: 'ADMIN' } })
+    await render(<LoginForm />)
+    await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'a@pikka.com')
+    await fireEvent.changeText(screen.getByLabelText('Contraseña'), 'whatever')
+    await fireEvent.press(screen.getByLabelText('Iniciar sesión'))
+    expect(await screen.findByText(/panel web/)).toBeTruthy()
+    expect(useSessionStore.getState().token).toBeNull()
+  })
+
+  it('stores the session for drivers', async () => {
     mockFetch(200, { ...session, user: { ...user, role: 'DRIVER' } })
     await render(<LoginForm />)
     await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'd@pikka.com')
     await fireEvent.changeText(screen.getByLabelText('Contraseña'), 'whatever')
     await fireEvent.press(screen.getByLabelText('Iniciar sesión'))
-    expect(await screen.findByText(/solo para clientes/)).toBeTruthy()
-    expect(useSessionStore.getState().token).toBeNull()
+    await waitFor(() => expect(useSessionStore.getState().role).toBe('DRIVER'))
   })
 
   it('stores the session for customers', async () => {
