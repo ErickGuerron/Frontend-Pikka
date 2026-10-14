@@ -1,6 +1,6 @@
 import { ApiError } from '../../api/errors'
-import type { DriverRoute, RouteStop, StopResultInput } from './types'
-import { validateStopResult } from './types'
+import type { DriverRoute, ProgressStatus, RouteStop, StopResultInput } from './types'
+import { isFinal, nextProgressStatus, validateStopResult } from './types'
 
 /**
  * In-memory route for EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true. It stands in for the planned
@@ -22,22 +22,50 @@ function clone(value: DriverRoute): DriverRoute {
   return { id: value.id, stops: value.stops.map((s) => ({ ...s })) }
 }
 
+function findStop(routeId: string, stopId: string): RouteStop {
+  if (routeId !== route.id) throw new ApiError(404, 'NOT_FOUND', 'route not found')
+  const stop = route.stops.find((s) => s.id === stopId)
+  if (stop === undefined) throw new ApiError(404, 'NOT_FOUND', 'stop not found')
+  return stop
+}
+
+function replaceStop(updated: RouteStop): void {
+  route = { ...route, stops: route.stops.map((s) => (s.id === updated.id ? updated : s)) }
+}
+
 export function getDemoRoute(): Promise<DriverRoute> {
   return Promise.resolve(clone(route))
 }
 
-export function registerDemoResult(routeId: string, stopId: string, input: StopResultInput): Promise<RouteStop> {
-  if (routeId !== route.id) return Promise.reject(new ApiError(404, 'NOT_FOUND', 'route not found'))
-  const stop = route.stops.find((s) => s.id === stopId)
-  if (stop === undefined) return Promise.reject(new ApiError(404, 'NOT_FOUND', 'stop not found'))
-  if (stop.status !== 'PENDING') {
-    return Promise.reject(new ApiError(409, 'CONFLICT', `stop already registered as ${stop.status}`))
+/** Moves a stop to the next progress step only; any other jump is a conflict. */
+export function advanceDemoStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<RouteStop> {
+  try {
+    const stop = findStop(routeId, stopId)
+    if (nextProgressStatus(stop) !== to) {
+      throw new ApiError(409, 'CONFLICT', `stop in status ${stop.status} cannot move to ${to}`)
+    }
+    const updated: RouteStop = { ...stop, status: to }
+    replaceStop(updated)
+    return Promise.resolve({ ...updated })
+  } catch (e) {
+    return Promise.reject(e)
   }
-  const invalid = validateStopResult(input)
-  if (invalid !== null) return Promise.reject(new ApiError(400, 'VALIDATION', invalid))
-  const updated: RouteStop = { ...stop, status: input.outcome, reason: input.reason ?? null }
-  route = { ...route, stops: route.stops.map((s) => (s.id === stopId ? updated : s)) }
-  return Promise.resolve({ ...updated })
+}
+
+export function registerDemoResult(routeId: string, stopId: string, input: StopResultInput): Promise<RouteStop> {
+  try {
+    const stop = findStop(routeId, stopId)
+    if (isFinal(stop.status)) {
+      throw new ApiError(409, 'CONFLICT', `stop already registered as ${stop.status}`)
+    }
+    const invalid = validateStopResult(input)
+    if (invalid !== null) throw new ApiError(400, 'VALIDATION', invalid)
+    const updated: RouteStop = { ...stop, status: input.outcome, reason: input.reason ?? null }
+    replaceStop(updated)
+    return Promise.resolve({ ...updated })
+  } catch (e) {
+    return Promise.reject(e)
+  }
 }
 
 /** Test helper: returns the demo route to its initial state. */

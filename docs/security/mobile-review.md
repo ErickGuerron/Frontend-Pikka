@@ -17,7 +17,7 @@ Alcance: `apps/mobile` (clientes y repartidores).
 | Token en `localStorage` en la web de Expo | `secure-storage.ts` | Aceptado para el MVP. Cualquier script de la página lo lee; mitigar con CSP estricta en el despliegue web y sin contenido de terceros. |
 | Sin expiración de sesión del lado del cliente | `session-store.ts` | Pendiente. La app espera el 401 del servidor; no hay renovación. |
 | Comunicación en claro en desarrollo | `src/api/config.ts`, default `http://localhost:8080` | Aceptado solo en desarrollo. En producción la URL debe ser `https://`. |
-| Ubicación GPS del repartidor | Pendiente (`expo-location`) | Cuando se implemente, pedir permiso en uso y no guardar el historial en el dispositivo. |
+| Ubicación GPS del repartidor | `src/features/driver-route/location.ts` | Implementado: solo permiso en uso, se pide al registrar cada resultado y no se guarda historial en el dispositivo. |
 
 ## HTTPS
 
@@ -42,4 +42,4 @@ Alcance: `apps/mobile` (clientes y repartidores).
 
 - Revisión con la app en dispositivo o emulador. No se ha hecho.
 - Renovación o expiración de sesión del lado del cliente.
-- Pruebas de flujo de entrega con Jest que incluyan el GPS, cuando exista.
+- Revisar el texto del permiso de ubicación en iOS y Android antes de publicar.

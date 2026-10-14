@@ -2,42 +2,63 @@ import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
+import { captureDriverLocation, LOCATION_DENIED_MESSAGE, type DriverLocation } from './location'
 import {
   canRegisterResult,
+  nextProgressStatus,
   notDeliveredReasons,
   reasonLabels,
   validateStopResult,
   type NotDeliveredReason,
+  type ProgressStatus,
   type RouteStop,
   type StopResultInput,
 } from './types'
 
 const statusLabel: Record<RouteStop['status'], string> = {
   PENDING: 'Pendiente',
+  PICKED_UP: 'Recogido',
+  IN_TRANSIT: 'En camino',
   DELIVERED: 'Entregado',
   NOT_DELIVERED: 'No entregado',
+}
+
+/** Button text for the next progress step. */
+const advanceLabel: Record<ProgressStatus, string> = {
+  PICKED_UP: 'Marcar recogido',
+  IN_TRANSIT: 'Marcar en camino',
 }
 
 interface Props {
   stop: RouteStop
   onSubmit: (stopId: string, input: StopResultInput) => Promise<void>
+  onAdvance: (stopId: string, to: ProgressStatus) => Promise<void>
 }
 
-/** One stop: address, window and the result buttons while it is pending. */
-export function RouteStopCard({ stop, onSubmit }: Props) {
+/** One stop: address, window, progress buttons and the result buttons while it is not final. */
+export function RouteStopCard({ stop, onSubmit, onAdvance }: Props) {
   const [choosingReason, setChoosingReason] = useState(false)
   const [reason, setReason] = useState<NotDeliveredReason | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
   const pending = canRegisterResult(stop)
+  const next = nextProgressStatus(stop)
 
-  const send = async (input: StopResultInput) => {
+  /** Registers a result. The GPS position is taken now, at the moment of the result. */
+  const send = async (input: Omit<StopResultInput, 'location'>) => {
     const invalid = validateStopResult(input)
     if (invalid !== null) {
       setLocalError(invalid)
       return
     }
     setLocalError(null)
-    await onSubmit(stop.id, input)
+    let location: DriverLocation
+    try {
+      location = await captureDriverLocation()
+    } catch (e) {
+      setLocalError(e instanceof Error ? e.message : LOCATION_DENIED_MESSAGE)
+      return
+    }
+    await onSubmit(stop.id, { ...input, location })
     setChoosingReason(false)
     setReason(null)
   }
@@ -57,6 +78,9 @@ export function RouteStopCard({ stop, onSubmit }: Props) {
 
       {pending && !choosingReason ? (
         <View style={styles.actions}>
+          {next !== null ? (
+            <Button label={advanceLabel[next]} onPress={() => { void onAdvance(stop.id, next) }} />
+          ) : null}
           <Button label="Entregado" onPress={() => { void send({ outcome: 'DELIVERED' }) }} />
           <Button label="No entregado" variant="outline" onPress={() => { setChoosingReason(true) }} />
         </View>

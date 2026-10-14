@@ -33,7 +33,7 @@ export function LoginForm() {
         return
       }
       // The (auth) layout redirects to /mis-pedidos as soon as the session exists.
-      await setSession(result.accessToken, result.user)
+      await setSession(result.accessToken, result.user, result.expiresIn)
     } catch (e) {
       setError(userMessage(e))
     } finally {

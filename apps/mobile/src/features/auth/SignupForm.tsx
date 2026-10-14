@@ -37,7 +37,7 @@ export function SignupForm() {
         fullName: joinFullName(values.nombre, values.apellido),
       })
       // The (auth) layout redirects to /mis-pedidos as soon as the session exists.
-      await setSession(result.accessToken, result.user)
+      await setSession(result.accessToken, result.user, result.expiresIn)
     } catch (error) {
       setServerError(userMessage(error))
     } finally {
