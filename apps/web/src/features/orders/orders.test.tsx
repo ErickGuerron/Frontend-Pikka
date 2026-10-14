@@ -106,7 +106,6 @@ describe('registro de pedido', () => {
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
     await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
 
-    expect(screen.getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
     expect(screen.getByText('Escribe la dirección completa (mínimo 5 caracteres).')).toBeInTheDocument()
     expect(screen.getByText('Elige la fecha de entrega.')).toBeInTheDocument()
     expect(screen.getByLabelText(/Dirección de entrega/)).toHaveAttribute('aria-invalid', 'true')

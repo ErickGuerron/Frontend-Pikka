@@ -88,7 +88,8 @@ describe('cola de excepciones', () => {
   })
 
   it('confirma sin enviar corrección', async () => {
-    const fetchMock = mockQueue([exception])
+    // Confirmar solo aplica a pedidos sin problema de lugar: se usa un pedido que solo tiene la ventana.
+    const fetchMock = mockQueue([{ ...exception, reviewReasons: ['CUSTOMER_BLOCKED'] }])
     renderApp('/exceptions')
     const user = userEvent.setup()
 
@@ -141,5 +142,23 @@ describe('cola de excepciones', () => {
     await waitFor(() => {
       expect(fetchMock.mock.calls.some(([url, init]) => url.endsWith('/review') && init?.method === 'POST')).toBe(false)
     })
+  })
+
+  it('no ofrece confirmar un pedido fuera de zona: la corrección queda seleccionada', async () => {
+    mockQueue([exception])
+    renderApp('/exceptions')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+
+    expect(screen.getByLabelText(/^Confirmar/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Corregir/)).toBeChecked()
+  })
+
+  it('muestra el motivo de dirección no localizada con su texto', async () => {
+    mockQueue([{ ...exception, reviewReasons: ['ADDRESS_NOT_LOCATED'] }])
+    renderApp('/exceptions')
+
+    expect(await screen.findByText('Dirección no localizada en el mapa')).toBeInTheDocument()
   })
 })

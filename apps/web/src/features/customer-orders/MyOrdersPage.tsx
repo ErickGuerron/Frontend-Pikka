@@ -3,6 +3,7 @@ import { isDemoMode, isServiceUnavailable } from './api'
 import { CurrentOrderCard } from './CurrentOrderCard'
 import { useMyOrders } from './hooks'
 import { NewOrderDialog } from './NewOrderDialog'
+import { NotificationsPanel } from './NotificationsPanel'
 import { OrderHistory } from './OrderHistory'
 import { isOnTheWay, pickCurrentOrder, type CustomerOrder } from './types'
 
@@ -59,6 +60,8 @@ export function MyOrdersPage() {
           Hacer nuevo pedido
         </button>
       </header>
+
+      <NotificationsPanel />
 
       {notice !== null ? (
         <p role="status" className="flex items-start justify-between gap-3 rounded-lg bg-secondary-container/60 px-4 py-3 text-sm text-on-secondary-container">

@@ -19,8 +19,8 @@ describe('validateNewOrder', () => {
     expect(validateNewOrder({ ...valid, address: '  abc  ' }, today).address).toBeDefined()
   })
 
-  it('exige elegir la ubicación en el mapa', () => {
-    expect(validateNewOrder({ ...valid, location: null }, today).location).toMatch(/mapa/)
+  it('no exige el punto del mapa: sin él, el backend geocodifica la dirección', () => {
+    expect(validateNewOrder({ ...valid, location: null }, today)).toEqual({})
   })
 
   it('rechaza coordenadas fuera del rango WGS 84', () => {

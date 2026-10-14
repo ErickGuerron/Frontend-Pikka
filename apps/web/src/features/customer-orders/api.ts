@@ -3,14 +3,14 @@ import { ApiError } from '@/shared/api/errors'
 import { parseOrder } from '@/features/orders/types'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
 import { parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
+import { parseNotifications, type CustomerNotification } from './notifications'
 
 /**
  * Customer order endpoints.
  *
- * PLANNED, NOT IMPLEMENTED: the API Gateway does not serve these routes yet
- * (GET /api/v1/orders/mine, POST /api/v1/orders, POST /api/v1/orders/{id}/cancel).
- * Today /api/v1/orders is documented as staff-only. This layer targets the future
- * customer contract; until then VITE_MOCK_CUSTOMER_ORDERS=true swaps in an in-memory demo.
+ * Served by the API Gateway: GET /api/v1/orders/mine and POST /api/v1/orders (CUSTOMER role).
+ * NOT IMPLEMENTED: POST /api/v1/orders/{id}/cancel (Sprint 3 in the orders plan).
+ * VITE_MOCK_CUSTOMER_ORDERS=true swaps in an in-memory demo for offline work.
  */
 
 /** True when the in-memory demo adapter replaces the network (default: off). */
@@ -33,6 +33,12 @@ export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
   if (isDemoMode()) return createDemoOrder(input)
   const { address, latitude, longitude, deliveryDate, windowStart, windowEnd } = input
   return http.post('/api/v1/orders', parseOrder, { body: { address, latitude, longitude, deliveryDate, windowStart, windowEnd } })
+}
+
+/** Avisos sobre la revisión de los pedidos del cliente. En demo no hay avisos reales. */
+export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotification[]> {
+  if (isDemoMode()) return Promise.resolve([])
+  return http.get('/api/v1/notifications/mine', parseNotifications, { signal })
 }
 
 export function cancelOrder(id: string): Promise<CustomerOrder> {

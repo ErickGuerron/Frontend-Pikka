@@ -194,7 +194,6 @@ describe('Mis Pedidos: crear pedido', () => {
   it('valida los campos obligatorios y la fecha pasada', async () => {
     const { user, dialog } = await openForm()
     await user.click(within(dialog).getByRole('button', { name: 'Crear pedido' }))
-    expect(within(dialog).getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
     expect(within(dialog).getByText('Elige la fecha de entrega.')).toBeInTheDocument()
     expect(within(dialog).getByText('Elige una ventana de entrega.')).toBeInTheDocument()
     expect(within(dialog).getByText(/Escribe la dirección completa/)).toBeInTheDocument()

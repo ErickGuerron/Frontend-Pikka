@@ -25,9 +25,8 @@ export function validateNewOrder(input: OrderDraft, today: string): OrderErrors 
     errors.address = `Escribe la dirección completa (mínimo ${String(MIN_ADDRESS_LENGTH)} caracteres).`
   }
 
-  if (input.location === null) {
-    errors.location = 'Elige la ubicación de entrega en el mapa.'
-  } else if (!isValidLocation(input.location)) {
+  // El punto del mapa es opcional: sin él, el backend geocodifica la dirección.
+  if (input.location !== null && !isValidLocation(input.location)) {
     errors.location = 'La ubicación elegida no es válida. Vuelve a seleccionarla en el mapa.'
   }
 
