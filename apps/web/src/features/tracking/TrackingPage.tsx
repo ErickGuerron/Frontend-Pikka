@@ -1,18 +1,48 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { apiBaseUrl } from '@/shared/config/env'
 import { userMessage } from '@/shared/api/errors'
-import { isTrackingDemoMode, listActiveRoutes, SNAPSHOT_INTERVAL_MS } from './api'
-import { deliveryStatusLabels, openStops } from './types'
+import { isTrackingDemoMode, isTrackingLiveEnabled, listActiveRoutes, SNAPSHOT_INTERVAL_MS } from './api'
+import { LiveTrackingClient, trackingSocketUrl, type LiveStatus, type SocketLike } from './live'
+import { deliveryStatusLabels, openStops, type TrackedRoute } from './types'
+
+const queryKey = ['tracking', 'active-routes'] as const
+
+const liveLabels: Record<LiveStatus, string> = {
+  live: 'En vivo',
+  reconnecting: 'Reconectando…',
+  offline: 'Sin conexión en vivo: actualizando cada pocos segundos',
+}
 
 /**
- * Seguimiento de las rutas en curso (Sprint 5). Muestra el estado de cada parada y se
- * refresca cada pocos segundos. Sin WebSocket todavía: el respaldo REST es el canal actual.
+ * Seguimiento de las rutas en curso (Sprint 5). Con VITE_TRACKING_LIVE=true recibe el
+ * snapshot por WebSocket; si la conexión cae, el REST sigue refrescando cada pocos segundos.
  */
 export function TrackingPage() {
+  const queryClient = useQueryClient()
+  const [live, setLive] = useState<LiveStatus | null>(null)
+
   const { data: routes = [], isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['tracking', 'active-routes'],
+    queryKey,
     queryFn: listActiveRoutes,
     refetchInterval: SNAPSHOT_INTERVAL_MS,
   })
+
+  useEffect(() => {
+    if (!isTrackingLiveEnabled()) return undefined
+    const client = new LiveTrackingClient({
+      url: trackingSocketUrl(apiBaseUrl),
+      createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
+      onSnapshot: (snapshot: TrackedRoute[]) => {
+        queryClient.setQueryData(queryKey, snapshot)
+      },
+      onStatus: setLive,
+    })
+    client.start()
+    return () => {
+      client.stop()
+    }
+  }, [queryClient])
 
   return (
     <div className="flex flex-col gap-2 pt-2 pb-6">
@@ -28,6 +58,9 @@ export function TrackingPage() {
         <p className="text-[11px] text-on-surface-variant leading-tight">
           Estado de cada parada de las rutas en curso. Se actualiza cada {SNAPSHOT_INTERVAL_MS / 1000} segundos.
         </p>
+        {live !== null ? (
+          <p className="text-[10px] font-semibold text-on-surface-variant" role="status">{liveLabels[live]}</p>
+        ) : null}
         {dataUpdatedAt > 0 ? (
           <p className="text-[10px] text-on-surface-variant" aria-live="polite">
             Última actualización: {new Date(dataUpdatedAt).toLocaleTimeString('es-EC')}

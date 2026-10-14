@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_ROUTING?: string
   /** "true" swaps the live tracking snapshot for an in-memory demo (default: off). */
   readonly VITE_MOCK_TRACKING?: string
+  /** "true" connects the live tracking WebSocket (default: off until the Gateway serves it). */
+  readonly VITE_TRACKING_LIVE?: string
 }
 
 interface ImportMeta {
