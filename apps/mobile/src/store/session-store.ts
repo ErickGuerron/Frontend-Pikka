@@ -10,7 +10,8 @@ interface SessionState {
   role: Role | null
   /** True once the persisted session was read, so routing never flashes the wrong screen. */
   hydrated: boolean
-  setSession: (token: string, user: User) => Promise<void>
+  /** `expiresInSeconds` comes from the login response; without it the session has no client-side expiry. */
+  setSession: (token: string, user: User, expiresInSeconds?: number) => Promise<void>
   clear: () => Promise<void>
   hydrate: () => Promise<void>
 }
@@ -22,14 +23,20 @@ export function setSessionStorage(next: KeyValueStorage): void {
   storage = next
 }
 
+/** A session whose expiry instant has passed must not be used, even if it is still stored. */
+export function isSessionExpired(expiresAt: number | undefined, now: number): boolean {
+  return expiresAt !== undefined && now >= expiresAt
+}
+
 /** Parses the persisted JSON; anything malformed means "no session". */
-export function parseStoredSession(raw: string | null): { token: string; user: User } | null {
+export function parseStoredSession(raw: string | null): { token: string; user: User; expiresAt?: number } | null {
   if (raw === null) return null
   try {
     const data: unknown = JSON.parse(raw)
     if (typeof data !== 'object' || data === null || !('token' in data) || !('user' in data)) return null
     if (typeof data.token !== 'string' || data.token === '') return null
-    return { token: data.token, user: parseUser(data.user) }
+    const expiresAt = 'expiresAt' in data && typeof data.expiresAt === 'number' ? data.expiresAt : undefined
+    return { token: data.token, user: parseUser(data.user), expiresAt }
   } catch {
     return null
   }
@@ -40,9 +47,10 @@ export const useSessionStore = create<SessionState>((set) => ({
   user: null,
   role: null,
   hydrated: false,
-  setSession: async (token, user) => {
+  setSession: async (token, user, expiresInSeconds) => {
+    const expiresAt = expiresInSeconds === undefined ? undefined : Date.now() + expiresInSeconds * 1000
     set({ token, user, role: user.role, hydrated: true })
-    await storage.set(SESSION_KEY, JSON.stringify({ token, user }))
+    await storage.set(SESSION_KEY, JSON.stringify({ token, user, expiresAt }))
   },
   clear: async () => {
     set({ token: null, user: null, role: null })
@@ -50,7 +58,13 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
   hydrate: async () => {
     const stored = parseStoredSession(await storage.get(SESSION_KEY))
-    if (stored) set({ token: stored.token, user: stored.user, role: stored.user.role, hydrated: true })
-    else set({ hydrated: true })
+    if (stored && !isSessionExpired(stored.expiresAt, Date.now())) {
+      set({ token: stored.token, user: stored.user, role: stored.user.role, hydrated: true })
+      return
+    }
+    // Expired sessions are removed here, so the next launch does not even read them, and
+    // any session still held in memory is dropped too.
+    if (stored) await storage.remove(SESSION_KEY)
+    set({ token: null, user: null, role: null, hydrated: true })
   },
 }))
