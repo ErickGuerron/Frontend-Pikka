@@ -82,6 +82,31 @@ test('el operador genera rutas y asigna un pedido de último momento', async ({ 
   expect(requests).toEqual([{ orderId: 'o-9', routeId: 'route-1' }])
 })
 
+test('el seguimiento refleja el cambio de estado de una parada sin recargar', async ({ page }) => {
+  await mockAuth(page)
+  let stopStatus = 'IN_TRANSIT'
+  await page.route('**/api/v1/tracking/routes/active', (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'route-1',
+          driverName: 'Luis Andrade',
+          stops: [{ orderId: 'o-1', address: 'Av. Amazonas N24-03', sequence: 1, status: stopStatus }],
+        },
+      ],
+    }),
+  )
+  await loginAsAdmin(page)
+
+  await page.getByRole('link', { name: 'Seguimiento', exact: true }).click()
+  await expect(page.getByText('En camino')).toBeVisible()
+
+  // El repartidor marca la entrega; el seguimiento lo recoge en el siguiente refresco (10 s).
+  stopStatus = 'DELIVERED'
+  await expect(page.getByText('Entregado')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('En camino')).toHaveCount(0)
+})
+
 test('el operador ve el estado de cada parada en seguimiento', async ({ page }) => {
   await mockAuth(page)
   await page.route('**/api/v1/tracking/routes/active', (route) => route.fulfill({ json: trackedRoutes }))
