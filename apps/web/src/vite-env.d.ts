@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_DRIVERS?: string
   /** "true" swaps route generation for an in-memory demo (default: off). */
   readonly VITE_MOCK_ROUTING?: string
+  /** "true" swaps the live tracking snapshot for an in-memory demo (default: off). */
+  readonly VITE_MOCK_TRACKING?: string
 }
 
 interface ImportMeta {
