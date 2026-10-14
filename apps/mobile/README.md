@@ -47,6 +47,7 @@ npx expo start              # add -c to clear the Metro cache
 | --- | --- |
 | `EXPO_PUBLIC_API_URL` | Gateway **origin** only, no `/api/v1` (the app adds `/api/v1/...`). Default `http://localhost:8080`. |
 | `EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS` | `true` = in-memory DEMO orders (labelled "DEMO · datos simulados"). Default `false`. |
+| `EXPO_PUBLIC_MOCK_DRIVER_ROUTE` | `true` = in-memory DEMO route for the driver ("Mi ruta"). Default `false`. |
 
 Gateway URL by target:
 
@@ -62,6 +63,14 @@ The backend has **no customer orders endpoints yet**. `src/features/customer-ord
 `GET /api/v1/orders/mine`, `POST /api/v1/orders` and `POST /api/v1/orders/{id}/cancel`. With the mock flag off, the
 screen shows "El servicio de pedidos aún no está disponible". Set `EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS=true` to try the UI.
 The order form does not collect coordinates (no map/geocoder) and order notes are UI-only.
+
+## Driver route backend status
+
+The backend has **no driver route endpoints yet**. `src/features/driver-route/api.ts` targets the planned
+`GET /api/v1/drivers/me/route` and `POST /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/result`. With
+`EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true` the screen runs on a demo route. Results need the driver's GPS (ADR 0007), which
+requires `expo-location`; it is not installed yet, so the planned request carries no location.
+Marking pickup and "en camino" (Sprint 5) is not implemented.
 
 ## Scripts
 

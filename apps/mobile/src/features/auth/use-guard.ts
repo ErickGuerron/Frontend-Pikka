@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useSessionStore } from '../../store/session-store'
-import { decideRoute, type RouteGroup } from './guards'
+import { decideRoute, type MobileHome, type RouteGroup } from './guards'
 
 /** Returns the href to redirect to (or null to render). Non-customer sessions are ended here. */
-export function useGuard(group: RouteGroup): '/login' | '/mis-pedidos' | null {
+export function useGuard(group: RouteGroup): '/login' | MobileHome | null {
   const hydrated = useSessionStore((s) => s.hydrated)
   const token = useSessionStore((s) => s.token)
   const role = useSessionStore((s) => s.role)
