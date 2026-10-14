@@ -1,7 +1,9 @@
 import { ApiError } from '../src/api/errors'
-import { getDemoRoute, registerDemoResult, resetDemoRoute } from '../src/features/driver-route/demo'
+import { advanceDemoStatus, getDemoRoute, registerDemoResult, resetDemoRoute } from '../src/features/driver-route/demo'
 import {
   canRegisterResult,
+  completedCount,
+  nextProgressStatus,
   orderedStops,
   parseDriverRoute,
   remainingCount,
@@ -47,10 +49,30 @@ describe('route rules', () => {
     expect(route.stops[0]?.id).toBe('s2')
   })
 
-  it('only pending stops accept a result', () => {
+  it('stops without a final result accept a result', () => {
     expect(canRegisterResult(stop({ status: 'PENDING' }))).toBe(true)
+    expect(canRegisterResult(stop({ status: 'PICKED_UP' }))).toBe(true)
+    expect(canRegisterResult(stop({ status: 'IN_TRANSIT' }))).toBe(true)
     expect(canRegisterResult(stop({ status: 'DELIVERED' }))).toBe(false)
     expect(canRegisterResult(stop({ status: 'NOT_DELIVERED', reason: 'CLIENT_ABSENT' }))).toBe(false)
+  })
+
+  it('advances one step at a time: PENDING -> PICKED_UP -> IN_TRANSIT -> none', () => {
+    expect(nextProgressStatus(stop({ status: 'PENDING' }))).toBe('PICKED_UP')
+    expect(nextProgressStatus(stop({ status: 'PICKED_UP' }))).toBe('IN_TRANSIT')
+    expect(nextProgressStatus(stop({ status: 'IN_TRANSIT' }))).toBeNull()
+    expect(nextProgressStatus(stop({ status: 'DELIVERED' }))).toBeNull()
+  })
+
+  it('counts completed stops as those with a final result', () => {
+    const stops = [
+      stop({ id: 'a', status: 'DELIVERED' }),
+      stop({ id: 'b', status: 'NOT_DELIVERED', reason: 'CLIENT_ABSENT' }),
+      stop({ id: 'c', status: 'IN_TRANSIT' }),
+      stop({ id: 'd', status: 'PENDING' }),
+    ]
+    expect(completedCount(stops)).toBe(2)
+    expect(remainingCount(stops)).toBe(2)
   })
 
   it('requires a reason for a failed stop and forbids one for a delivered stop', () => {
@@ -85,6 +107,26 @@ describe('demo driver route', () => {
   it('refuses a second result for the same stop', async () => {
     await registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })
     await expect(registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('advances a stop through recogido and en camino, in order', async () => {
+    const picked = await advanceDemoStatus('route-demo-1', 'stop-1', 'PICKED_UP')
+    expect(picked.status).toBe('PICKED_UP')
+    const transit = await advanceDemoStatus('route-demo-1', 'stop-1', 'IN_TRANSIT')
+    expect(transit.status).toBe('IN_TRANSIT')
+  })
+
+  it('refuses to skip a step or to advance a stop that already has a result', async () => {
+    await expect(advanceDemoStatus('route-demo-1', 'stop-1', 'IN_TRANSIT')).rejects.toMatchObject({ status: 409 })
+    await registerDemoResult('route-demo-1', 'stop-1', { outcome: 'DELIVERED' })
+    await expect(advanceDemoStatus('route-demo-1', 'stop-1', 'PICKED_UP')).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('accepts a result while the stop is in transit', async () => {
+    await advanceDemoStatus('route-demo-1', 'stop-2', 'PICKED_UP')
+    await advanceDemoStatus('route-demo-1', 'stop-2', 'IN_TRANSIT')
+    const done = await registerDemoResult('route-demo-1', 'stop-2', { outcome: 'DELIVERED' })
+    expect(done.status).toBe('DELIVERED')
   })
 
   it('refuses an invalid result and unknown ids', async () => {

@@ -70,7 +70,9 @@ The backend has **no driver route endpoints yet**. `src/features/driver-route/ap
 `GET /api/v1/drivers/me/route` and `POST /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/result`. With
 `EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true` the screen runs on a demo route. Results need the driver's GPS (ADR 0007), which
 requires `expo-location`; it is not installed yet, so the planned request carries no location.
-Marking pickup and "en camino" (Sprint 5) is not implemented.
+The driver can mark each stop "recogido" and "en camino" before the result. Those two steps call a planned
+`PATCH /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/status`; the Tracking Service owns them in the plan, so the
+Gateway route is still missing.
 
 ## Scripts
 

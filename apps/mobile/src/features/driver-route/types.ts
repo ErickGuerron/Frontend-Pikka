@@ -1,7 +1,33 @@
 import { enumValue, number, object, oneOf, ParseError, string } from '../../api/parse'
 
-export const stopStatuses = ['PENDING', 'DELIVERED', 'NOT_DELIVERED'] as const
+/**
+ * Progress of one stop. PENDING -> PICKED_UP -> IN_TRANSIT -> DELIVERED | NOT_DELIVERED.
+ * The last two are final; the driver never moves a stop backwards.
+ */
+export const stopStatuses = ['PENDING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'NOT_DELIVERED'] as const
 export type StopStatus = (typeof stopStatuses)[number]
+
+/** Statuses the driver can set by advancing a stop (no result yet). */
+export type ProgressStatus = Extract<StopStatus, 'PICKED_UP' | 'IN_TRANSIT'>
+
+const nextProgress: Partial<Record<StopStatus, ProgressStatus>> = {
+  PENDING: 'PICKED_UP',
+  PICKED_UP: 'IN_TRANSIT',
+}
+
+/** The only status a stop may advance to next, or null when the stop has a result or no step left. */
+export function nextProgressStatus(stop: RouteStop): ProgressStatus | null {
+  return nextProgress[stop.status] ?? null
+}
+
+export function isFinal(status: StopStatus): boolean {
+  return status === 'DELIVERED' || status === 'NOT_DELIVERED'
+}
+
+/** Count of stops with a final result, for the progress line of the route. */
+export function completedCount(stops: readonly RouteStop[]): number {
+  return stops.filter((s) => isFinal(s.status)).length
+}
 
 /** Closed list from ADR 0007: the driver cannot type a free-text reason. */
 export const notDeliveredReasons = [
@@ -40,7 +66,7 @@ export interface DriverRoute {
   stops: RouteStop[]
 }
 
-export type StopOutcome = Exclude<StopStatus, 'PENDING'>
+export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
 
 export interface StopResultInput {
   outcome: StopOutcome
@@ -72,9 +98,9 @@ export function orderedStops(stops: readonly RouteStop[]): RouteStop[] {
   return [...stops].sort((a, b) => a.sequence - b.sequence)
 }
 
-/** Only a pending stop accepts a result; a registered stop is final. */
+/** Any stop without a final result accepts one; a registered stop is final. */
 export function canRegisterResult(stop: RouteStop): boolean {
-  return stop.status === 'PENDING'
+  return !isFinal(stop.status)
 }
 
 /** Returns the reason the input is invalid, or null when it can be sent. */
@@ -89,5 +115,5 @@ export function validateStopResult(input: StopResultInput): string | null {
 }
 
 export function remainingCount(stops: readonly RouteStop[]): number {
-  return stops.filter((s) => s.status === 'PENDING').length
+  return stops.length - completedCount(stops)
 }

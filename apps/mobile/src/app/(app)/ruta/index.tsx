@@ -4,11 +4,11 @@ import { useSessionStore } from '../../../store/session-store'
 import { colors } from '../../../theme/colors'
 import { useDriverRoute } from '../../../features/driver-route/hooks'
 import { RouteStopCard } from '../../../features/driver-route/RouteStopCard'
-import { orderedStops, remainingCount } from '../../../features/driver-route/types'
+import { completedCount, orderedStops, remainingCount } from '../../../features/driver-route/types'
 import { Button } from '../../../components/Button'
 
 export default function DriverRouteScreen() {
-  const { route, loading, error, unavailable, reload, submit } = useDriverRoute()
+  const { route, loading, error, unavailable, reload, submit, advance } = useDriverRoute()
   const user = useSessionStore((s) => s.user)
   const clear = useSessionStore((s) => s.clear)
   const stops = route === null ? [] : orderedStops(route.stops)
@@ -21,7 +21,9 @@ export default function DriverRouteScreen() {
       <View style={styles.top}>
         <Text style={styles.hello}>Hola{user ? `, ${user.fullName}` : ''}</Text>
         <Text style={styles.subtitle}>
-          {route === null ? 'Ruta de hoy' : `Ruta de hoy · ${remainingCount(route.stops)} paradas pendientes`}
+          {route === null
+            ? 'Ruta de hoy'
+            : `Ruta de hoy · ${completedCount(route.stops)} de ${route.stops.length} completadas · ${remainingCount(route.stops)} pendientes`}
         </Text>
         {isDriverDemoMode() ? <Text style={styles.demo}>DEMO · datos simulados</Text> : null}
       </View>
@@ -37,7 +39,7 @@ export default function DriverRouteScreen() {
       ) : null}
 
       {stops.map((stop) => (
-        <RouteStopCard key={stop.id} stop={stop} onSubmit={submit} />
+        <RouteStopCard key={stop.id} stop={stop} onSubmit={submit} onAdvance={advance} />
       ))}
 
       <Button label="Cerrar sesión" variant="outline" onPress={() => { void clear() }} />

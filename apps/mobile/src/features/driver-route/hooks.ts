@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, userMessage } from '../../api/errors'
-import { getMyRoute, isRouteUnavailable, registerStopResult } from './api'
-import type { DriverRoute, StopResultInput } from './types'
+import { advanceStopStatus, getMyRoute, isRouteUnavailable, registerStopResult } from './api'
+import type { DriverRoute, ProgressStatus, StopResultInput } from './types'
 
 export const UNAVAILABLE_MESSAGE = 'El servicio de rutas aún no está disponible'
 
@@ -55,5 +55,24 @@ export function useDriverRoute() {
     [route, load],
   )
 
-  return { route, loading, error, unavailable, reload: () => load(), submit }
+  /** Moves a stop forward one progress step (recogido, en camino). */
+  const advance = useCallback(
+    async (stopId: string, to: ProgressStatus) => {
+      if (route === null) return
+      try {
+        const updated = await advanceStopStatus(route.id, stopId, to)
+        setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? updated : s)) })
+        setError(null)
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 409) {
+          await load()
+          return
+        }
+        setError(userMessage(e))
+      }
+    },
+    [route, load],
+  )
+
+  return { route, loading, error, unavailable, reload: () => load(), submit, advance }
 }

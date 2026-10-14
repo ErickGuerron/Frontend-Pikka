@@ -1,8 +1,15 @@
 import { http } from '../../api/client'
 import { isDriverDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
-import { getDemoRoute, registerDemoResult } from './demo'
-import { parseDriverRoute, parseRouteStop, type DriverRoute, type RouteStop, type StopResultInput } from './types'
+import { advanceDemoStatus, getDemoRoute, registerDemoResult } from './demo'
+import {
+  parseDriverRoute,
+  parseRouteStop,
+  type DriverRoute,
+  type ProgressStatus,
+  type RouteStop,
+  type StopResultInput,
+} from './types'
 
 /**
  * Driver route endpoints.
@@ -23,6 +30,16 @@ export function isRouteUnavailable(error: unknown): boolean {
 export function getMyRoute(signal?: AbortSignal): Promise<DriverRoute> {
   if (isDriverDemoMode()) return getDemoRoute()
   return http.get('/api/v1/drivers/me/route', parseDriverRoute, signal ? { signal } : {})
+}
+
+/**
+ * Advances a stop to PICKED_UP or IN_TRANSIT. PLANNED: the Tracking Service owns these
+ * transitions (PATCH /deliveries/{id}/status in the plan); the Gateway route is not served yet.
+ */
+export function advanceStopStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<RouteStop> {
+  if (isDriverDemoMode()) return advanceDemoStatus(routeId, stopId, to)
+  const path = `/api/v1/drivers/me/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}/status`
+  return http.patch(path, parseRouteStop, { body: { status: to } })
 }
 
 export function registerStopResult(routeId: string, stopId: string, input: StopResultInput): Promise<RouteStop> {

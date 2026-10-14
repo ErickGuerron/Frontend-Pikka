@@ -59,6 +59,6 @@ Alcance de Sprint 1 (frontend, Mabe): navegación y pantallas del repartidor den
 
 ## Pendientes fuera de este boceto
 
-- Marcar recogido y "en camino": Sprint 5, con Tracking.
+- Marcar recogido y "en camino": implementado contra el mock; el endpoint de Tracking todavía no existe.
 - Captura de GPS para registrar el resultado: requiere `expo-location`.
 - Foto opcional: no incluida en la primera versión.

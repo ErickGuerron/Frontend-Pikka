@@ -4,31 +4,43 @@ import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
 import {
   canRegisterResult,
+  nextProgressStatus,
   notDeliveredReasons,
   reasonLabels,
   validateStopResult,
   type NotDeliveredReason,
+  type ProgressStatus,
   type RouteStop,
   type StopResultInput,
 } from './types'
 
 const statusLabel: Record<RouteStop['status'], string> = {
   PENDING: 'Pendiente',
+  PICKED_UP: 'Recogido',
+  IN_TRANSIT: 'En camino',
   DELIVERED: 'Entregado',
   NOT_DELIVERED: 'No entregado',
+}
+
+/** Button text for the next progress step. */
+const advanceLabel: Record<ProgressStatus, string> = {
+  PICKED_UP: 'Marcar recogido',
+  IN_TRANSIT: 'Marcar en camino',
 }
 
 interface Props {
   stop: RouteStop
   onSubmit: (stopId: string, input: StopResultInput) => Promise<void>
+  onAdvance: (stopId: string, to: ProgressStatus) => Promise<void>
 }
 
-/** One stop: address, window and the result buttons while it is pending. */
-export function RouteStopCard({ stop, onSubmit }: Props) {
+/** One stop: address, window, progress buttons and the result buttons while it is not final. */
+export function RouteStopCard({ stop, onSubmit, onAdvance }: Props) {
   const [choosingReason, setChoosingReason] = useState(false)
   const [reason, setReason] = useState<NotDeliveredReason | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
   const pending = canRegisterResult(stop)
+  const next = nextProgressStatus(stop)
 
   const send = async (input: StopResultInput) => {
     const invalid = validateStopResult(input)
@@ -57,6 +69,9 @@ export function RouteStopCard({ stop, onSubmit }: Props) {
 
       {pending && !choosingReason ? (
         <View style={styles.actions}>
+          {next !== null ? (
+            <Button label={advanceLabel[next]} onPress={() => { void onAdvance(stop.id, next) }} />
+          ) : null}
           <Button label="Entregado" onPress={() => { void send({ outcome: 'DELIVERED' }) }} />
           <Button label="No entregado" variant="outline" onPress={() => { setChoosingReason(true) }} />
         </View>
