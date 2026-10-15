@@ -1,6 +1,8 @@
 import { parseUser, type Role, type User } from '@/features/auth/types'
 import { http } from '@/shared/api/client'
 
+export const usersKey = ['users'] as const
+
 export interface NewUser {
   email: string
   password: string
@@ -8,8 +10,22 @@ export interface NewUser {
   role: Role
 }
 
+export interface UserChanges {
+  fullName: string
+  role?: Role
+}
+
 export function createUser(input: NewUser): Promise<User> {
   return http.post('/api/v1/users', parseUser, { body: input })
+}
+
+export function updateUser(id: string, changes: UserChanges): Promise<User> {
+  return http.patch(`/api/v1/users/${id}`, parseUser, { body: changes })
+}
+
+/** Borrado lógico: el backend responde el usuario con active=false. */
+export function deactivateUser(id: string): Promise<User> {
+  return http.delete(`/api/v1/users/${id}`, parseUser)
 }
 
 /** El gateway responde `{ users: [...] }`; se acepta también un array plano. */
