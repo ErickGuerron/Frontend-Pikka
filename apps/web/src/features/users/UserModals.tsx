@@ -44,24 +44,31 @@ interface DialogProps {
   labelId: string
   role?: 'dialog' | 'alertdialog'
   wide?: boolean
+  /** Diálogo encima de otro: no toca el scroll del body. */
+  nested?: boolean
+  /** Mientras hay un diálogo encima, este no atiende teclas ni atrapa el foco. */
+  suspended?: boolean
   onClose: () => void
   children: ReactNode
 }
 
 /** Diálogo accesible: Escape cierra, Tab no sale del diálogo y el foco vuelve al disparador. */
-function Dialog({ labelId, role = 'dialog', wide = true, onClose, children }: DialogProps) {
+function Dialog({ labelId, role = 'dialog', wide = true, nested = false, suspended = false, onClose, children }: DialogProps) {
   // Se captura al montar, cuando el disparador aún tiene el foco.
   const [opener] = useState<HTMLElement | null>(() =>
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   )
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose)
+  const suspendedRef = useRef(suspended)
   useEffect(() => {
     closeRef.current = onClose
+    suspendedRef.current = suspended
   })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (suspendedRef.current) return
       if (e.key === 'Escape') {
         closeRef.current()
         return
@@ -82,13 +89,13 @@ function Dialog({ labelId, role = 'dialog', wide = true, onClose, children }: Di
       }
     }
     document.addEventListener('keydown', onKey)
-    document.body.classList.add('overflow-hidden')
+    if (!nested) document.body.classList.add('overflow-hidden')
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.classList.remove('overflow-hidden')
+      if (!nested) document.body.classList.remove('overflow-hidden')
       opener?.focus()
     }
-  }, [opener])
+  }, [opener, nested])
 
   return (
     <div
@@ -250,8 +257,27 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
 
 const footerButtonClass =
   `px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer touch-manipulation ${focusRing}`
+const destructiveButtonClass =
+  `px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
 const primaryButtonClass =
   `flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-[background-color,box-shadow] motion-safe:active:scale-95 font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
+
+/** Confirmación al cerrar un formulario con cambios sin guardar. */
+function DiscardChangesDialog({ onKeep, onDiscard }: { onKeep: () => void; onDiscard: () => void }) {
+  const titleId = useId()
+  return (
+    <Dialog labelId={titleId} nested onClose={onKeep} role="alertdialog" wide={false}>
+      <div className="p-space-lg flex flex-col gap-4">
+        <h2 className="font-headline-md text-on-surface font-bold leading-tight" id={titleId}>¿Descartar cambios?</h2>
+        <p className="font-body-sm text-on-surface-variant">Los datos escritos en este formulario se perderán.</p>
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <button autoFocus className={footerButtonClass} onClick={onKeep} type="button">Seguir editando</button>
+          <button className={destructiveButtonClass} onClick={onDiscard} type="button">Descartar</button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
 
 // ─── Crear ──────────────────────────────────────────────────────────────────
 
@@ -270,6 +296,13 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
   const [submitted, setSubmitted] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
+
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const isDirty = form.fullName.trim() !== '' || form.email.trim() !== '' || form.password !== '' || form.role !== emptyUser.role
+  const requestClose = () => {
+    if (isDirty) setConfirmDiscard(true)
+    else onClose()
+  }
 
   const errors = {
     fullName: fullNameError(form.fullName),
@@ -302,9 +335,10 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
   }
 
   return (
-    <Dialog labelId={titleId} onClose={onClose}>
+    <>
+    <Dialog labelId={titleId} onClose={requestClose} suspended={confirmDiscard}>
       <DialogHeader
-        onClose={onClose}
+        onClose={requestClose}
         subtitle="Configura las credenciales de acceso y el rol en la red Pikka."
         title="Crear Nuevo Usuario"
         titleId={titleId}
@@ -349,13 +383,15 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
-          <button className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
+          <button className={footerButtonClass} onClick={requestClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Creando…' : 'Crear usuario'}
           </button>
         </div>
       </form>
     </Dialog>
+    {confirmDiscard && <DiscardChangesDialog onDiscard={onClose} onKeep={() => { setConfirmDiscard(false) }} />}
+    </>
   )
 }
 
@@ -377,6 +413,12 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const [submitted, setSubmitted] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const nameError = fullNameError(fullName)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const isDirty = fullName !== user.fullName || (!roleLocked && role !== user.role)
+  const requestClose = () => {
+    if (isDirty) setConfirmDiscard(true)
+    else onClose()
+  }
 
   const mutation = useMutation({
     mutationFn: (changes: UserChanges) => updateUser(user.id, changes),
@@ -407,9 +449,10 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   }
 
   return (
-    <Dialog labelId={titleId} onClose={onClose}>
+    <>
+    <Dialog labelId={titleId} onClose={requestClose} suspended={confirmDiscard}>
       <DialogHeader
-        onClose={onClose}
+        onClose={requestClose}
         subtitle="Cambia el nombre o el rol. El correo no se puede modificar."
         title="Editar Usuario"
         titleId={titleId}
@@ -436,13 +479,15 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
-          <button className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
+          <button className={footerButtonClass} onClick={requestClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
       </form>
     </Dialog>
+    {confirmDiscard && <DiscardChangesDialog onDiscard={onClose} onKeep={() => { setConfirmDiscard(false) }} />}
+    </>
   )
 }
 
@@ -482,7 +527,7 @@ export function DeactivateUserDialog({ user, onClose, onSaved }: DeactivateUserD
         <div className="flex items-center justify-between gap-3 pt-2">
           <button autoFocus className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button
-            className={`px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`}
+            className={destructiveButtonClass}
             disabled={mutation.isPending}
             onClick={() => { mutation.mutate() }}
             type="button"

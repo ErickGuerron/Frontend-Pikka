@@ -435,3 +435,70 @@ it('oculta la paginación cuando hay una sola página', async () => {
   expect(screen.queryByRole('button', { name: 'Siguiente página' })).toBeNull()
   expect(screen.queryByText(/Mostrando/)).toBeNull()
 })
+
+// ─── Descartar cambios sin guardar ──────────────────────────────────────────
+
+it('con datos escritos, Escape pide confirmar y no cierra el modal', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.keyboard('{Escape}')
+
+  const confirm = screen.getByRole('alertdialog', { name: '¿Descartar cambios?' })
+  expect(within(confirm).getByRole('button', { name: 'Seguir editando' })).toHaveFocus()
+  expect(screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })).toBeInTheDocument()
+})
+
+it('"Seguir editando" cierra la confirmación y mantiene los datos', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.keyboard('{Escape}')
+  await user.click(screen.getByRole('button', { name: 'Seguir editando' }))
+
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  expect(screen.getByLabelText('Nombre completo')).toHaveValue('Elena')
+})
+
+it('"Descartar" cierra el modal y al reabrirlo el formulario está limpio', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+  await user.click(screen.getByRole('button', { name: 'Descartar' }))
+
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  await user.click(screen.getByRole('button', { name: 'Nuevo Usuario' }))
+  expect(screen.getByLabelText('Nombre completo')).toHaveValue('')
+})
+
+it('sin datos, Escape cierra directo sin confirmación', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  await user.keyboard('{Escape}')
+
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+})
+
+it('al editar, cambiar el nombre y pulsar la X pide confirmación', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
+  const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
+  await user.type(within(dialog).getByLabelText('Nombre completo'), ' Nuevo')
+  await user.click(within(dialog).getByRole('button', { name: 'Cerrar modal' }))
+
+  expect(screen.getByRole('alertdialog', { name: '¿Descartar cambios?' })).toBeInTheDocument()
+  expect(screen.getByRole('dialog', { name: 'Editar Usuario' })).toBeInTheDocument()
+})
