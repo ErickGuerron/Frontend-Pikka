@@ -75,7 +75,8 @@ describe('login', () => {
     renderApp('/')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
+    await user.click(await screen.findByRole('button', { name: `Menú de cuenta de ${adminUser.fullName}` }))
+    await user.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }))
     expect(await screen.findByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeInTheDocument()
     expect(useSession.getState().token).toBeNull()
   })
