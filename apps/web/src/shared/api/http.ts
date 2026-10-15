@@ -11,6 +11,8 @@ export interface HttpClientOptions {
 export interface RequestOptions {
   body?: unknown
   signal?: AbortSignal | undefined
+  /** `false` para endpoints públicos: no envía la sesión ni la cierra ante un 401. */
+  auth?: boolean
 }
 
 export interface HttpClient {
@@ -25,7 +27,7 @@ export interface HttpClient {
 export function createHttpClient({ baseUrl, getToken, onUnauthorized }: HttpClientOptions): HttpClient {
   async function request<T>(method: string, path: string, parse: Parser<T>, options: RequestOptions = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' }
-    const token = getToken()
+    const token = options.auth === false ? null : getToken()
     if (token) headers.Authorization = `Bearer ${token}`
     if (options.body !== undefined) headers['Content-Type'] = 'application/json'
 
