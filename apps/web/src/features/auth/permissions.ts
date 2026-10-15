@@ -5,7 +5,7 @@ import type { Role } from './types'
  * Esto solo controla la navegación y las consultas. La autorización real la
  * aplica cada servicio en la API.
  */
-export const sections = ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users', 'myOrders'] as const
+export const sections = ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users', 'products', 'myOrders', 'catalog'] as const
 export type Section = (typeof sections)[number]
 
 export const sectionLabels: Record<Section, string> = {
@@ -17,7 +17,9 @@ export const sectionLabels: Record<Section, string> = {
   drivers: 'Repartidores',
   tracking: 'Seguimiento',
   users: 'Usuarios',
+  products: 'Productos',
   myOrders: 'Mis Pedidos',
+  catalog: 'Catálogo',
 }
 
 const staffRoles: readonly Role[] = ['ADMIN', 'OPERATOR']
@@ -31,8 +33,10 @@ const allowedRoles: Record<Section, readonly Role[]> = {
   drivers: staffRoles,
   tracking: staffRoles,
   users: ['ADMIN'],
+  products: staffRoles,
   // The customer area is exclusive to customers; staff use the back-office sections.
   myOrders: ['CUSTOMER'],
+  catalog: ['CUSTOMER'],
 }
 
 export function canAccess(role: Role | undefined, section: Section): boolean {

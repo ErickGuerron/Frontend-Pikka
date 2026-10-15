@@ -3,10 +3,10 @@ import { canAccess, hasWebAccess, homePathFor, sections, type Section } from './
 import type { Role } from './types'
 
 const expectedAccess: Record<Role, Section[]> = {
-  ADMIN: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users'],
-  OPERATOR: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking'],
+  ADMIN: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users', 'products'],
+  OPERATOR: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'products'],
   DRIVER: [],
-  CUSTOMER: ['myOrders'],
+  CUSTOMER: ['myOrders', 'catalog'],
 }
 
 describe('matriz de permisos de la web (ADR 0008)', () => {
@@ -30,9 +30,16 @@ describe('matriz de permisos de la web (ADR 0008)', () => {
   })
 
   it('el cliente no accede a ninguna sección del personal', () => {
-    for (const section of sections.filter((s) => s !== 'myOrders')) {
+    for (const section of sections.filter((s) => s !== 'myOrders' && s !== 'catalog')) {
       expect(canAccess('CUSTOMER', section)).toBe(false)
     }
+  })
+
+  it('el catálogo del cliente y la administración de productos no se cruzan', () => {
+    expect(canAccess('CUSTOMER', 'products')).toBe(false)
+    expect(canAccess('OPERATOR', 'catalog')).toBe(false)
+    expect(canAccess('ADMIN', 'catalog')).toBe(false)
+    expect(canAccess('DRIVER', 'products')).toBe(false)
   })
 
   it('el personal no accede a Mis Pedidos', () => {
