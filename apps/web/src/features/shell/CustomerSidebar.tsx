@@ -5,6 +5,7 @@ import { canAccess, customerHomePath, sectionLabels, type Section } from '@/feat
 
 const navItems: { section: Section; to: string; icon: string }[] = [
   { section: 'myOrders', to: customerHomePath, icon: 'package_2' },
+  { section: 'catalog', to: '/catalogo', icon: 'storefront' },
 ]
 
 interface CustomerSidebarProps {

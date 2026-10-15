@@ -10,6 +10,7 @@ const navItems: { section: Section; to: string; icon: string; end?: boolean }[] 
   { section: 'routes', to: '/routes', icon: 'alt_route' },
   { section: 'drivers', to: '/drivers', icon: 'two_wheeler' },
   { section: 'tracking', to: '/tracking', icon: 'radar' },
+  { section: 'products', to: '/productos', icon: 'inventory_2' },
   { section: 'users', to: '/users', icon: 'group' },
 ]
 

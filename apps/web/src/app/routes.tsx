@@ -7,6 +7,8 @@ import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { RoutesPage } from '@/features/routing/RoutesPage'
+import { CatalogPage } from '@/features/catalog/CatalogPage'
+import { ProductAdminPage } from '@/features/catalog/ProductAdminPage'
 import { AppLayout } from '@/features/shell/AppLayout'
 import { TrackingPage } from '@/features/tracking/TrackingPage'
 import { CreateUserPage } from '@/features/users/CreateUserPage'
@@ -36,6 +38,8 @@ export const routes: RouteObject[] = [
       { path: 'users', element: <RequireSection section="users"><UsersPage /></RequireSection> },
       { path: 'users/new', element: <RequireSection section="users"><CreateUserPage /></RequireSection> },
       { path: 'mis-pedidos', element: <RequireSection section="myOrders"><MyOrdersPage /></RequireSection> },
+      { path: 'catalogo', element: <RequireSection section="catalog"><CatalogPage /></RequireSection> },
+      { path: 'productos', element: <RequireSection section="products"><ProductAdminPage /></RequireSection> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

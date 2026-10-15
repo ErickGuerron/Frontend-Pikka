@@ -48,12 +48,12 @@ describe('enrutamiento por rol (cliente)', () => {
     await waitFor(() => { expect(router.state.location.pathname).toBe('/mis-pedidos') })
   })
 
-  it('el menú del cliente solo ofrece Mis Pedidos y Cerrar sesión', async () => {
+  it('el menú del cliente solo ofrece Mis Pedidos, Catálogo y Cerrar sesión', async () => {
     useSession.getState().setToken('tok')
     serveAs(customerUser)
     renderApp('/mis-pedidos')
     const nav = await screen.findByRole('navigation', { name: 'Secciones' })
-    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['package_2Mis Pedidos'])
+    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['package_2Mis Pedidos', 'storefrontCatálogo'])
     expect(screen.getByText('Cliente', { selector: 'span' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Cerrar sesión/ })).toBeInTheDocument()
   })
