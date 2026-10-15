@@ -10,8 +10,9 @@ export interface NewUser {
   role: Role
 }
 
+/** Solo se envían los campos que cambiaron. */
 export interface UserChanges {
-  fullName: string
+  fullName?: string
   role?: Role
 }
 
