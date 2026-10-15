@@ -169,10 +169,42 @@ it('el modal de creación: contraseña con mostrar/ocultar, autocompletado y val
   expect(password).toHaveAttribute('type', 'text')
   expect(within(dialog).getByRole('button', { name: 'Ocultar contraseña' })).toHaveAttribute('aria-pressed', 'true')
 
-  const upper = within(dialog).getByText('Una letra mayúscula').closest('li')
-  expect(upper).toHaveTextContent('(pendiente)')
+  expect(within(dialog).queryByRole('list', { name: 'Requisitos de la contraseña' })).toBeNull()
+  expect(within(dialog).queryByText('Una letra mayúscula')).toBeNull()
   await user.type(password, 'Abcdefg1!')
-  expect(upper).toHaveTextContent('(cumplido)')
+  expect(within(dialog).getByTestId('password-rules-live')).toHaveTextContent('mayúscula')
+})
+
+it('la barra de contraseña empieza vacía y se completa al cumplir todas las reglas', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const fill = within(dialog).getByTestId('password-strength-fill')
+
+  expect(fill).toHaveStyle({ width: '0%' })
+  await user.type(within(dialog).getByLabelText('Contraseña provisional'), 'Abcdefg1')
+  expect(fill).toHaveStyle({ width: '83.33333333333334%' })
+  await user.type(within(dialog).getByLabelText('Contraseña provisional'), '!')
+  expect(fill).toHaveStyle({ width: '100%' })
+})
+
+it('anuncia en vivo, solo para lectores de pantalla, las reglas cumplidas', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const live = within(dialog).getByTestId('password-rules-live')
+
+  expect(live).toHaveAttribute('aria-live', 'polite')
+  expect(live).toHaveClass('sr-only')
+  await user.type(within(dialog).getByLabelText('Contraseña provisional'), 'A')
+  expect(live).toHaveTextContent('mayúscula')
+  await user.type(within(dialog).getByLabelText('Contraseña provisional'), 'bcdefgh1')
+  expect(live).toHaveTextContent('mínimo 8 caracteres')
+  expect(live).toHaveTextContent('número')
 })
 
 it('al enviar con errores enfoca el primer campo inválido', async () => {
@@ -273,7 +305,7 @@ it('no muestra datos falsos ni controles sin función', async () => {
   renderApp('/users')
   await screen.findByText('Diego Driver')
   const text = document.body.textContent
-  for (const fake of ['Sincronizado', 'Exportar', 'Protocolo de seguridad', 'Doble Factor', '2FA', 'Políticas Activas', 'Mostrando', 'Todos los Centros', 'Centro / Hub', 'Última', 'Root', '9 turno', '94%', '+3', 'en ruta', 'Más opciones', 'Permisos']) {
+  for (const fake of ['Sincronizado', 'Exportar', 'Protocolo de seguridad', 'Doble Factor', '2FA', 'Políticas Activas', 'Todos los Centros', 'Centro / Hub', 'Última', 'Root', '9 turno', '94%', '+3', 'en ruta', 'Más opciones', 'Permisos']) {
     expect(text).not.toContain(fake)
   }
   expect(screen.queryByAltText('Pikka Mascot')).toBeNull()
@@ -333,4 +365,73 @@ it('no ofrece Desactivar para la sesión propia', async () => {
   renderApp('/users')
   expect(await screen.findByRole('button', { name: 'Desactivar usuario Carla Cliente' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Desactivar usuario Ana Admin' })).toBeNull()
+})
+
+// ─── Paginación ─────────────────────────────────────────────────────────────
+
+function manyUsers(count: number, roleFor: (i: number) => string = () => 'OPERATOR') {
+  const users = Array.from({ length: count }, (_, i) => ({
+    ...adminUser,
+    id: `p-${String(i + 1)}`,
+    email: `u${String(i + 1)}@example.com`,
+    fullName: `Usuario ${String(i + 1).padStart(2, '0')}`,
+    role: roleFor(i),
+  }))
+  mockApi((url, init) => (url.endsWith('/api/v1/users') && (init.method ?? 'GET') === 'GET'
+    ? { status: 200, body: { users } }
+    : { status: 200, body: adminUser }))
+}
+
+function visibleRowNames() {
+  const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+  return rows.map((row) => row.querySelector('td')?.textContent ?? '')
+}
+
+it('pagina 25 usuarios en 3 páginas de 10 y navegar cambia las filas visibles', async () => {
+  manyUsers(25)
+  const { router } = renderApp('/users')
+  const user = userEvent.setup()
+  await screen.findByText('Usuario 01')
+
+  expect(screen.getByText('Mostrando 1–10 de 25')).toHaveClass('tabular-nums')
+  expect(visibleRowNames()).toHaveLength(10)
+  expect(visibleRowNames()[0]).toContain('Usuario 01')
+
+  await user.click(screen.getByRole('button', { name: 'Siguiente página' }))
+  expect(screen.getByText('Mostrando 11–20 de 25')).toBeInTheDocument()
+  expect(visibleRowNames()[0]).toContain('Usuario 11')
+  expect(router.state.location.search).toContain('pagina=2')
+
+  await user.click(screen.getByRole('button', { name: 'Página 3' }))
+  expect(screen.getByText('Mostrando 21–25 de 25')).toBeInTheDocument()
+  expect(visibleRowNames()).toHaveLength(5)
+  expect(router.state.location.search).toContain('pagina=3')
+
+  await user.click(screen.getByRole('button', { name: 'Página anterior' }))
+  expect(screen.getByText('Mostrando 11–20 de 25')).toBeInTheDocument()
+})
+
+it('la página de la URL se lee al cargar y se clampa a la última si está fuera de rango', async () => {
+  manyUsers(25)
+  renderApp('/users?pagina=9')
+  expect(await screen.findByText('Mostrando 21–25 de 25')).toBeInTheDocument()
+})
+
+it('cambiar el filtro vuelve a la página 1', async () => {
+  manyUsers(25, (i) => (i < 12 ? 'CUSTOMER' : 'OPERATOR'))
+  const { router } = renderApp('/users?pagina=2')
+  const user = userEvent.setup()
+  await screen.findByText('Usuario 11')
+
+  await user.click(screen.getByRole('button', { name: 'Clientes' }))
+  expect(screen.getByText('Mostrando 1–10 de 12')).toBeInTheDocument()
+  expect(router.state.location.search).not.toContain('pagina=')
+})
+
+it('oculta la paginación cuando hay una sola página', async () => {
+  manyUsers(5)
+  renderApp('/users')
+  await screen.findByText('Usuario 01')
+  expect(screen.queryByRole('button', { name: 'Siguiente página' })).toBeNull()
+  expect(screen.queryByText(/Mostrando/)).toBeNull()
 })

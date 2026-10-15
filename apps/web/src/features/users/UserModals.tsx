@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type SyntheticEvent, type InputHTMLAttributes, type ReactNode } from 'react'
-import { evaluatePasswordRules, missingPasswordRulesMessage, validateEmail } from '@/features/auth/signup-validation'
+import { evaluatePasswordRules, missingPasswordRulesMessage, validateEmail, type PasswordRuleId } from '@/features/auth/signup-validation'
 import { assignableRoles, roleLabels, type Role, type User } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
@@ -118,25 +118,18 @@ function useFocusFirstInvalid(formRef: { current: HTMLFormElement | null }, atte
 
 interface DialogHeaderProps {
   titleId: string
-  icon: string
   title: string
   subtitle: string
   onClose: () => void
 }
 
-function DialogHeader({ titleId, icon, title, subtitle, onClose }: DialogHeaderProps) {
+function DialogHeader({ titleId, title, subtitle, onClose }: DialogHeaderProps) {
   return (
     <>
-      <div className="h-1.5 w-full bg-gradient-to-r from-primary via-secondary to-secondary-container" />
       <div className="px-space-lg pt-space-lg pb-4 flex items-start justify-between gap-3 border-b border-surface-container-low">
-        <div className="flex items-center gap-space-sm min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-primary-fixed/50 flex-shrink-0 flex items-center justify-center text-primary shadow-xs">
-            <span aria-hidden="true" className="material-symbols-outlined text-2xl">{icon}</span>
-          </div>
-          <div className="min-w-0">
-            <h2 className="font-headline-md text-on-surface font-bold leading-tight" id={titleId}>{title}</h2>
-            <p className="font-body-sm text-on-surface-variant">{subtitle}</p>
-          </div>
+        <div className="min-w-0">
+          <h2 className="font-headline-md text-on-surface font-bold leading-tight text-balance" id={titleId}>{title}</h2>
+          <p className="font-body-sm text-on-surface-variant text-pretty">{subtitle}</p>
         </div>
         <button
           aria-label="Cerrar modal"
@@ -193,19 +186,35 @@ function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () 
   )
 }
 
-/** Requisitos de contraseña que se actualizan mientras se escribe. */
-function PasswordChecklist({ password }: { password: string }) {
+const shortRuleLabels: Record<PasswordRuleId, string> = {
+  length: 'mínimo 8 caracteres',
+  upper: 'mayúscula',
+  lower: 'minúscula',
+  digit: 'número',
+  special: 'carácter especial',
+  noSpaces: 'sin espacios',
+  maxBytes: '',
+}
+
+/** Barra fina que pasa de rojo a verde; el anuncio breve es solo para lectores de pantalla. */
+function PasswordStrength({ password }: { password: string }) {
   const rules = evaluatePasswordRules(password).filter((rule) => rule.id !== 'maxBytes')
+  // Un campo vacío no cuenta como cumplido: la barra empieza siempre en cero.
+  const met = password === '' ? [] : rules.filter((rule) => rule.met)
+  const complete = met.length === rules.length
+  const percent = rules.length === 0 ? 0 : (met.length / rules.length) * 100
+  const announcement = met.length === 0 ? '' : `Cumplidos: ${met.map((rule) => shortRuleLabels[rule.id]).join(', ')}.`
   return (
-    <ul aria-label="Requisitos de la contraseña" className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
-      {rules.map((rule) => (
-        <li key={rule.id} className={`flex items-center gap-1 text-[11px] ${rule.met ? 'text-secondary' : 'text-on-surface-variant'}`}>
-          <span aria-hidden="true" className="material-symbols-outlined text-sm">{rule.met ? 'check_circle' : 'radio_button_unchecked'}</span>
-          <span>{rule.label}</span>
-          <span className="sr-only">{rule.met ? '(cumplido)' : '(pendiente)'}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-1">
+      <div aria-hidden="true" className="h-1 w-full rounded-full bg-surface-container-high overflow-hidden">
+        <div
+          className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 ${complete ? 'bg-secondary' : 'bg-error'}`}
+          data-testid="password-strength-fill"
+          style={{ width: `${String(percent)}%` }}
+        />
+      </div>
+      <p aria-live="polite" className="sr-only" data-testid="password-rules-live">{announcement}</p>
+    </div>
   )
 }
 
@@ -224,28 +233,25 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
               type="radio"
               value={r}
             />
-            <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary peer-focus-visible:ring-2 peer-focus-visible:ring-secondary text-on-surface transition-all flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
+            <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary peer-focus-visible:ring-2 peer-focus-visible:ring-secondary text-on-surface transition-[background-color,border-color] flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
               <span aria-hidden="true" className="material-symbols-outlined text-2xl">{roleIcons[r]}</span>
               <span className="font-label-badge uppercase font-bold">{roleLabels[r]}</span>
             </div>
           </label>
         ))}
       </div>
-      <div className="bg-surface-container p-3 rounded-xl flex items-start gap-2.5">
-        <span aria-hidden="true" className="material-symbols-outlined text-primary text-lg mt-0.5">verified_user</span>
-        <div className="flex flex-col">
-          <span className="font-body-sm font-bold text-primary">{roleDescriptions[value].title}</span>
-          <span className="font-body-sm text-on-surface-variant">{roleDescriptions[value].description}</span>
-        </div>
+      <div className="bg-surface-container p-3 rounded-xl flex flex-col">
+        <span className="font-body-sm font-bold text-primary">{roleDescriptions[value].title}</span>
+        <span className="font-body-sm text-on-surface-variant">{roleDescriptions[value].description}</span>
       </div>
     </fieldset>
   )
 }
 
 const footerButtonClass =
-  `px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer touch-manipulation ${focusRing}`
+  `px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer touch-manipulation ${focusRing}`
 const primaryButtonClass =
-  `flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
+  `flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-[background-color,box-shadow] motion-safe:active:scale-95 font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
 
 // ─── Crear ──────────────────────────────────────────────────────────────────
 
@@ -298,7 +304,6 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
   return (
     <Dialog labelId={titleId} onClose={onClose}>
       <DialogHeader
-        icon="person_add"
         onClose={onClose}
         subtitle="Configura las credenciales de acceso y el rol en la red Pikka."
         title="Crear Nuevo Usuario"
@@ -309,6 +314,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
           autoComplete="name"
           autoFocus
           error={submitted ? errors.fullName : undefined}
+          name="fullName"
           label="Nombre completo"
           onChange={(e) => { update('fullName', e.target.value) }}
           placeholder="Ej. Ana Pérez…"
@@ -318,6 +324,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
           autoComplete="off"
           error={submitted ? errors.email : undefined}
           label="Correo"
+          name="email"
           onChange={(e) => { update('email', e.target.value) }}
           placeholder="Ej. nombre@dominio.com…"
           spellCheck={false}
@@ -328,19 +335,20 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
           autoComplete="new-password"
           error={submitted ? errors.password : undefined}
           label="Contraseña provisional"
+          name="password"
           onChange={(e) => { update('password', e.target.value) }}
           placeholder="Mínimo 8 caracteres…"
           trailing={<PasswordToggle onToggle={() => { setShowPassword((v) => !v) }} visible={showPassword} />}
           type={showPassword ? 'text' : 'password'}
           value={form.password}
         />
-        <PasswordChecklist password={form.password} />
+        <PasswordStrength password={form.password} />
         <p className="font-body-sm text-on-surface-variant">El usuario deberá renovar su contraseña en el primer inicio de sesión.</p>
         <RoleRadios onChange={(role) => { update('role', role) }} value={form.role} />
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container-low mt-2">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
           <button className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Creando…' : 'Crear usuario'}
@@ -401,7 +409,6 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   return (
     <Dialog labelId={titleId} onClose={onClose}>
       <DialogHeader
-        icon="edit"
         onClose={onClose}
         subtitle="Cambia el nombre o el rol. El correo no se puede modificar."
         title="Editar Usuario"
@@ -413,6 +420,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
           autoFocus
           error={submitted ? nameError : undefined}
           label="Nombre completo"
+          name="fullName"
           onChange={(e) => { setFullName(e.target.value) }}
           value={fullName}
         />
@@ -427,7 +435,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container-low mt-2">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
           <button className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Guardando…' : 'Guardar cambios'}
@@ -471,7 +479,7 @@ export function DeactivateUserDialog({ user, onClose, onSaved }: DeactivateUserD
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-between gap-3 pt-2">
           <button autoFocus className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button
             className={`px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`}

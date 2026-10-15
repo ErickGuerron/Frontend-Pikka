@@ -23,6 +23,12 @@ const estadoLabels: Record<EstadoFilter, string> = { todos: 'Todos', activo: 'Ac
 const estados: EstadoFilter[] = ['todos', 'activo', 'inactivo']
 
 const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
+const PAGE_SIZE = 10
+
+function parsePagina(value: string | null): number {
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 1 ? n : 1
+}
 
 function parseRol(value: string | null): RoleFilter {
   return roles.find((r) => r === value) ?? 'todos'
@@ -71,6 +77,7 @@ export function UsersPage() {
   const search = params.get('q') ?? ''
   const roleFilter = parseRol(params.get('rol'))
   const estado = parseEstado(params.get('estado'))
+  const requestedPage = parsePagina(params.get('pagina'))
 
   const { data: me } = useCurrentUser()
   const { data: users = [], refetch, isLoading, isError } = useQuery({
@@ -90,6 +97,20 @@ export function UsersPage() {
         const next = new URLSearchParams(prev)
         if (value === fallback) next.delete(key)
         else next.set(key, value)
+        // Un cambio de filtro o búsqueda vuelve a la primera página.
+        next.delete('pagina')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
+  const setPage = (page: number) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (page === 1) next.delete('pagina')
+        else next.set('pagina', String(page))
         return next
       },
       { replace: true },
@@ -105,6 +126,12 @@ export function UsersPage() {
     const matchRole = roleFilter === 'todos' || u.role === roleFilter
     return matchSearch && matchRole && matchesEstado(u, estado)
   })
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const currentPage = Math.min(requestedPage, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const pageUsers = filteredUsers.slice(pageStart, pageStart + PAGE_SIZE)
+  const pageEnd = pageStart + pageUsers.length
 
   const countByRole = (role: Role) => users.filter((u) => u.role === role).length
   const kpis = [
@@ -250,7 +277,7 @@ export function UsersPage() {
                   </td>
                 </tr>
               )}
-              {filteredUsers.map((user) => {
+              {pageUsers.map((user) => {
                 const initials = getInitials(user.fullName)
                 const badgeClass = getRoleBadgeClass(user.role)
                 // Sin identidad de sesión no se ofrece desactivar a nadie; nunca a la propia sesión.
@@ -311,6 +338,46 @@ export function UsersPage() {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <nav aria-label="Paginación de usuarios" className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-surface-container bg-surface-container-low/40">
+            <p className="text-[11px] text-on-surface-variant tabular-nums">
+              {`Mostrando ${String(pageStart + 1)}–${String(pageEnd)} de ${String(filteredUsers.length)}`}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Página anterior"
+                className={`p-1 rounded text-on-surface-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation ${focusRing}`}
+                disabled={currentPage === 1}
+                onClick={() => { setPage(currentPage - 1) }}
+                type="button"
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  aria-current={page === currentPage ? 'page' : undefined}
+                  aria-label={`Página ${String(page)}`}
+                  className={`min-w-7 px-2 py-1 rounded-md text-[11px] font-bold tabular-nums transition-colors touch-manipulation ${focusRing} ${page === currentPage ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+                  onClick={() => { setPage(page) }}
+                  type="button"
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                aria-label="Siguiente página"
+                className={`p-1 rounded text-on-surface-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation ${focusRing}`}
+                disabled={currentPage === totalPages}
+                onClick={() => { setPage(currentPage + 1) }}
+                type="button"
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-base">chevron_right</span>
+              </button>
+            </div>
+          </nav>
+        )}
       </div>
 
       {/* Modales */}
