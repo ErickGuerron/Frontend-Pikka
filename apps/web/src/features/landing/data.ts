@@ -21,8 +21,6 @@ export const DELIVERY_WINDOWS = [
 export interface Slide {
   id: string
   icon: LucideIcon
-  /** Tailwind gradient classes for the visual area. */
-  gradient: string
   mascot?: boolean
   title: string
   text: string
@@ -35,7 +33,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'crear',
     icon: PackagePlus,
-    gradient: 'from-primary-fixed to-surface-container',
     mascot: true,
     title: 'Crea tu pedido',
     text: 'Regístrate y solicita tu entrega indicando a dónde y cuándo la quieres.',
@@ -48,7 +45,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'ventana',
     icon: Clock,
-    gradient: 'from-secondary-fixed/60 to-primary-fixed',
     title: 'Elige tu ventana de entrega',
     text: 'Escoge la franja horaria que mejor se ajuste a tu día.',
     chips: ['09–12', '12–15', '15–18', '18–21'],
@@ -60,7 +56,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'validacion',
     icon: ShieldCheck,
-    gradient: 'from-primary-fixed to-secondary-fixed/50',
     title: 'Validamos tu pedido',
     text: 'Revisamos automáticamente que tu pedido se pueda atender.',
     details: [
@@ -72,7 +67,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'seguimiento',
     icon: MapIcon,
-    gradient: 'from-surface-container to-primary-fixed',
     title: 'Sigue tu pedido en el mapa',
     text: 'Consulta el estado de tu pedido y la ruta hasta tu puerta.',
     details: [
@@ -83,7 +77,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'cancelar',
     icon: Undo2,
-    gradient: 'from-secondary-fixed/50 to-surface-container',
     title: 'Cancela mientras no haya salido',
     text: 'Si cambias de planes, puedes cancelar tu pedido antes de la recogida.',
     details: [
@@ -94,7 +87,6 @@ export const SLIDES: Slide[] = [
   {
     id: 'excepciones',
     icon: ShieldQuestion,
-    gradient: 'from-primary-fixed to-surface-container',
     mascot: true,
     title: 'Resolvemos excepciones y disputas',
     text: 'Si algo no sale bien, un operador revisa tu caso.',

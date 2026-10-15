@@ -67,3 +67,9 @@ html:has(.landing) {
 .landing a[class*='text-'] {
   color: revert-layer;
 }
+
+/* Sin retardo de doble toque en controles táctiles. */
+.landing a,
+.landing button {
+  touch-action: manipulation;
+}

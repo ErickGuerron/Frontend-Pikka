@@ -10,7 +10,7 @@ export function Zones() {
             COBERTURA
           </p>
           <h2 id="zonas-titulo" className="mt-4 text-3xl font-bold tracking-tight sm:text-[40px] sm:leading-[48px]">
-            Zonas de Entrega
+            Zonas de entrega
           </h2>
           <p className="mt-3 text-base leading-6 text-on-surface-variant">
             Llegamos a distintas zonas de la ciudad. Al ingresar tu dirección al hacer un pedido, confirmamos si tu

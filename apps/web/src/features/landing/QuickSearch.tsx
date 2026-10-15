@@ -24,7 +24,7 @@ export function QuickSearch() {
             Solicita tu entrega
           </h2>
           <p className="mt-1 text-base leading-6 text-on-surface-variant">
-            Solicita tu entrega, elige tu ventana y sigue tu pedido en tiempo real.
+            Indica la dirección y la ventana. Crea tu cuenta para confirmar el pedido.
           </p>
           <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
             <div>
@@ -36,7 +36,9 @@ export function QuickSearch() {
                 <input
                   id="qs-direccion"
                   className={field}
-                  placeholder="Calle, número y colonia..."
+                  name="direccion"
+                  autoComplete="street-address"
+                  placeholder="Calle, número y colonia…"
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value)
@@ -83,10 +85,10 @@ export function QuickSearch() {
             ))}
           </ul>
         </div>
-        <aside className="flex flex-col items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-container p-5 text-center text-white">
+        <aside className="flex flex-col items-center justify-center rounded-xl bg-primary p-5 text-center text-white">
           <Clock aria-hidden="true" className="h-7 w-7 text-primary-fixed" />
           <p className="mt-2 text-sm">Ventanas de entrega</p>
-          <p className="text-3xl font-bold">09–21 h</p>
+          <p className="text-3xl font-bold tabular-nums">09–21 h</p>
           <p className="mt-1 text-sm text-primary-fixed">4 franjas al día</p>
         </aside>
       </div>
