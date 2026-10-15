@@ -11,6 +11,14 @@ export function isTrackingDemoMode(): boolean {
   return import.meta.env.VITE_MOCK_TRACKING === 'true'
 }
 
+/**
+ * "true" connects the live WebSocket. Off by default: the Gateway does not serve the socket
+ * yet, and turning it on early would only produce reconnect noise.
+ */
+export function isTrackingLiveEnabled(): boolean {
+  return import.meta.env.VITE_TRACKING_LIVE === 'true'
+}
+
 export function listActiveRoutes(): Promise<TrackedRoute[]> {
   if (isTrackingDemoMode()) return listDemoActiveRoutes()
   return http.get('/api/v1/tracking/routes/active', parseTrackedRoutes)

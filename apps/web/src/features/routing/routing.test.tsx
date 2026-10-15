@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
@@ -46,7 +46,8 @@ describe('generar rutas', () => {
 
     expect(await screen.findByRole('heading', { name: 'Luis Andrade' })).toBeTruthy()
     expect(screen.getByText('Calle Juan León Mera 1224')).toBeTruthy()
-    expect(screen.getByText(/1 pedido\(s\) sin repartidor/)).toBeTruthy()
+    const pending = screen.getByRole('region', { name: 'Pedidos sin repartidor' })
+    expect(within(pending).getByText('Pedido o-9')).toBeTruthy()
   })
 
   it('explica el conflicto cuando otro proceso asignó al mismo tiempo (409)', async () => {
@@ -67,6 +68,57 @@ describe('generar rutas', () => {
     await user.click(await screen.findByRole('button', { name: 'Generar rutas' }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('El servicio de rutas aún no está disponible.'))
+  })
+})
+
+describe('pedido de último momento y ajustes', () => {
+  const twoRoutes: RoutePlan = {
+    ...plan,
+    unassignedOrderIds: [],
+    routes: [...plan.routes, { id: 'route-2', driverId: 'd-2', driverName: 'María Paredes', stops: [] }],
+  }
+
+  it('asigna un pedido sin repartidor a una ruta y lo quita de la lista de pendientes', async () => {
+    const updated: RoutePlan = {
+      ...plan,
+      routes: plan.routes.map((route) => (route.id === 'route-1'
+        ? { ...route, stops: [...route.stops, { orderId: 'o-9', address: 'Pedido o-9', sequence: 3 }] }
+        : route)),
+      unassignedOrderIds: [],
+    }
+    mockApi((url, init) => {
+      if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
+      if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
+      if (url.endsWith('/api/v1/route-plans/generate') && init.method === 'POST') return { status: 200, body: plan }
+      if (url.endsWith('/api/v1/route-plans/plan-1/stops') && init.method === 'POST') return { status: 200, body: updated }
+      return { status: 200, body: [] }
+    })
+    const user = userEvent.setup()
+    renderApp('/routes')
+    await user.click(await screen.findByRole('button', { name: 'Generar rutas' }))
+    await user.click(await screen.findByRole('button', { name: 'Asignar' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Asignar' })).toBeNull()
+    })
+    expect(screen.queryByRole('region', { name: 'Pedidos sin repartidor' })).toBeNull()
+  })
+
+  it('explica el conflicto cuando otro proceso cambió el plan al mover una parada (409)', async () => {
+    mockApi((url, init) => {
+      if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
+      if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
+      if (url.endsWith('/api/v1/route-plans/generate') && init.method === 'POST') return { status: 200, body: twoRoutes }
+      if (url.includes('/stops/o-1') && init.method === 'PATCH') return { status: 409, body: { error: { code: 'CONFLICT', message: 'x' } } }
+      return { status: 200, body: [] }
+    })
+    const user = userEvent.setup()
+    renderApp('/routes')
+    await user.click(await screen.findByRole('button', { name: 'Generar rutas' }))
+    const moves = await screen.findAllByRole('button', { name: 'Mover' })
+    await user.click(moves[0] as HTMLElement)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Otro proceso cambió el plan')
   })
 })
 
