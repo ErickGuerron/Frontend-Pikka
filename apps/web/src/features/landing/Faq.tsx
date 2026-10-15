@@ -32,7 +32,7 @@ export function Faq() {
                     className="flex w-full items-center justify-between gap-4 rounded-xl px-5 py-4 text-left font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                   >
                     {f.q}
-                    <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 motion-reduce:transition-none transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </h3>
                 <div id={`faq-panel-${String(i)}`} role="region" aria-labelledby={`faq-btn-${String(i)}`} hidden={!isOpen} className="px-5 pb-4 text-base leading-6 text-on-surface-variant">
