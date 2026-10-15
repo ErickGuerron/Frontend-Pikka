@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type SyntheticEvent, type InputHTMLAttributes, type ReactNode } from 'react'
-import { evaluatePasswordRules, missingPasswordRulesMessage, validateEmail, type PasswordRuleId } from '@/features/auth/signup-validation'
+import { evaluatePasswordRules, joinFullName, missingPasswordRulesMessage, validateEmail, type PasswordRuleId } from '@/features/auth/signup-validation'
 import { assignableRoles, roleLabels, type Role, type User } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
@@ -28,11 +28,22 @@ const roleDescriptions: Record<Role, { title: string; description: string }> = {
   },
 }
 
-function fullNameError(value: string): string | undefined {
-  const name = value.trim()
-  if (name === '') return 'Ingresa el nombre completo.'
-  if (Array.from(name).length > MAX_FULL_NAME) return `Admite hasta ${String(MAX_FULL_NAME)} caracteres.`
-  return undefined
+/** Nombre y apellido son obligatorios; el conjunto debe caber en el límite del backend. */
+function nameErrors(nombre: string, apellido: string): { nombre?: string; apellido?: string } {
+  const errors: { nombre?: string; apellido?: string } = {}
+  if (nombre.trim() === '') errors.nombre = 'Ingresa el nombre.'
+  if (apellido.trim() === '') errors.apellido = 'Ingresa el apellido.'
+  if (errors.nombre === undefined && errors.apellido === undefined
+    && Array.from(joinFullName(nombre.trim(), apellido.trim())).length > MAX_FULL_NAME) {
+    errors.apellido = `El nombre completo admite hasta ${String(MAX_FULL_NAME)} caracteres.`
+  }
+  return errors
+}
+
+/** Separa un nombre completo existente: la primera palabra es el nombre, el resto el apellido. */
+function splitFullName(full: string): { nombre: string; apellido: string } {
+  const [nombre = '', ...rest] = full.trim().split(/\s+/)
+  return { nombre, apellido: rest.join(' ') }
 }
 
 const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
@@ -281,7 +292,9 @@ function DiscardChangesDialog({ onKeep, onDiscard }: { onKeep: () => void; onDis
 
 // ─── Crear ──────────────────────────────────────────────────────────────────
 
-const emptyUser: NewUser = { email: '', password: '', fullName: '', role: 'OPERATOR' }
+/** Campos del formulario de creación; el nombre completo se compone al enviar. */
+type CreateForm = Omit<NewUser, 'fullName'>
+const emptyUser: CreateForm = { email: '', password: '', role: 'OPERATOR' }
 
 export interface CreateUserModalProps {
   onClose: () => void
@@ -292,20 +305,24 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
   const titleId = useId()
   const queryClient = useQueryClient()
   const formRef = useRef<HTMLFormElement>(null)
-  const [form, setForm] = useState<NewUser>(emptyUser)
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [form, setForm] = useState<CreateForm>(emptyUser)
   const [submitted, setSubmitted] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
 
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const isDirty = form.fullName.trim() !== '' || form.email.trim() !== '' || form.password !== '' || form.role !== emptyUser.role
+  const isDirty = nombre.trim() !== '' || apellido.trim() !== '' || form.email.trim() !== '' || form.password !== '' || form.role !== emptyUser.role
   const requestClose = () => {
     if (isDirty) setConfirmDiscard(true)
     else onClose()
   }
 
+  const nameErr = nameErrors(nombre, apellido)
   const errors = {
-    fullName: fullNameError(form.fullName),
+    nombre: nameErr.nombre,
+    apellido: nameErr.apellido,
     email: form.email.trim() === '' ? 'Ingresa el correo del usuario.' : validateEmail(form.email),
     password: missingPasswordRulesMessage(form.password),
   }
@@ -322,7 +339,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
 
   useFocusFirstInvalid(formRef, attempts)
 
-  const update = <K extends keyof NewUser>(key: K, value: NewUser[K]) => {
+  const update = <K extends keyof CreateForm>(key: K, value: CreateForm[K]) => {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
@@ -331,7 +348,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
     setSubmitted(true)
     setAttempts((n) => n + 1)
     if (hasErrors) return
-    mutation.mutate({ ...form, email: form.email.trim(), fullName: form.fullName.trim() })
+    mutation.mutate({ ...form, email: form.email.trim(), fullName: joinFullName(nombre.trim(), apellido.trim()) })
   }
 
   return (
@@ -344,16 +361,27 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
         titleId={titleId}
       />
       <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
-        <TextField
-          autoComplete="name"
-          autoFocus
-          error={submitted ? errors.fullName : undefined}
-          name="fullName"
-          label="Nombre completo"
-          onChange={(e) => { update('fullName', e.target.value) }}
-          placeholder="Ej. Ana Pérez…"
-          value={form.fullName}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <TextField
+            autoComplete="given-name"
+            autoFocus
+            error={submitted ? errors.nombre : undefined}
+            label="Nombre"
+            name="givenName"
+            onChange={(e) => { setNombre(e.target.value) }}
+            placeholder="Ej. Ana…"
+            value={nombre}
+          />
+          <TextField
+            autoComplete="family-name"
+            error={submitted ? errors.apellido : undefined}
+            label="Apellido"
+            name="familyName"
+            onChange={(e) => { setApellido(e.target.value) }}
+            placeholder="Ej. Pérez…"
+            value={apellido}
+          />
+        </div>
         <TextField
           autoComplete="off"
           error={submitted ? errors.email : undefined}
@@ -408,13 +436,15 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const queryClient = useQueryClient()
   const formRef = useRef<HTMLFormElement>(null)
   const roleLocked = user.role === 'CUSTOMER'
-  const [fullName, setFullName] = useState(user.fullName)
+  const initialNames = splitFullName(user.fullName)
+  const [nombre, setNombre] = useState(initialNames.nombre)
+  const [apellido, setApellido] = useState(initialNames.apellido)
   const [role, setRole] = useState<Role>(user.role)
   const [submitted, setSubmitted] = useState(false)
   const [attempts, setAttempts] = useState(0)
-  const nameError = fullNameError(fullName)
+  const nameErr = nameErrors(nombre, apellido)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const isDirty = fullName !== user.fullName || (!roleLocked && role !== user.role)
+  const isDirty = nombre !== initialNames.nombre || apellido !== initialNames.apellido || (!roleLocked && role !== user.role)
   const requestClose = () => {
     if (isDirty) setConfirmDiscard(true)
     else onClose()
@@ -435,9 +465,9 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
     e.preventDefault()
     setSubmitted(true)
     setAttempts((n) => n + 1)
-    if (nameError) return
+    if (nameErr.nombre !== undefined || nameErr.apellido !== undefined) return
     const changes: UserChanges = {}
-    const name = fullName.trim()
+    const name = joinFullName(nombre.trim(), apellido.trim())
     if (name !== user.fullName) changes.fullName = name
     // Los clientes no cambian de rol aquí: el backend solo asigna ADMIN, OPERATOR y DRIVER.
     if (!roleLocked && role !== user.role) changes.role = role
@@ -458,15 +488,25 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
         titleId={titleId}
       />
       <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
-        <TextField
-          autoComplete="name"
-          autoFocus
-          error={submitted ? nameError : undefined}
-          label="Nombre completo"
-          name="fullName"
-          onChange={(e) => { setFullName(e.target.value) }}
-          value={fullName}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <TextField
+            autoComplete="given-name"
+            autoFocus
+            error={submitted ? nameErr.nombre : undefined}
+            label="Nombre"
+            name="givenName"
+            onChange={(e) => { setNombre(e.target.value) }}
+            value={nombre}
+          />
+          <TextField
+            autoComplete="family-name"
+            error={submitted ? nameErr.apellido : undefined}
+            label="Apellido"
+            name="familyName"
+            onChange={(e) => { setApellido(e.target.value) }}
+            value={apellido}
+          />
+        </div>
         <TextField autoComplete="off" label="Correo" readOnly spellCheck={false} value={user.email} />
         {roleLocked ? (
           <p className="font-body-sm text-on-surface-variant">

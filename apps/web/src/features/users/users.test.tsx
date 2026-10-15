@@ -136,7 +136,8 @@ it('crea un usuario desde el modal, confirma en vivo y refresca la lista', async
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
   const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
 
-  await user.type(within(dialog).getByLabelText('Nombre completo'), 'Elena Nueva')
+  await user.type(within(dialog).getByLabelText('Nombre'), 'Elena')
+  await user.type(within(dialog).getByLabelText('Apellido'), 'Nueva')
   await user.type(within(dialog).getByLabelText('Correo'), 'elena@example.com')
   await user.type(within(dialog).getByLabelText('Contraseña provisional'), 'Password123!')
   await user.click(within(dialog).getByRole('radio', { name: 'Repartidor' }))
@@ -156,7 +157,8 @@ it('el modal de creación: contraseña con mostrar/ocultar, autocompletado y val
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
   const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
 
-  expect(within(dialog).getByLabelText('Nombre completo')).toHaveAttribute('autocomplete', 'name')
+  expect(within(dialog).getByLabelText('Nombre')).toHaveAttribute('autocomplete', 'given-name')
+  expect(within(dialog).getByLabelText('Apellido')).toHaveAttribute('autocomplete', 'family-name')
   expect(within(dialog).getByLabelText('Correo')).toHaveAttribute('autocomplete', 'off')
   expect(within(dialog).getByLabelText('Correo')).toHaveAttribute('spellcheck', 'false')
 
@@ -214,7 +216,8 @@ it('al enviar con errores enfoca el primer campo inválido', async () => {
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
   const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
 
-  await user.type(within(dialog).getByLabelText('Nombre completo'), 'Elena')
+  await user.type(within(dialog).getByLabelText('Nombre'), 'Elena')
+  await user.type(within(dialog).getByLabelText('Apellido'), 'Pérez')
   await user.click(within(dialog).getByRole('button', { name: 'Crear usuario' }))
   expect(within(dialog).getByLabelText('Correo')).toHaveFocus()
   expect(within(dialog).getByLabelText('Correo')).toHaveAttribute('aria-invalid', 'true')
@@ -242,9 +245,8 @@ it('el lápiz abre el modal de edición y guarda con PATCH solo de los campos ca
 
   expect(within(dialog).getByLabelText('Correo')).toHaveValue('diego@example.com')
   expect(within(dialog).getByLabelText('Correo')).toHaveAttribute('readonly')
-  const name = within(dialog).getByLabelText('Nombre completo')
-  await user.clear(name)
-  await user.type(name, 'Diego Nuevo')
+  await user.clear(within(dialog).getByLabelText('Apellido'))
+  await user.type(within(dialog).getByLabelText('Apellido'), 'Nuevo')
   await user.click(within(dialog).getByRole('radio', { name: 'Operador' }))
   await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
 
@@ -260,9 +262,8 @@ it('al editar solo el nombre, el PATCH no envía el rol', async () => {
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
   const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
-  const name = within(dialog).getByLabelText('Nombre completo')
-  await user.clear(name)
-  await user.type(name, 'Diego Solo Nombre')
+  await user.clear(within(dialog).getByLabelText('Apellido'))
+  await user.type(within(dialog).getByLabelText('Apellido'), 'Solo Nombre')
   await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
 
   expect(await screen.findByText('Usuario Diego Solo Nombre actualizado.')).toHaveAttribute('aria-live', 'polite')
@@ -353,7 +354,7 @@ it('Escape cierra el modal y devuelve el foco al botón que lo abrió', async ()
   const user = userEvent.setup()
   const opener = await screen.findByRole('button', { name: 'Nuevo Usuario' })
   await user.click(opener)
-  expect(screen.getByLabelText('Nombre completo')).toHaveFocus()
+  expect(screen.getByLabelText('Nombre')).toHaveFocus()
 
   await user.keyboard('{Escape}')
   expect(screen.queryByRole('dialog')).toBeNull()
@@ -443,7 +444,7 @@ it('con datos escritos, Escape pide confirmar y no cierra el modal', async () =>
   renderApp('/users')
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.type(screen.getByLabelText('Nombre'), 'Elena')
   await user.keyboard('{Escape}')
 
   const confirm = screen.getByRole('alertdialog', { name: '¿Descartar cambios?' })
@@ -456,12 +457,12 @@ it('"Seguir editando" cierra la confirmación y mantiene los datos', async () =>
   renderApp('/users')
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.type(screen.getByLabelText('Nombre'), 'Elena')
   await user.keyboard('{Escape}')
   await user.click(screen.getByRole('button', { name: 'Seguir editando' }))
 
   expect(screen.queryByRole('alertdialog')).toBeNull()
-  expect(screen.getByLabelText('Nombre completo')).toHaveValue('Elena')
+  expect(screen.getByLabelText('Nombre')).toHaveValue('Elena')
 })
 
 it('"Descartar" cierra el modal y al reabrirlo el formulario está limpio', async () => {
@@ -469,14 +470,14 @@ it('"Descartar" cierra el modal y al reabrirlo el formulario está limpio', asyn
   renderApp('/users')
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  await user.type(screen.getByLabelText('Nombre completo'), 'Elena')
+  await user.type(screen.getByLabelText('Nombre'), 'Elena')
   await user.click(screen.getByRole('button', { name: 'Cancelar' }))
   await user.click(screen.getByRole('button', { name: 'Descartar' }))
 
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(screen.queryByRole('alertdialog')).toBeNull()
   await user.click(screen.getByRole('button', { name: 'Nuevo Usuario' }))
-  expect(screen.getByLabelText('Nombre completo')).toHaveValue('')
+  expect(screen.getByLabelText('Nombre')).toHaveValue('')
 })
 
 it('sin datos, Escape cierra directo sin confirmación', async () => {
@@ -496,9 +497,66 @@ it('al editar, cambiar el nombre y pulsar la X pide confirmación', async () => 
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
   const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
-  await user.type(within(dialog).getByLabelText('Nombre completo'), ' Nuevo')
+  await user.type(within(dialog).getByLabelText('Apellido'), ' Nuevo')
   await user.click(within(dialog).getByRole('button', { name: 'Cerrar modal' }))
 
   expect(screen.getByRole('alertdialog', { name: '¿Descartar cambios?' })).toBeInTheDocument()
   expect(screen.getByRole('dialog', { name: 'Editar Usuario' })).toBeInTheDocument()
+})
+
+// ─── Nombre y apellido ──────────────────────────────────────────────────────
+
+it('nombre y apellido son obligatorios y el error va junto al campo', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  await user.click(within(dialog).getByRole('button', { name: 'Crear usuario' }))
+
+  const nombre = within(dialog).getByLabelText('Nombre')
+  const apellido = within(dialog).getByLabelText('Apellido')
+  expect(nombre).toHaveAttribute('aria-invalid', 'true')
+  expect(nombre).toHaveAccessibleDescription('Ingresa el nombre.')
+  expect(apellido).toHaveAttribute('aria-invalid', 'true')
+  expect(apellido).toHaveAccessibleDescription('Ingresa el apellido.')
+})
+
+it('envía nombre y apellido concatenados con un solo espacio', async () => {
+  const fetchMock = usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  await user.type(within(dialog).getByLabelText('Nombre'), '  Ana  ')
+  await user.type(within(dialog).getByLabelText('Apellido'), ' Pérez ')
+  await user.type(within(dialog).getByLabelText('Correo'), 'ana@example.com')
+  await user.type(within(dialog).getByLabelText('Contraseña provisional'), 'Password123!')
+  await user.click(within(dialog).getByRole('button', { name: 'Crear usuario' }))
+
+  await screen.findByText('Usuario Ana Pérez creado.')
+  const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/users') && i?.method === 'POST')
+  expect(sentBody(call?.[1])).toMatchObject({ fullName: 'Ana Pérez' })
+})
+
+it('al editar, separa el nombre existente en nombre (primera palabra) y apellido (el resto)', async () => {
+  usersApi()
+  renderApp('/users')
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
+  const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
+  expect(within(dialog).getByLabelText('Nombre')).toHaveValue('Diego')
+  expect(within(dialog).getByLabelText('Apellido')).toHaveValue('Driver')
+})
+
+it('la contraseña se puede mostrar y ocultar, y el tipo del input cambia', async () => {
+  usersApi()
+  renderApp('/users')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
+  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const password = within(dialog).getByLabelText('Contraseña provisional')
+  await user.click(within(dialog).getByRole('button', { name: 'Mostrar contraseña' }))
+  expect(password).toHaveAttribute('type', 'text')
+  await user.click(within(dialog).getByRole('button', { name: 'Ocultar contraseña' }))
+  expect(password).toHaveAttribute('type', 'password')
 })
