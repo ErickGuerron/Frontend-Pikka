@@ -339,7 +339,7 @@ export function UsersPage() {
           </table>
         </div>
 
-        {totalPages > 1 && (
+        {filteredUsers.length > 0 && (
           <nav aria-label="Paginación de usuarios" className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-surface-container bg-surface-container-low/40">
             <p className="text-[11px] text-on-surface-variant tabular-nums">
               {`Mostrando ${String(pageStart + 1)}–${String(pageEnd)} de ${String(filteredUsers.length)}`}

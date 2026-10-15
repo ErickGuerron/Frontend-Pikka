@@ -429,12 +429,13 @@ it('cambiar el filtro vuelve a la página 1', async () => {
   expect(router.state.location.search).not.toContain('pagina=')
 })
 
-it('oculta la paginación cuando hay una sola página', async () => {
+it('muestra la paginación aunque haya una sola página, con los botones deshabilitados', async () => {
   manyUsers(5)
   renderApp('/users')
   await screen.findByText('Usuario 01')
-  expect(screen.queryByRole('button', { name: 'Siguiente página' })).toBeNull()
-  expect(screen.queryByText(/Mostrando/)).toBeNull()
+  expect(screen.getByText(/Mostrando 1–5 de 5/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Siguiente página' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
 })
 
 // ─── Descartar cambios sin guardar ──────────────────────────────────────────
