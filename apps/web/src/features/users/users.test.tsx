@@ -272,11 +272,11 @@ it('no muestra datos falsos ni controles sin función', async () => {
   usersApi()
   renderApp('/users')
   await screen.findByText('Diego Driver')
-  const text = document.body.textContent ?? ''
+  const text = document.body.textContent
   for (const fake of ['Sincronizado', 'Exportar', 'Protocolo de seguridad', 'Doble Factor', '2FA', 'Políticas Activas', 'Mostrando', 'Todos los Centros', 'Centro / Hub', 'Última', 'Root', '9 turno', '94%', '+3', 'en ruta', 'Más opciones', 'Permisos']) {
     expect(text).not.toContain(fake)
   }
-  expect(document.querySelector('img[src*="googleusercontent"]')).toBeNull()
+  expect(screen.queryByAltText('Pikka Mascot')).toBeNull()
   expect(screen.queryByText('shield_person')).toBeNull()
   expect(screen.queryByText('shield')).toBeNull()
   expect(screen.queryByRole('combobox', { name: 'Centro' })).toBeNull()
