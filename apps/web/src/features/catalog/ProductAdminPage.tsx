@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
-import { ProductForm } from './ProductForm'
+import { ProductFormModal } from './ProductFormModal'
 import { useProducts, useSetProductActive } from './hooks'
 import { StockPanel } from './StockPanel'
 import type { Product } from './types'
@@ -10,6 +10,7 @@ export function ProductAdminPage() {
   const products = useProducts(true)
   const setActive = useSetProductActive()
   const [creating, setCreating] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [stockOf, setStockOf] = useState<Product | null>(null)
 
   return (
@@ -22,13 +23,26 @@ export function ProductAdminPage() {
         <button
           type="button"
           className="cursor-pointer rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
-          onClick={() => { setCreating((open) => !open) }}
+          onClick={() => {
+            setNotice(null)
+            setCreating(true)
+          }}
         >
           Nuevo producto
         </button>
       </header>
 
-      {creating ? <ProductForm onDone={() => { setCreating(false) }} /> : null}
+      {creating ? (
+        <ProductFormModal
+          onClose={() => { setCreating(false) }}
+          onCreated={(name) => {
+            setCreating(false)
+            setNotice(`Producto «${name}» creado.`)
+          }}
+        />
+      ) : null}
+
+      {notice === null ? null : <p role="status" className="text-sm font-semibold text-primary">{notice}</p>}
 
       {setActive.isError ? (
         <p role="alert" className="text-sm text-error">{userMessage(setActive.error)}</p>
