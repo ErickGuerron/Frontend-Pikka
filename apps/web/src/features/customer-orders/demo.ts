@@ -104,12 +104,15 @@ export function listDemoOrders(): Promise<CustomerOrder[]> {
 
 /** New orders start PENDING; the demo flags uncovered points as PENDING_REVIEW like the validation would. */
 export function createDemoOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
-  const covered = isCovered(input.latitude, input.longitude)
+  // Geocodificación simulada: sin punto del mapa, la demo usa un punto de Quito dentro de la zona demo.
+  const latitude = input.latitude ?? -0.18
+  const longitude = input.longitude ?? -78.48
+  const covered = isCovered(latitude, longitude)
   const order: CustomerOrder = {
     id: nextId(),
     address: input.address,
-    latitude: input.latitude,
-    longitude: input.longitude,
+    latitude,
+    longitude,
     deliveryDate: input.deliveryDate,
     windowStart: input.windowStart,
     windowEnd: input.windowEnd,

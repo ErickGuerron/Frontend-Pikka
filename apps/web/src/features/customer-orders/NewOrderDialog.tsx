@@ -15,7 +15,7 @@ interface NewOrderDialogProps {
 
 const MAX_NOTES = 280
 
-/** Create-order form: map location, address, date (>= today), window chips and optional notes. */
+/** Create-order form: address (required), optional map pin, date (>= today), window chips and optional notes. */
 export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
   const create = useCreateOrder()
   const [place, setPlace] = useState<Place | null>(null)
@@ -42,9 +42,9 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
     const fields = { address: address.trim(), deliveryDate, windowStart, windowEnd }
     const found = validateNewOrder({ ...fields, location }, localToday())
     setErrors(found)
-    if (Object.keys(found).length > 0 || location === null) return
+    if (Object.keys(found).length > 0) return
     create.mutate(
-      { ...fields, ...location, ...(notes.trim() === '' ? {} : { notes: notes.trim() }) },
+      { ...fields, ...(location ?? {}), ...(notes.trim() === '' ? {} : { notes: notes.trim() }) },
       { onSuccess: onCreated },
     )
   }
@@ -55,7 +55,7 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
     <Modal title="Hacer nuevo pedido" titleId="new-order-title" onClose={onClose} wide>
       <form noValidate className="flex flex-col gap-4" onSubmit={onSubmit}>
         <div className="flex flex-col gap-1">
-          <span className={fieldLabelClass}>Ubicación de entrega *</span>
+          <span className={fieldLabelClass}>Punto en el mapa (opcional)</span>
           <AddressPicker value={place} onChange={onPlace} />
           {errors.location ? <ErrorMessage>{errors.location}</ErrorMessage> : null}
         </div>

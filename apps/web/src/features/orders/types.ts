@@ -25,7 +25,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 }
 
 /** Reglas de la validación automática que pueden dejar un pedido en revisión (ADR 0007). */
-export const reviewReasonValues = ['ZONE_NOT_COVERED', 'INVALID_WINDOW', 'CAPACITY_EXCEEDED', 'CUSTOMER_BLOCKED'] as const
+export const reviewReasonValues = ['ZONE_NOT_COVERED', 'INVALID_WINDOW', 'CAPACITY_EXCEEDED', 'CUSTOMER_BLOCKED', 'ADDRESS_NOT_LOCATED'] as const
 export type ReviewReason = (typeof reviewReasonValues)[number]
 
 export const reviewReasonLabels: Record<ReviewReason, string> = {
@@ -33,6 +33,7 @@ export const reviewReasonLabels: Record<ReviewReason, string> = {
   INVALID_WINDOW: 'Ventana de entrega no válida',
   CAPACITY_EXCEEDED: 'Capacidad del día superada',
   CUSTOMER_BLOCKED: 'Cliente bloqueado',
+  ADDRESS_NOT_LOCATED: 'Dirección no localizada en el mapa',
 }
 
 export interface Order {
@@ -56,8 +57,9 @@ export interface Order {
 /** Payload de creación: exactamente lo que acepta CreateOrderRequest. */
 export interface NewOrder {
   address: string
-  latitude: number
-  longitude: number
+  /** Opcional: punto del mapa. Si falta, el backend geocodifica la dirección. */
+  latitude?: number
+  longitude?: number
   deliveryDate: string
   windowStart: string
   windowEnd: string

@@ -13,6 +13,7 @@ import {
 import { localToday, validateNewOrder, type OrderErrors, type OrderFields } from '@/features/orders/validation'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
+import { isSpatialReview } from './review'
 
 const MIN_REASON_LENGTH = 5
 
@@ -42,7 +43,8 @@ export interface ReviewPanelProps {
  */
 export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
   const queryClient = useQueryClient()
-  const [action, setAction] = useState<ReviewAction>('CONFIRM')
+  const spatial = isSpatialReview(order)
+  const [action, setAction] = useState<ReviewAction>(spatial ? 'CORRECT' : 'CONFIRM')
   const [reason, setReason] = useState('')
   const [fields, setFields] = useState<OrderFields>({
     address: order.address,
@@ -127,13 +129,15 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
                 name="review-action"
                 value={value}
                 checked={action === value}
-                disabled={isPending}
+                disabled={isPending || (value === 'CONFIRM' && spatial)}
                 onChange={() => { setAction(value); }}
                 className="mt-0.5"
               />
               <span>
                 <span className="font-semibold">{reviewActionLabels[value]}</span>
-                <span className="block text-[10px] text-on-surface-variant">{reviewActionHints[value]}</span>
+                <span className="block text-[10px] text-on-surface-variant">
+                  {value === 'CONFIRM' && spatial ? 'No disponible: sin zona o sin ubicar, corrige la dirección o rechaza.' : reviewActionHints[value]}
+                </span>
               </span>
             </label>
           ))}

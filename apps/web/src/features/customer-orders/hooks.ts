@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { cancelOrder, createOrder, listMyOrders } from './api'
+import { cancelOrder, createOrder, listMyNotifications, listMyOrders } from './api'
 import { isActiveTransit, type CustomerOrder } from './types'
 
 export const myOrdersKey = ['customer-orders'] as const
@@ -16,6 +16,15 @@ export function useMyOrders() {
     queryKey: myOrdersKey,
     queryFn: ({ signal }) => listMyOrders(signal),
     refetchInterval: (query) => pollInterval(query.state.data),
+  })
+}
+
+export const myNotificationsKey = ['customer-notifications'] as const
+
+export function useMyNotifications() {
+  return useQuery({
+    queryKey: myNotificationsKey,
+    queryFn: ({ signal }) => listMyNotifications(signal),
   })
 }
 
