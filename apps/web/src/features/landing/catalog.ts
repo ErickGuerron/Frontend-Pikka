@@ -31,6 +31,19 @@ export function formatPrice(unitPrice: string): string {
   return usd.format(Number(unitPrice))
 }
 
+const normalizeText = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim()
+
+/** Filtra por nombre, sin distinguir mayúsculas ni acentos. Una búsqueda vacía devuelve todo. */
+export function filterProducts(products: PublicProduct[], query: string): PublicProduct[] {
+  const needle = normalizeText(query)
+  return needle === '' ? products : products.filter((p) => normalizeText(p.name).includes(needle))
+}
+
 export const publicCatalogKey = ['landing', 'public-products'] as const
 
 /** Catálogo público: sin sesión, así que no se envía token aunque haya uno guardado. */

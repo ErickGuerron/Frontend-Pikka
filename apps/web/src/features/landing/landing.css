@@ -1,7 +1,13 @@
-/* Landing-only styles. Color tokens come from the shared Tailwind theme. */
+/*
+ * Landing-only styles. Color tokens come from the shared Tailwind theme. The two brand
+ * tones the theme does not define (teal accent and deep blue) live here as variables.
+ */
 .landing {
+  --landing-deep: #004b4e;
+  --landing-accent: #14b8a6;
+  --landing-mist: #effcff;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  background: #effcff;
+  background: var(--landing-mist);
   color: #061f23;
   overflow-x: hidden;
 }
@@ -10,37 +16,9 @@ html:has(.landing) {
   scroll-behavior: smooth;
 }
 
-@keyframes landing-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.landing-float {
-  animation: landing-float 5s ease-in-out infinite;
-}
-
-@keyframes landing-dash {
-  to {
-    stroke-dashoffset: -24;
-  }
-}
-
-.landing-route {
-  animation: landing-dash 2s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html:has(.landing) {
     scroll-behavior: auto;
-  }
-  .landing-float,
-  .landing-route {
-    animation: none;
   }
 }
 

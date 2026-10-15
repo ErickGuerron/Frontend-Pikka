@@ -65,7 +65,7 @@ describe('login', () => {
     mockApi(() => apiError(401, 'UNAUTHENTICATED'))
     renderApp('/')
     // Una vez limpiada la sesión, / muestra la landing pública (no redirige a /login).
-    expect(await screen.findByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /Lo mejor de la ciudad/ })).toBeInTheDocument()
     expect(useSession.getState().token).toBeNull()
   })
 
@@ -77,7 +77,7 @@ describe('login', () => {
 
     await user.click(await screen.findByRole('button', { name: `Menú de cuenta de ${adminUser.fullName}` }))
     await user.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }))
-    expect(await screen.findByRole('heading', { level: 1, name: /Pide tu entrega/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /Lo mejor de la ciudad/ })).toBeInTheDocument()
     expect(useSession.getState().token).toBeNull()
   })
 })

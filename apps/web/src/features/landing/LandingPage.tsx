@@ -1,15 +1,11 @@
-import { BenefitsTelemetry } from './BenefitsTelemetry'
-import { Carousel } from './Carousel'
-import { Faq } from './Faq'
-import { FinalCta } from './FinalCta'
+import { useState } from 'react'
+import { Collections } from './Collections'
+import { Commitments } from './Commitments'
 import { Hero } from './Hero'
-import { HowItWorks } from './HowItWorks'
 import { LandingFooter } from './LandingFooter'
 import { LandingHeader } from './LandingHeader'
 import { ProductCarousel } from './ProductCarousel'
-import { QuickSearch } from './QuickSearch'
-import { Testimonials } from './Testimonials'
-import { Zones } from './Zones'
+import { Tracking } from './Tracking'
 import './landing.css'
 
 /**
@@ -17,6 +13,8 @@ import './landing.css'
  * público, que se pide sin token.
  */
 export function LandingPage() {
+  const [query, setQuery] = useState('')
+
   return (
     <div className="landing min-h-screen">
       <a
@@ -25,18 +23,18 @@ export function LandingPage() {
       >
         Saltar al contenido
       </a>
-      <LandingHeader />
+      <LandingHeader onSearch={setQuery} />
       <main id="contenido" tabIndex={-1}>
         <Hero />
-        <QuickSearch />
-        <Carousel />
-        <ProductCarousel />
-        <HowItWorks />
-        <BenefitsTelemetry />
-        <Testimonials />
-        <FinalCta />
-        <Zones />
-        <Faq />
+        <Collections />
+        <ProductCarousel
+          query={query}
+          onClearQuery={() => {
+            setQuery('')
+          }}
+        />
+        <Tracking />
+        <Commitments />
       </main>
       <LandingFooter />
     </div>
