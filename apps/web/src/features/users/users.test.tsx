@@ -388,28 +388,28 @@ function visibleRowNames() {
   return rows.map((row) => row.querySelector('td')?.textContent ?? '')
 }
 
-it('pagina 25 usuarios en 3 páginas de 10 y navegar cambia las filas visibles', async () => {
+it('pagina 25 usuarios en 5 páginas de 5 y navegar cambia las filas visibles', async () => {
   manyUsers(25)
   const { router } = renderApp('/users')
   const user = userEvent.setup()
   await screen.findByText('Usuario 01')
 
-  expect(screen.getByText('Mostrando 1–10 de 25')).toHaveClass('tabular-nums')
-  expect(visibleRowNames()).toHaveLength(10)
+  expect(screen.getByText('Mostrando 1–5 de 25')).toHaveClass('tabular-nums')
+  expect(visibleRowNames()).toHaveLength(5)
   expect(visibleRowNames()[0]).toContain('Usuario 01')
 
   await user.click(screen.getByRole('button', { name: 'Siguiente página' }))
-  expect(screen.getByText('Mostrando 11–20 de 25')).toBeInTheDocument()
-  expect(visibleRowNames()[0]).toContain('Usuario 11')
+  expect(screen.getByText('Mostrando 6–10 de 25')).toBeInTheDocument()
+  expect(visibleRowNames()[0]).toContain('Usuario 06')
   expect(router.state.location.search).toContain('pagina=2')
 
-  await user.click(screen.getByRole('button', { name: 'Página 3' }))
+  await user.click(screen.getByRole('button', { name: 'Página 5' }))
   expect(screen.getByText('Mostrando 21–25 de 25')).toBeInTheDocument()
   expect(visibleRowNames()).toHaveLength(5)
-  expect(router.state.location.search).toContain('pagina=3')
+  expect(router.state.location.search).toContain('pagina=5')
 
   await user.click(screen.getByRole('button', { name: 'Página anterior' }))
-  expect(screen.getByText('Mostrando 11–20 de 25')).toBeInTheDocument()
+  expect(screen.getByText('Mostrando 16–20 de 25')).toBeInTheDocument()
 })
 
 it('la página de la URL se lee al cargar y se clampa a la última si está fuera de rango', async () => {
@@ -422,10 +422,10 @@ it('cambiar el filtro vuelve a la página 1', async () => {
   manyUsers(25, (i) => (i < 12 ? 'CUSTOMER' : 'OPERATOR'))
   const { router } = renderApp('/users?pagina=2')
   const user = userEvent.setup()
-  await screen.findByText('Usuario 11')
+  await screen.findByText('Usuario 06')
 
   await user.click(screen.getByRole('button', { name: 'Clientes' }))
-  expect(screen.getByText('Mostrando 1–10 de 12')).toBeInTheDocument()
+  expect(screen.getByText('Mostrando 1–5 de 12')).toBeInTheDocument()
   expect(router.state.location.search).not.toContain('pagina=')
 })
 

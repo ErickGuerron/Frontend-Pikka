@@ -1,121 +1,305 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { ScrollCarousel } from './ScrollCarousel'
-import { filterProducts, formatPrice, usePublicProducts, type PublicProduct } from './catalog'
+import auricularesPro from '@/assets/landing/auriculares-pro.jpg'
+import cafeGalletas from '@/assets/landing/cafe-galletas.jpg'
+import cajaSorpresa from '@/assets/landing/caja-sorpresa.jpg'
+import kitFacial from '@/assets/landing/kit-facial.jpg'
+import orquideas from '@/assets/landing/orquideas.jpg'
+import pastelChocolate from '@/assets/landing/pastel-chocolate.jpg'
 
-const TITLE_ID = 'catalogo-titulo'
-const SKELETON_CARDS = 3
-const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
-
-const skeletonCard = 'h-64 shrink-0 basis-full snap-start animate-pulse rounded-2xl bg-surface-container motion-reduce:animate-none md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)]'
-
-interface ProductCarouselProps {
-  /** Texto del buscador de cabecera; filtra por nombre cuando el catálogo ya cargó. */
-  query: string
-  onClearQuery: () => void
+export interface CatalogItem {
+  id: string
+  refCode: string
+  category: 'pasteleria' | 'regalos' | 'audio' | 'cafe' | 'dermocosmetica'
+  categoryLabel: string
+  title: string
+  description: string
+  price: number
+  currency: string
+  time: string
+  badgeText: string
+  badgeVariant?: 'primary' | 'teal' | 'container'
+  rating: string
+  image: string
 }
 
-/** Catálogo público de productos. Sin stock ni calificaciones: nombre, descripción, precio y pedido. */
-export function ProductCarousel({ query, onClearQuery }: ProductCarouselProps) {
-  const { data: products, isPending, isError, isFetching, refetch } = usePublicProducts()
+export const FEATURED_PRODUCTS: CatalogItem[] = [
+  {
+    id: 'pk-01',
+    refCode: 'REF: PK-01 · PASTELERÍA',
+    category: 'pasteleria',
+    categoryLabel: 'Pastelería',
+    title: 'Pastel Triple Chocolate Belga & Frutos Rojos',
+    description:
+      'Cacao al 70%, ganache sedoso y frambuesas frescas. Se traslada en contenedor isotérmico con soporte nivelado.',
+    price: 420,
+    currency: 'MXN',
+    time: '20–25 MIN',
+    badgeText: 'MÁS PEDIDO',
+    badgeVariant: 'teal',
+    rating: '★ 4.9 (420)',
+    image: pastelChocolate,
+  },
+  {
+    id: 'pk-02',
+    refCode: 'REF: PK-02 · REGALOS',
+    category: 'regalos',
+    categoryLabel: 'Regalos',
+    title: 'Caja Sorpresa XXL & Globos Metalizados',
+    description:
+      'Chocolates finos, snacks importados y globo helio con tarjeta caligrafiada. Entrega en mano asegurada.',
+    price: 890,
+    currency: 'MXN',
+    time: '25–30 MIN',
+    badgeText: 'EDICIÓN REGALO',
+    badgeVariant: 'container',
+    rating: '★ 4.9 (189)',
+    image: cajaSorpresa,
+  },
+  {
+    id: 'pk-03',
+    refCode: 'REF: PK-03 · AUDIO',
+    category: 'audio',
+    categoryLabel: 'Audio',
+    title: 'Auriculares Pikka Studio Pro (Audio Hi-Res)',
+    description:
+      'Cancelación activa de ruido híbrida, 40 horas de autonomía y empaque acolchado con sello de fábrica.',
+    price: 1450,
+    currency: 'MXN',
+    time: '15–20 MIN',
+    badgeText: 'GARANTÍA 1 AÑO',
+    badgeVariant: 'primary',
+    rating: '★ 4.8 (94)',
+    image: auricularesPro,
+  },
+  {
+    id: 'pk-04',
+    refCode: 'REF: PK-04 · CUIDADO',
+    category: 'dermocosmetica',
+    categoryLabel: 'Dermocosmética',
+    title: 'Kit Suero Facial & Crema Reparadora 24h',
+    description:
+      'Ácido hialurónico con niacinamida pura. Almacenado bajo temperatura controlada para preservar principios activos.',
+    price: 620,
+    currency: 'MXN',
+    time: '20–25 MIN',
+    badgeText: 'DERMOCOSMÉTICA',
+    badgeVariant: 'teal',
+    rating: '★ 4.9 (312)',
+    image: kitFacial,
+  },
+  {
+    id: 'pk-05',
+    refCode: 'REF: PK-05 · CAFÉ',
+    category: 'cafe',
+    categoryLabel: 'Café',
+    title: 'Set Degustación Café de Especialidad & Galletas',
+    description:
+      'Granos arábica seleccionados de altura con perfil achocolatado, acompañados de galletas danesas horneadas hoy.',
+    price: 380,
+    currency: 'MXN',
+    time: '20–25 MIN',
+    badgeText: 'TUESTE RECIENTE',
+    badgeVariant: 'primary',
+    rating: '★ 4.9 (204)',
+    image: cafeGalletas,
+  },
+  {
+    id: 'pk-06',
+    refCode: 'REF: PK-06 · FLORISTERÍA',
+    category: 'regalos',
+    categoryLabel: 'Regalos',
+    title: 'Ramo Fresco de Orquídeas & Tarjeta Caligrafiada',
+    description:
+      'Vara de orquídeas con follaje en estuche vertical antigoteo. Incluye sobre lacrado con mensaje caligrafiado.',
+    price: 750,
+    currency: 'MXN',
+    time: '25–30 MIN',
+    badgeText: 'HIDRATACIÓN 48H',
+    badgeVariant: 'container',
+    rating: '★ 4.9 (156)',
+    image: orquideas,
+  },
+]
 
-  // Sin productos la sección no aporta nada: se oculta en lugar de mostrar un hueco.
-  if (!isPending && !isError && products.length === 0) return null
+interface ProductCarouselProps {
+  query?: string
+  onClearQuery?: () => void
+  activeCategory?: string
+  onSelectCategory?: (category: string) => void
+}
 
-  const visible = isPending || isError ? [] : filterProducts(products, query)
+const TABS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'pasteleria', label: 'Pastelería' },
+  { id: 'regalos', label: 'Regalos' },
+  { id: 'audio', label: 'Audio' },
+  { id: 'cafe', label: 'Café' },
+]
+
+function normalize(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+export function ProductCarousel({
+  query = '',
+  onClearQuery,
+  activeCategory = 'all',
+  onSelectCategory,
+}: ProductCarouselProps) {
+  const [localCategory, setLocalCategory] = useState('all')
+  const currentCategory = onSelectCategory ? activeCategory : localCategory
+
+  const handleTabClick = (catId: string) => {
+    if (onSelectCategory) {
+      onSelectCategory(catId)
+    } else {
+      setLocalCategory(catId)
+    }
+  }
+
+  const filtered = useMemo(() => {
+    return FEATURED_PRODUCTS.filter((product) => {
+      if (currentCategory !== 'all' && product.category !== currentCategory) {
+        return false
+      }
+      if (!query.trim()) return true
+      const q = normalize(query.trim())
+      return (
+        normalize(product.title).includes(q) ||
+        normalize(product.description).includes(q) ||
+        normalize(product.refCode).includes(q) ||
+        normalize(product.categoryLabel).includes(q)
+      )
+    })
+  }, [currentCategory, query])
 
   return (
-    <section id="catalogo" className="scroll-mt-20 bg-surface-container-low px-4 py-20 sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <h2 id={TITLE_ID} className="text-3xl font-bold tracking-tight sm:text-[40px] sm:leading-[48px]">
-          Catálogo
-        </h2>
-        <p className="mt-2 text-on-surface-variant">Elige un producto y haz tu pedido con tu cuenta.</p>
+    <section id="catalogo" aria-labelledby="catalogo-titulo" className="border-t border-[var(--landing-line)] bg-[var(--landing-bg)] py-12 sm:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        {/* Section title & filter tabs */}
+        <div className="mb-8 flex flex-col justify-between gap-4 border-b border-[var(--landing-line)] pb-4 md:flex-row md:items-end">
+          <div>
+            <span className="mb-2 inline-block rounded border border-[var(--landing-line)] bg-white px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-[var(--landing-deep)]">
+              SELECCIÓN OFICIAL · INVENTARIO CENTRAL
+            </span>
+            <h2 id="catalogo-titulo" className="text-2xl font-semibold tracking-tight text-[var(--landing-deep)] sm:text-3xl">
+              Lo más pedido esta tarde
+            </h2>
+            <p className="mt-1 font-mono text-xs text-[var(--landing-muted)]">
+              Disponibles para despacho inmediato con empaque certificado.
+            </p>
+          </div>
 
-        <div className="mt-10">
-          {isPending ? (
-            <div data-testid="products-skeleton" aria-busy="true" className="flex gap-6 overflow-hidden">
-              <p className="sr-only">Cargando productos…</p>
-              {Array.from({ length: SKELETON_CARDS }, (_, i) => (
-                <div key={i} aria-hidden="true" className={skeletonCard} />
-              ))}
-            </div>
-          ) : null}
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 font-mono text-xs uppercase tracking-wider">
+            {TABS.map((tab) => {
+              const active = currentCategory === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabClick(tab.id)}
+                  className={`rounded px-3 py-1 transition-colors ${
+                    active
+                      ? 'border border-[var(--landing-deep)] bg-[var(--landing-deep)] text-white'
+                      : 'border border-[var(--landing-line)] bg-white text-[var(--landing-deep)] hover:border-[var(--landing-deep)]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-          {isError ? (
-            <div role="alert" className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-6">
-              <p className="font-semibold">No pudimos cargar los productos.</p>
-              <p className="mt-1 text-sm text-on-surface-variant">Revisa tu conexión e inténtalo de nuevo.</p>
-              <button
-                type="button"
-                disabled={isFetching}
-                onClick={() => {
-                  void refetch()
-                }}
-                className={`mt-4 rounded-xl bg-primary px-5 py-2 font-semibold text-white transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-40 ${focus}`}
-              >
-                Reintentar
-              </button>
-            </div>
-          ) : null}
-
-          {!isPending && !isError && visible.length === 0 ? (
-            <div className="flex flex-col items-start gap-4 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-6">
-              <p role="status" className="font-semibold">
-                Ningún producto coincide con “{query}”.
-              </p>
+        {/* Product Cards Grid */}
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded border border-[var(--landing-line)] bg-white p-8 text-center font-mono">
+            <p className="text-sm text-[var(--landing-deep)]">
+              Ningún producto coincide con el filtro seleccionado.
+            </p>
+            {onClearQuery && (
               <button
                 type="button"
                 onClick={onClearQuery}
-                className={`rounded-xl bg-primary px-5 py-2 font-semibold text-white transition-colors hover:bg-primary-container ${focus}`}
+                className="mt-4 rounded-full border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-5 py-1.5 text-xs uppercase tracking-wider text-white transition-colors hover:bg-[var(--landing-primary-hover)]"
               >
                 Quitar filtro
               </button>
-            </div>
-          ) : null}
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((item) => (
+              <div
+                key={item.id}
+                className="group flex flex-col justify-between overflow-hidden rounded border border-[var(--landing-line)] bg-white shadow-sm transition-[border-color,box-shadow] hover:border-[var(--landing-deep)]"
+              >
+                <div>
+                  <div className="relative h-52 w-full overflow-hidden border-b border-[var(--landing-line)] bg-[var(--landing-tag-bg)]">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute left-3 top-3 rounded border border-[var(--landing-line)] bg-white px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-[var(--landing-deep)]">
+                      {item.time}
+                    </div>
+                    <div
+                      className={`absolute right-3 top-3 rounded px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest ${
+                        item.badgeVariant === 'teal'
+                          ? 'bg-[var(--landing-deep)] text-[var(--landing-accent-light)]'
+                          : item.badgeVariant === 'container'
+                            ? 'bg-[var(--landing-primary-hover)] text-white'
+                            : 'bg-[var(--landing-deep)] text-white'
+                      }`}
+                    >
+                      {item.badgeText}
+                    </div>
+                  </div>
 
-          {visible.length > 0 ? <ProductSlides products={visible} /> : null}
-        </div>
+                  <div className="space-y-2 p-4 sm:p-5">
+                    <div className="flex items-center justify-between font-mono text-[11px] text-[var(--landing-muted)]">
+                      <span className="uppercase tracking-wider">{item.refCode}</span>
+                      <span className="font-bold text-[var(--landing-deep)]">{item.rating}</span>
+                    </div>
+                    <h3 className="text-base font-semibold tracking-tight text-[var(--landing-deep)]">
+                      {item.title}
+                    </h3>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-[var(--landing-muted)]">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-[var(--landing-line)] bg-[var(--landing-card)] px-4 pb-4 pt-3 sm:px-5">
+                  <div>
+                    <span className="block font-mono text-[9px] uppercase text-[var(--landing-muted)]">
+                      PRECIO FINAL
+                    </span>
+                    <div className="font-mono text-base font-bold text-[var(--landing-deep)]">
+                      ${item.price.toLocaleString('es-MX')}{' '}
+                      <span className="font-mono text-[10px] font-normal text-[var(--landing-muted)]">
+                        {item.currency}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/login?modo=registro"
+                    className="flex items-center gap-1 rounded-full border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-white transition-colors hover:bg-[var(--landing-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
+                  >
+                    + Agregar
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
-  )
-}
-
-function ProductSlides({ products }: { products: PublicProduct[] }) {
-  return (
-    <ScrollCarousel
-      labelledBy={TITLE_ID}
-      labels={{ previous: 'Producto anterior', next: 'Producto siguiente', goTo: (n) => `Ir al producto ${String(n)}` }}
-    >
-      {products.map((product, i) => (
-        <div
-          key={product.id}
-          role="group"
-          aria-roledescription="slide"
-          aria-label={`${String(i + 1)} de ${String(products.length)}`}
-          className="flex shrink-0 basis-full snap-start flex-col overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-sm md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)] xl:basis-[calc((100%-4.5rem)/4)]"
-        >
-          <div aria-hidden="true" className="flex h-32 items-center justify-center bg-primary-fixed">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-surface-container-lowest text-2xl font-bold text-primary">
-              {product.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className="flex flex-1 flex-col p-6">
-            <h3 className="break-words text-lg font-bold">{product.name}</h3>
-            {product.description ? (
-              <p className="mt-2 line-clamp-2 text-base leading-6 text-on-surface-variant">{product.description}</p>
-            ) : null}
-            <div className="mt-auto flex items-center justify-between gap-4 pt-4">
-              <p className="text-xl font-bold tabular-nums text-primary">{formatPrice(product.unitPrice)}</p>
-              <Link
-                to="/login?modo=registro"
-                className={`shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-container ${focus}`}
-              >
-                Hacer pedido
-              </Link>
-            </div>
-          </div>
-        </div>
-      ))}
-    </ScrollCarousel>
   )
 }

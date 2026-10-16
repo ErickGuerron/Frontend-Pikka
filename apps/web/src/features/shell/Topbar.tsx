@@ -4,6 +4,18 @@ import { roleLabels } from '@/features/auth/types'
 
 const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
 
+function getInitials(name: string): string {
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase() || 'PK'
+  )
+}
+
 export function Topbar() {
   const { data: user } = useCurrentUser()
   const logout = useLogout()
@@ -52,43 +64,43 @@ export function Topbar() {
   const name = user?.fullName ?? ''
 
   return (
-    <header className="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-end px-space-lg">
+    <header className="fixed top-0 left-64 right-0 h-14 bg-[#f0fafb]/95 backdrop-blur-md border-b border-[#cce7ea] z-40 flex items-center justify-end px-6 font-mono text-xs">
       <div className="relative" onKeyDown={onMenuKeyDown} ref={wrapRef}>
         <button
           aria-expanded={open}
           aria-haspopup="menu"
           aria-label={`Menú de cuenta de ${name}`}
-          className={`flex items-center gap-space-md rounded-lg px-1.5 py-1 hover:bg-surface-container-low transition-colors cursor-pointer touch-manipulation ${focusRing}`}
+          className={`flex items-center gap-2.5 bg-white px-3 py-1.5 rounded-lg border border-[#cce7ea] hover:border-[#004b4e] transition-colors cursor-pointer touch-manipulation ${focusRing}`}
           onClick={() => { setOpen((v) => !v) }}
           ref={avatarRef}
           type="button"
         >
-          <span className="text-right flex flex-col">
-            <span className="font-body-md text-body-md font-semibold text-on-surface leading-tight">
-              {user ? `${user.fullName} · ${roleLabels[user.role]}` : 'Cargando…'}
+          <span className="text-right flex flex-col leading-tight">
+            <span className="font-sans text-xs font-bold text-[#004b4e]">
+              {user ? user.fullName : 'Cargando…'}
             </span>
-            <span className="font-body-sm text-body-sm text-on-surface-variant leading-tight">{user?.email ?? ''}</span>
+            <span className="font-mono text-[10px] text-[#557b7f]">
+              {user ? `${user.email} · ${roleLabels[user.role]}` : ''}
+            </span>
           </span>
-          <img
-            alt=""
-            className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-fixed"
-            src="https://lh3.googleusercontent.com/aida/AEtjO1U5476N65UG5b8LIbeNyDiuL6dGo2gG2HEOhVi9vj2tUpaaCovo_E6gEzkEt6u04W6yfTBUl47aKPbH1tGrq1r2wtsHp6XzyCnnibHcbcLK0AqYzFDsh7xKYhzAUuxUcVjX-GuUygXythMCzrSlU4i_JlUmWymebVv6GNZEvTGg9L-EG32qvvVNaY-mcyPg1YSXfE_y5bwB26nBdZg8tXdF9Tl5TcTQXhzWKhpZ6r11Rr5aNHfMngsi1EeQTHLzR_jcR6IIARwnEQ"
-          />
+          <div className="w-7 h-7 rounded bg-[#004b4e] flex items-center justify-center text-white text-[10px] font-bold border border-[#004b4e] font-mono">
+            {user ? getInitials(user.fullName) : 'AP'}
+          </div>
         </button>
         {open && (
           <div
             aria-label="Cuenta"
-            className="absolute right-0 top-full mt-2 min-w-44 bg-surface-container-lowest rounded-xl border border-surface-container shadow-[0_8px_24px_-4px_rgba(19,42,47,0.16)] p-1 animate-menu-in origin-top-right"
+            className="absolute right-0 top-full mt-2 min-w-44 bg-white rounded-xl border border-[#cce7ea] shadow-[0_8px_24px_-4px_rgba(0,38,40,0.16)] p-1 animate-menu-in origin-top-right z-50"
             ref={menuRef}
             role="menu"
           >
             <button
-              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg font-body-sm text-body-sm font-medium text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors cursor-pointer ${focusRing}`}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs text-[#ba1a1a] hover:bg-[#ffdad6]/50 transition-colors cursor-pointer ${focusRing}`}
               onClick={logout}
               role="menuitem"
               type="button"
             >
-              <span aria-hidden="true" className="material-symbols-outlined text-lg">logout</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-sm">logout</span>
               Cerrar sesión
             </button>
           </div>

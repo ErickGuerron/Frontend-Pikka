@@ -25,7 +25,9 @@
   --color-pikka-cyan: #1bb3b8;
   --color-pikka-light: #3ec5c9;
   --color-pikka-mint: #d4f2ee;
-  --font-brand: 'Quicksand', sans-serif;
+  --font-brand: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
   --color-primary: #004b4e;
   --color-background: #effcff;
@@ -97,55 +99,55 @@
 @layer components {
   /* Auth screen: light mobile layout below lg, dark split layout from lg. Page scrolls instead of clipping. */
   .login-split-container {
-    @apply bg-surface min-h-screen flex items-start justify-center px-4 py-6 sm:py-8 lg:bg-white lg:items-center lg:p-8;
+    @apply bg-[#f0fafb] min-h-screen flex items-start justify-center px-4 py-6 sm:py-8 lg:items-center lg:p-8;
   }
 
   .login-main {
-    @apply w-full max-w-md flex flex-col relative lg:max-w-[1280px] lg:flex-row lg:bg-white lg:rounded-2xl lg:shadow-xl lg:border lg:border-surface-container lg:min-h-[640px];
+    @apply w-full max-w-md flex flex-col relative lg:max-w-[1280px] lg:flex-row lg:bg-white lg:rounded-2xl lg:shadow-xl lg:border lg:border-[#cce7ea] lg:min-h-[640px];
   }
 
   .login-left {
-    @apply w-full text-on-surface flex flex-col gap-5 relative z-10 lg:w-[48%] xl:w-[46%] lg:text-white lg:p-6 xl:p-7 lg:justify-between lg:overflow-hidden lg:rounded-l-2xl lg:bg-gradient-to-br lg:from-[#0c3c3e] lg:via-[#092e31] lg:to-[#062022];
-    --auth-label: #3f4949;
-    --auth-muted: #3f4949;
+    @apply w-full text-[#061f23] flex flex-col gap-5 relative z-10 lg:w-[48%] xl:w-[46%] lg:text-white lg:p-6 xl:p-7 lg:justify-between lg:overflow-hidden lg:rounded-l-2xl lg:bg-gradient-to-br lg:from-[#003638] lg:via-[#002628] lg:to-[#00181a];
+    --auth-label: #004b4e;
+    --auth-muted: #557b7f;
     --auth-icon: #004b4e;
     --auth-link: #004b4e;
     --auth-input-bg: #ffffff;
-    --auth-input-border: #bec8c8;
-    --auth-input-border-hover: #0a6568;
+    --auth-input-border: #cce7ea;
+    --auth-input-border-hover: #004b4e;
     --auth-input-text: #061f23;
-    --auth-placeholder: #6f7979;
+    --auth-placeholder: #8ba7ab;
     --auth-ok: #006b5f;
     --auth-error: #ba1a1a;
     --auth-error-bg: #ffdad6;
-    --auth-divider: #bec8c8;
+    --auth-divider: #cce7ea;
     --auth-btn-bg: #004b4e;
     --auth-btn-text: #ffffff;
   }
 
   @media (min-width: 1024px) {
     .login-left {
-      --auth-label: #e2e8f0;
-      --auth-muted: #94a3b8;
-      --auth-icon: #1bb3b8;
-      --auth-link: #1bb3b8;
-      --auth-input-bg: rgba(7, 36, 39, 0.9);
-      --auth-input-border: #1a5457;
-      --auth-input-border-hover: rgba(27, 179, 184, 0.6);
+      --auth-label: #e8f7f9;
+      --auth-muted: #89d3d6;
+      --auth-icon: #14b8a6;
+      --auth-link: #2dd4bf;
+      --auth-input-bg: rgba(0, 24, 26, 0.85);
+      --auth-input-border: rgba(20, 184, 166, 0.35);
+      --auth-input-border-hover: #14b8a6;
       --auth-input-text: #ffffff;
-      --auth-placeholder: #64748b;
-      --auth-ok: #6ee7b7;
+      --auth-placeholder: #557b7f;
+      --auth-ok: #2dd4bf;
       --auth-error: #f87171;
-      --auth-error-bg: rgba(239, 68, 68, 0.1);
-      --auth-divider: rgba(26, 84, 87, 0.6);
-      --auth-btn-bg: linear-gradient(to right, #1bb3b8, #13a2a7, #0e7075);
-      --auth-btn-text: #020617;
+      --auth-error-bg: rgba(239, 68, 68, 0.15);
+      --auth-divider: rgba(20, 184, 166, 0.25);
+      --auth-btn-bg: #004b4e;
+      --auth-btn-text: #ffffff;
     }
   }
 
   /* White card holding the form on mobile; transparent on the dark desktop panel. */
   .auth-card {
-    @apply bg-white rounded-2xl p-5 shadow-sm lg:bg-transparent lg:rounded-none lg:p-0 lg:shadow-none lg:my-auto;
+    @apply bg-white rounded-2xl p-5 shadow-sm border border-[#cce7ea] lg:border-none lg:bg-transparent lg:rounded-none lg:p-0 lg:shadow-none lg:my-auto;
   }
 
   .auth-label {
@@ -168,7 +170,7 @@
   }
 
   .auth-input {
-    @apply w-full text-sm lg:text-xs rounded-xl lg:rounded-lg pl-11 lg:pl-9 pr-3 py-3 lg:py-2.5 border transition-all focus:outline-none focus:ring-2 focus:ring-pikka-cyan/30;
+    @apply w-full text-sm lg:text-xs rounded-xl lg:rounded-lg pl-11 lg:pl-9 pr-3 py-3 lg:py-2.5 border transition-colors focus:outline-none focus:ring-2 focus:ring-[#14b8a6]/30;
     background: var(--auth-input-bg);
     border-color: var(--auth-input-border);
     color: var(--auth-input-text);
@@ -200,7 +202,7 @@
   }
 
   .auth-submit {
-    @apply w-full py-3 px-5 rounded-xl lg:rounded-lg font-bold text-sm lg:text-xs tracking-wide shadow-sm transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60;
+    @apply w-full py-3 px-5 rounded-xl lg:rounded-lg font-bold text-sm lg:text-xs tracking-wide shadow-sm transition-colors duration-200 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60 hover:bg-[#0a6568] border border-[#004b4e];
     background: var(--auth-btn-bg);
     color: var(--auth-btn-text);
   }
@@ -211,17 +213,17 @@
 
   .login-right {
     @apply hidden lg:flex lg:w-[52%] xl:w-[54%] bg-white lg:p-6 xl:p-7 flex-col justify-between relative overflow-hidden lg:rounded-r-2xl;
-    background-image: radial-gradient(circle, rgba(14, 112, 117, 0.12) 1.5px, transparent 1.5px);
+    background-image: radial-gradient(circle, rgba(0, 75, 78, 0.08) 1.5px, transparent 1.5px);
     background-size: 28px 28px;
   }
 
   .panel-inner-glow {
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   }
 
   .ambient-cyan {
     @apply absolute rounded-full pointer-events-none;
-    background: rgba(27, 179, 184, 0.15);
+    background: rgba(20, 184, 166, 0.15);
     filter: blur(60px);
     width: 320px;
     height: 320px;
@@ -229,14 +231,14 @@
 
   .ambient-teal {
     @apply absolute rounded-full pointer-events-none;
-    background: rgba(14, 112, 117, 0.2);
+    background: rgba(0, 75, 78, 0.25);
     filter: blur(60px);
     width: 320px;
     height: 320px;
   }
 
   .brand-glow {
-    box-shadow: 0 0 25px rgba(27, 179, 184, 0.28);
+    box-shadow: 0 0 25px rgba(20, 184, 166, 0.28);
   }
 
   .role-btn-active {

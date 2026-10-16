@@ -53,16 +53,24 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-on-background/50 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[#002628]/60 backdrop-blur-xs sm:items-center sm:p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-form-title"
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-surface-container-lowest p-5 shadow-xl sm:max-w-2xl sm:rounded-2xl"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-6 shadow-2xl border border-[#cce7ea] sm:max-w-2xl sm:rounded-xl"
       >
         <form noValidate className="grid gap-4 sm:grid-cols-2" onSubmit={submit}>
-          <h2 id="product-form-title" className="text-lg font-bold text-on-surface sm:col-span-2">Nuevo producto</h2>
+          <div className="sm:col-span-2 border-b border-[#cce7ea] pb-3 space-y-1">
+            <div className="inline-flex items-center gap-2 rounded border border-[#cce7ea] bg-[#e8f7f9] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-[#004b4e]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
+              <span className="font-semibold">DOSSIER PRODUCTO · FICHA TÉCNICA</span>
+            </div>
+            <h2 id="product-form-title" className="text-lg font-bold text-[#004b4e] font-sans">
+              Nuevo producto
+            </h2>
+          </div>
 
           <Field label="Nombre">
             <input
@@ -93,14 +101,14 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
           </Field>
           {errors.unitPrice === undefined ? null : <ErrorMessage id="product-price-error">{errors.unitPrice}</ErrorMessage>}
 
-          <label className="flex items-center gap-2 text-sm text-on-surface sm:col-span-2">
+          <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#061f23] sm:col-span-2 cursor-pointer pt-1">
             <input
               type="checkbox"
-              className="h-4 w-4 accent-primary"
+              className="h-4 w-4 accent-[#004b4e]"
               checked={tracksStock}
               onChange={(event) => { setTracksStock(event.target.checked) }}
             />
-            <span>Controla stock</span>
+            <span className="font-semibold">Controla stock</span>
           </label>
 
           {tracksStock ? (
@@ -119,13 +127,17 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
             </>
           ) : null}
 
-          {create.isError ? <ErrorMessage className="sm:col-span-2">{userMessage(create.error)}</ErrorMessage> : null}
+          {create.isError ? (
+            <div className="sm:col-span-2 p-3 rounded-lg bg-[#ffdad6] text-[#ba1a1a] border border-[#ffb4ab] font-mono text-xs">
+              {userMessage(create.error)}
+            </div>
+          ) : null}
 
-          <div className="flex justify-end gap-3 sm:col-span-2">
+          <div className="flex justify-end gap-2.5 sm:col-span-2 pt-3 border-t border-[#cce7ea]">
             <button
               type="button"
               disabled={pending}
-              className="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-on-surface-variant disabled:opacity-50"
+              className="cursor-pointer rounded-lg border border-[#cce7ea] bg-white hover:bg-[#e8f7f9] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#004b4e] disabled:opacity-50 transition-colors"
               onClick={onClose}
             >
               Cancelar
@@ -133,7 +145,7 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
             <button
               type="submit"
               disabled={pending}
-              className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="cursor-pointer rounded-lg bg-[#004b4e] hover:bg-[#0a6568] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white border border-[#004b4e] disabled:opacity-50 transition-colors shadow-sm"
             >
               Guardar producto
             </button>

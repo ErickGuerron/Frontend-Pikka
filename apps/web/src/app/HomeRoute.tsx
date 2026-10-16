@@ -24,20 +24,27 @@ function DeniedNotice() {
   const denied = useDeniedSection()
   if (denied === null) return null
   return (
-    <p role="alert" className="alert">
-      No tienes acceso a {denied}.
-    </p>
+    <div role="alert" className="mb-4 flex items-center gap-2 bg-[#ffdad6]/60 border border-[#ffdad6] text-[#ba1a1a] px-4 py-3 rounded-lg font-mono text-xs font-semibold">
+      <span className="material-symbols-outlined text-base">warning</span>
+      <span>No tienes acceso a {denied}.</span>
+    </div>
   )
 }
 
 function MobileOnlyPage() {
   return (
-    <section className="card">
-      <h2>Usa la app móvil de Pikka</h2>
-      <p className="muted">
-        La web es para el personal y los clientes. Como repartidor, consulta tu ruta y registra tus entregas desde la app móvil.
-      </p>
-    </section>
+    <div className="pt-2 pb-16 font-sans">
+      <div className="bg-white rounded border border-[#cce7ea] p-6 shadow-sm flex flex-col gap-3 max-w-xl">
+        <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-[#e8f7f9] border border-[#cce7ea] text-[10px] font-mono tracking-widest uppercase text-[#004b4e] w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" />
+          <span>Acceso Restringido · Flota Móvil</span>
+        </div>
+        <h2 className="text-2xl font-bold text-[#004b4e] font-sans">Usa la app móvil de Pikka</h2>
+        <p className="text-xs sm:text-sm text-[#557b7f] font-normal leading-relaxed">
+          La web es para el personal y los clientes. Como repartidor, consulta tu ruta y registra tus entregas desde la app móvil.
+        </p>
+      </div>
+    </div>
   )
 }
 

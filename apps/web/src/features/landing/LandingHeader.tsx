@@ -1,59 +1,36 @@
-import { useState, type SyntheticEvent } from 'react'
-import { Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { Brand } from './Brand'
 
-const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
-
 interface LandingHeaderProps {
-  /** Recibe el texto buscado al enviar; el catálogo lo usa para filtrar por nombre. */
-  onSearch: (query: string) => void
+  onSearch?: (query: string) => void
+  selectedCategory?: string
+  onSelectCategory?: (category: string) => void
 }
 
-export function LandingHeader({ onSearch }: LandingHeaderProps) {
-  const [value, setValue] = useState('')
-
-  const submit = (e: SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    onSearch(value.trim())
-    window.location.hash = 'catalogo'
-  }
-
+export function LandingHeader(_props: LandingHeaderProps) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-outline-variant/40 bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <a href="#inicio" aria-label="pikka, ir al inicio" className={`shrink-0 rounded-lg ${focus}`}>
-          <Brand />
-        </a>
+    <header className="sticky top-0 z-50 border-b border-[var(--landing-line)] bg-[var(--landing-bg)]/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div className="flex shrink-0 items-center">
+          <a href="#inicio" aria-label="Pikka, volver al inicio" className="group flex items-center">
+            <Brand />
+          </a>
+        </div>
 
-        <form role="search" onSubmit={submit} className="flex min-w-0 flex-1 justify-center">
-          <div className="relative w-full max-w-md">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
-            <input
-              type="search"
-              aria-label="Buscar productos"
-              placeholder="Buscar productos…"
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value)
-              }}
-              className={`h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-9 pr-3 text-sm transition-colors placeholder:text-on-surface-variant ${focus}`}
-            />
-          </div>
-        </form>
-
+        {/* Right CTA links */}
         <div className="flex shrink-0 items-center gap-2">
           <a
             href="#rastreo"
-            className={`hidden rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-surface-container sm:inline-block ${focus}`}
+            className="hidden items-center gap-1.5 rounded border border-[var(--landing-line)] bg-white px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-[var(--landing-deep)] transition-colors hover:border-[var(--landing-deep)] lg:flex"
           >
-            Rastrear
+            <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[var(--landing-accent)]" />
+            <span>Rastrear</span>
           </a>
           <Link
             to="/login"
-            className={`rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-container ${focus}`}
+            className="flex items-center gap-2 rounded border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider text-white transition-colors hover:bg-[var(--landing-primary-hover)]"
           >
-            Mi cuenta
+            <span>Mi Cuenta</span>
           </Link>
         </div>
       </div>

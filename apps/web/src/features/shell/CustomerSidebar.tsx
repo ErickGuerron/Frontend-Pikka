@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router'
 import { useCurrentUser, useLogout } from '@/features/auth/hooks'
+import { Brand } from '@/features/landing/Brand'
 import { initialOf } from './initial'
 import { canAccess, customerHomePath, sectionLabels, type Section } from '@/features/auth/permissions'
 
@@ -20,26 +21,26 @@ export function CustomerSidebar({ open, onClose }: CustomerSidebarProps) {
 
   return (
     <>
-      {open ? <div aria-hidden="true" className="fixed inset-0 z-40 bg-on-background/50 lg:hidden" onClick={onClose} /> : null}
+      {open ? <div aria-hidden="true" className="fixed inset-0 z-40 bg-[#002628]/60 backdrop-blur-xs lg:hidden" onClick={onClose} /> : null}
       <aside
         aria-label="Menú de cliente"
-        className={`fixed left-0 top-0 z-50 flex h-full w-64 flex-col justify-between bg-inverse-surface shadow-xl transition-transform lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-full w-64 flex-col justify-between bg-[#002628] border-r border-[#14b8a6]/20 shadow-xl transition-transform lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col">
-          <div className="flex h-16 items-center justify-between px-4">
-            <span className="text-2xl font-bold lowercase tracking-tight text-white">pikka</span>
-            <span className="rounded-full bg-primary-container/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary-fixed">
+          <div className="flex h-16 items-center justify-between border-b border-[#14b8a6]/20 bg-[#001d1f] px-4">
+            <Brand variant="white" showIsotipo textSize="text-xl" />
+            <span className="rounded font-mono border border-[#14b8a6]/40 bg-[#004b4e] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#2dd4bf]">
               Cliente
             </span>
           </div>
 
-          <div className="mx-3 mb-3 flex items-center gap-3 rounded-xl bg-on-background/20 px-3 py-3">
-            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary-container text-sm font-bold text-on-secondary-container">
+          <div className="mx-3 my-3 flex items-center gap-3 rounded-lg border border-[#14b8a6]/20 bg-[#001d1f] p-3">
+            <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-[#004b4e] font-mono text-xs font-bold text-[#2dd4bf] border border-[#14b8a6]/30">
               {initialOf(user?.fullName)}
             </span>
-            <span className="truncate text-sm font-semibold text-white">{user?.fullName ?? 'Cargando…'}</span>
+            <span className="truncate text-xs font-semibold text-white">{user?.fullName ?? 'Cargando…'}</span>
           </div>
 
           <nav aria-label="Secciones" className="flex flex-col gap-1 px-3">

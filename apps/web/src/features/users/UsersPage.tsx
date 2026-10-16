@@ -22,8 +22,8 @@ const roleFilters: RoleFilter[] = ['todos', ...roles]
 const estadoLabels: Record<EstadoFilter, string> = { todos: 'Todos', activo: 'Activos', inactivo: 'Inactivos' }
 const estados: EstadoFilter[] = ['todos', 'activo', 'inactivo']
 
-const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
-const PAGE_SIZE = 10
+const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004b4e] focus-visible:ring-offset-2'
+const PAGE_SIZE = 5
 
 function parsePagina(value: string | null): number {
   const n = Number(value)
@@ -46,22 +46,36 @@ function matchesEstado(user: User, estado: EstadoFilter): boolean {
 function getInitials(name: string): string {
   return name
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .substring(0, 2)
     .toUpperCase() || 'PK'
 }
 
-function getRoleBadgeClass(role: Role): string {
+function getUserAvatarStyle(role: Role): { bg: string; text: string; border: string } {
   switch (role) {
     case 'ADMIN':
-      return 'bg-primary-container text-on-primary'
+      return { bg: 'bg-[#004b4e]', text: 'text-white', border: 'border-[#004b4e]' }
     case 'OPERATOR':
-      return 'bg-surface-variant text-primary'
+      return { bg: 'bg-[#e8f7f9]', text: 'text-[#004b4e]', border: 'border-[#cce7ea]' }
     case 'DRIVER':
-      return 'bg-secondary-container text-on-secondary-container'
+      return { bg: 'bg-[#0a6568]', text: 'text-white', border: 'border-[#0a6568]' }
     case 'CUSTOMER':
-      return 'bg-surface-variant text-on-surface-variant'
+      return { bg: 'bg-[#f0fafb]', text: 'text-[#557b7f]', border: 'border-[#cce7ea]' }
+  }
+}
+
+function getRoleBadgeStyle(role: Role): string {
+  switch (role) {
+    case 'ADMIN':
+      return 'bg-[#004b4e] text-white border border-[#004b4e]'
+    case 'OPERATOR':
+      return 'bg-white text-[#004b4e] border border-[#cce7ea]'
+    case 'DRIVER':
+      return 'bg-[#e8f7f9] text-[#004b4e] border border-[#cce7ea]'
+    case 'CUSTOMER':
+      return 'bg-[#f0fafb] text-[#557b7f] border border-[#cce7ea]'
   }
 }
 
@@ -135,199 +149,238 @@ export function UsersPage() {
 
   const countByRole = (role: Role) => users.filter((u) => u.role === role).length
   const kpis = [
-    { label: 'Total', icon: 'groups', value: users.length },
-    { label: 'Administradores', icon: 'admin_panel_settings', value: countByRole('ADMIN') },
-    { label: 'Operadores', icon: 'tune', value: countByRole('OPERATOR') },
-    { label: 'Repartidores', icon: 'two_wheeler', value: countByRole('DRIVER') },
-    { label: 'Clientes', icon: 'person', value: countByRole('CUSTOMER') },
+    { label: 'TOTAL CUENTAS', badge: 'GLOBAL', value: users.length, unit: 'integrantes', tag: 'Directorio' },
+    { label: 'ADMINISTRADORES', badge: 'SISTEMA', value: countByRole('ADMIN'), unit: 'supervisores', tag: 'Acceso Total' },
+    { label: 'OPERADORES', badge: 'CENTROS', value: countByRole('OPERATOR'), unit: 'operativos', tag: 'Despacho' },
+    { label: 'REPARTIDORES', badge: 'FLOTA', value: countByRole('DRIVER'), unit: 'conductores', tag: 'Distribución' },
+    { label: 'CLIENTES', badge: 'PORTAL', value: countByRole('CUSTOMER'), unit: 'usuarios', tag: 'Plataforma' },
   ]
   const hasFilters = search !== '' || roleFilter !== 'todos' || estado !== 'todos'
 
   return (
-    <div className="flex flex-col gap-2 pt-2 pb-6">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-on-surface tracking-tight">Gestión de Usuarios</h1>
+    <div className="flex flex-col gap-5 pt-2 pb-16 font-sans">
+      {/* Header Section Bar con Dossier Tag y Botón Primario Editorial */}
+      <div className="bg-white rounded border border-[#cce7ea] p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-[#e8f7f9] border border-[#cce7ea] text-[10px] font-mono tracking-widest uppercase text-[#004b4e]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" />
+            <span>Consola Central · Gestión de Cuentas</span>
           </div>
-          <p className="text-[11px] text-on-surface-variant leading-tight">
-            Administra cuentas, roles y accesos del equipo.
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#004b4e] flex items-center gap-3">
+            Gestión y Telemetría de Usuarios
+          </h1>
+          <p className="text-xs sm:text-sm text-[#557b7f] font-normal leading-relaxed max-w-2xl">
+            Administración centralizada de credenciales, roles de despacho, asignación de centros logísticos y monitoreo de accesos.
           </p>
         </div>
-        <button
-          className={`flex items-center gap-1 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-2.5 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer touch-manipulation text-[11px] font-semibold self-start lg:self-auto ${focusRing}`}
-          onClick={() => { setIsCreating(true) }}
-          type="button"
-        >
-          <span aria-hidden="true" className="material-symbols-outlined text-sm">person_add</span>
-          <span>Nuevo Usuario</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            className={`px-4 py-2 bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs uppercase tracking-wider rounded transition-colors border border-[#004b4e] flex items-center gap-2 shadow-sm cursor-pointer ${focusRing}`}
+            onClick={() => { setIsCreating(true) }}
+            type="button"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-base">person_add</span>
+            <span>Nuevo Usuario</span>
+          </button>
+        </div>
       </div>
 
-      {/* KPI Cards: solo conteos calculados desde la lista real */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+      {/* KPIs de Telemetría Superior (Estilo Dossier / Radar de Ingeniería con datos reales) */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-surface-container-lowest p-2.5 rounded-xl shadow-[0_8px_24px_-4px_rgba(19,42,47,0.06)] border border-surface-container-high/60 flex flex-col gap-1 min-w-0"
+            className="bg-white rounded border border-[#cce7ea] p-4 flex flex-col justify-between shadow-sm hover:border-[#004b4e] transition-all min-w-0"
           >
-            <div className="flex items-center justify-between gap-1">
-              <span className="font-label-badge text-on-surface-variant uppercase font-bold tracking-wider text-[9px] truncate">{kpi.label}</span>
-              <span aria-hidden="true" className="material-symbols-outlined text-sm text-primary">{kpi.icon}</span>
+            <div className="flex items-center justify-between pb-2 border-b border-[#cce7ea]">
+              <span className="text-[10px] font-mono text-[#557b7f] uppercase tracking-wider font-semibold truncate">
+                {kpi.label}
+              </span>
+              <span className="text-[9px] font-mono text-[#004b4e] bg-[#e8f7f9] px-1.5 py-0.5 rounded border border-[#cce7ea] font-bold">
+                {kpi.badge}
+              </span>
             </div>
-            <div className="flex items-baseline gap-1 min-w-0">
-              <span className="text-lg font-bold text-on-surface tabular-nums">{kpi.value}</span>
-              <span className="text-[10px] text-on-surface-variant truncate">cuentas</span>
+            <div className="pt-3 flex items-baseline justify-between">
+              <div>
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-[#004b4e] tabular-nums">
+                  {kpi.value}
+                </span>
+                <span className="text-xs font-mono text-[#557b7f] ml-1">{kpi.unit}</span>
+              </div>
+              <span className="text-[10px] font-mono text-[#006b5f] bg-[#e8f7f9] px-2 py-0.5 rounded border border-[#cce7ea] font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" />
+                {kpi.tag}
+              </span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_-4px_rgba(19,42,47,0.06)] border border-surface-container-high/60 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-0 flex items-center">
-          <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-primary text-base pointer-events-none">search</span>
-          <input
-            aria-label="Buscar por nombre o correo"
-            className={`w-full bg-surface-container-low/70 text-on-surface text-xs pl-9 pr-3 py-2 rounded-lg border-0 focus:bg-surface-container-lowest transition-all placeholder:text-outline-variant outline-none ${focusRing}`}
-            placeholder="Buscar por nombre o correo…"
-            type="text"
-            value={search}
-            onChange={(e) => { setFilter('q', e.target.value, '') }}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 xl:justify-end flex-shrink-0">
-          <div role="group" aria-label="Filtrar por rol" className="flex flex-wrap items-center gap-1 bg-surface-container-low/60 p-0.5 rounded-lg">
-            {roleFilters.map((r) => {
-              const active = roleFilter === r
-              return (
-                <button
-                  key={r}
-                  aria-pressed={active}
-                  className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-bold transition-all touch-manipulation ${focusRing} ${active ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-                  onClick={() => { setFilter('rol', r, 'todos') }}
-                  type="button"
-                >
-                  {roleFilterLabels[r]}
-                </button>
-              )
-            })}
+      {/* Directorio General de Personal con Toolbar Técnica */}
+      <div className="bg-white rounded border border-[#cce7ea] shadow-sm overflow-hidden">
+        {/* Toolbar Superior: Búsqueda y Filtros con diseño Dossier */}
+        <div className="p-4 border-b border-[#cce7ea] bg-[#f7fcfc] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 min-w-0">
+            <div className="relative flex-1 w-full flex items-center min-w-0">
+              <span aria-hidden="true" className="material-symbols-outlined absolute left-3 text-[#557b7f] text-base pointer-events-none">search</span>
+              <input
+                aria-label="Buscar por nombre o correo"
+                className={`w-full bg-white text-xs font-mono text-[#061f23] pl-9 pr-4 py-2 rounded border border-[#cce7ea] focus:border-[#004b4e] outline-none placeholder:text-[#8ba7ab] transition-all ${focusRing}`}
+                placeholder="Buscar por nombre o correo…"
+                type="text"
+                value={search}
+                onChange={(e) => { setFilter('q', e.target.value, '') }}
+              />
+            </div>
           </div>
-          <select
-            aria-label="Estado"
-            className={`bg-surface-container-low/70 text-on-surface text-xs px-2.5 py-1.5 rounded-lg border-0 cursor-pointer font-medium touch-manipulation ${focusRing}`}
-            value={estado}
-            onChange={(e) => { setFilter('estado', e.target.value, 'todos') }}
-          >
-            {estados.map((e) => (
-              <option key={e} value={e}>{estadoLabels[e]}</option>
-            ))}
-          </select>
-          <button
-            aria-label="Refrescar lista"
-            className={`p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors border border-surface-container-high touch-manipulation ${focusRing}`}
-            onClick={() => void refetch()}
-            type="button"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined text-base">refresh</span>
-          </button>
+          <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2 flex-shrink-0">
+            <div role="group" aria-label="Filtrar por rol" className="flex items-center gap-1 bg-[#e8f7f9] p-0.5 rounded border border-[#cce7ea] text-xs font-mono">
+              {roleFilters.map((r) => {
+                const active = roleFilter === r
+                return (
+                  <button
+                    key={r}
+                    aria-pressed={active}
+                    className={`px-3 py-1 rounded text-[11px] font-mono uppercase tracking-wider transition-all touch-manipulation font-semibold ${focusRing} ${
+                      active
+                        ? 'bg-[#004b4e] text-white border border-[#004b4e] shadow-xs'
+                        : 'text-[#004b4e] hover:bg-white border border-transparent'
+                    }`}
+                    onClick={() => { setFilter('rol', r, 'todos') }}
+                    type="button"
+                  >
+                    {roleFilterLabels[r]}
+                  </button>
+                )
+              })}
+            </div>
+            <select
+              aria-label="Estado"
+              className={`bg-white text-[#004b4e] text-xs font-mono px-3 py-1.5 rounded border border-[#cce7ea] cursor-pointer font-semibold outline-none focus:border-[#004b4e] touch-manipulation ${focusRing}`}
+              value={estado}
+              onChange={(e) => { setFilter('estado', e.target.value, 'todos') }}
+            >
+              {estados.map((e) => (
+                <option key={e} value={e}>{estadoLabels[e]}</option>
+              ))}
+            </select>
+            <button
+              aria-label="Refrescar lista"
+              title="Recargar filtros"
+              className={`p-1.5 bg-white text-[#004b4e] border border-[#cce7ea] hover:border-[#004b4e] hover:bg-[#e8f7f9] rounded transition-colors cursor-pointer touch-manipulation ${focusRing}`}
+              onClick={() => void refetch()}
+              type="button"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-base">refresh</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Directory Table */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_-4px_rgba(19,42,47,0.06)] border border-surface-container-high/60 overflow-hidden">
-        <div className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 bg-surface-container-low/40 border-b border-surface-container">
-          <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-sm font-bold text-on-surface">Directorio General de Personal</h2>
-            <span className="font-label-code bg-surface-container-high text-primary px-2 py-0.5 rounded-md font-bold text-[10px] tabular-nums">
+        {/* Banner técnico de conteo y sincronización */}
+        <div className="px-4 py-2 bg-white border-b border-[#cce7ea] flex items-center justify-between text-[11px] font-mono text-[#557b7f]">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-bold font-mono text-[#004b4e] uppercase tracking-wider">Directorio General de Personal</h2>
+            <span className="text-[10px] font-mono bg-[#e8f7f9] text-[#004b4e] px-2 py-0.5 rounded border border-[#cce7ea] font-semibold tabular-nums">
               {filteredUsers.length} {filteredUsers.length === 1 ? 'cuenta' : 'cuentas'}
             </span>
           </div>
-          <p aria-live="polite" className="text-[11px] font-semibold text-secondary">{notice}</p>
+          <p aria-live="polite" className="text-[11px] font-mono font-semibold text-[#006b5f]">{notice}</p>
         </div>
 
+        {/* Tabla Técnica de Personal */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[480px]">
+          <table className="w-full text-left font-sans" id="userDirectoryTable">
             <thead>
-              <tr className="bg-surface-container/60 text-on-surface-variant font-label-badge uppercase tracking-wider border-b border-surface-container">
-                <th className="py-2 px-3 font-bold text-[10px]" scope="col">Usuario</th>
-                <th className="py-2 px-2 font-bold text-[10px]" scope="col">Rol</th>
-                <th className="py-2 px-2 font-bold text-[10px]" scope="col">Estado</th>
-                <th className="py-2 px-3 text-right font-bold text-[10px]" scope="col">Acciones</th>
+              <tr className="bg-[#f7fcfc] text-[#557b7f] font-mono text-[10px] uppercase tracking-widest border-b border-[#cce7ea]">
+                <th className="py-3 px-4 font-semibold" scope="col">Usuario / Credenciales</th>
+                <th className="py-3 px-3 font-semibold" scope="col">Rol Logístico</th>
+                <th className="py-3 px-3 font-semibold" scope="col">Estado</th>
+                <th className="py-3 px-4 text-right font-semibold" scope="col">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container-low text-xs">
+            <tbody className="divide-y divide-[#cce7ea] text-xs">
               {isLoading && (
                 <tr>
-                  <td className="py-6 text-center text-on-surface-variant" colSpan={4}>Cargando…</td>
+                  <td className="py-8 text-center text-[#557b7f] font-mono text-xs" colSpan={4}>Cargando…</td>
                 </tr>
               )}
               {isError && (
                 <tr>
-                  <td className="py-6 text-center" colSpan={4}>
-                    <p aria-live="polite" className="text-error">No se pudo cargar la lista de usuarios. Intenta de nuevo.</p>
+                  <td className="py-8 text-center" colSpan={4}>
+                    <p aria-live="polite" className="text-[#ba1a1a] font-mono text-xs">No se pudo cargar la lista de usuarios. Intenta de nuevo.</p>
                   </td>
                 </tr>
               )}
               {!isLoading && !isError && filteredUsers.length === 0 && (
                 <tr>
-                  <td className="py-6 text-center text-on-surface-variant" colSpan={4}>
+                  <td className="py-8 text-center text-[#557b7f] font-mono text-xs" colSpan={4}>
                     {hasFilters ? 'No se encontraron usuarios con los filtros aplicados.' : 'No hay usuarios registrados.'}
                   </td>
                 </tr>
               )}
               {pageUsers.map((user) => {
                 const initials = getInitials(user.fullName)
-                const badgeClass = getRoleBadgeClass(user.role)
+                const avatarStyle = getUserAvatarStyle(user.role)
                 // Sin identidad de sesión no se ofrece desactivar a nadie; nunca a la propia sesión.
                 // Un usuario ya inactivo tampoco se desactiva de nuevo.
                 const canDeactivate = user.active && me !== undefined && me.id !== user.id
                 return (
-                  <tr key={user.id} className="hover:bg-surface-container-low/40 transition-colors">
-                    <td className="py-2 px-3 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div aria-hidden="true" className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] font-label-code shadow-sm flex-shrink-0 ${badgeClass}`}>
+                  <tr key={user.id} className="hover:bg-[#f7fcfc] transition-colors">
+                    <td className="py-3.5 px-4 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          aria-hidden="true"
+                          className={`w-8 h-8 rounded flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 border ${avatarStyle.bg} ${avatarStyle.text} ${avatarStyle.border}`}
+                        >
                           {initials}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-on-surface leading-tight truncate text-xs">{user.fullName}</span>
-                          <span className="text-[10px] text-on-surface-variant truncate">{user.email}</span>
+                          <span className="font-bold text-[#004b4e] leading-tight truncate text-sm font-sans">{user.fullName}</span>
+                          <span className="font-mono text-[11px] text-[#557b7f] truncate">{user.email}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="py-2 px-2">
-                      <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-label-badge font-bold shadow-xs whitespace-nowrap ${badgeClass}`}>
-                        <span aria-hidden="true" className="material-symbols-outlined text-[10px]">{roleIcons[user.role]}</span>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase ${getRoleBadgeStyle(user.role)}`}>
+                        <span aria-hidden="true" className="material-symbols-outlined text-xs">{roleIcons[user.role]}</span>
                         {roleLabels[user.role]}
                       </span>
                     </td>
-                    <td className="py-2 px-2">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] whitespace-nowrap ${user.active ? 'bg-secondary-container/40 text-secondary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                        <span aria-hidden="true" className={`w-1 h-1 rounded-full ${user.active ? 'bg-secondary' : 'bg-outline'}`} />
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+                          user.active
+                            ? 'bg-[#e8f7f9] text-[#006b5f] border border-[#cce7ea]'
+                            : 'bg-[#f0fafb] text-[#557b7f] border border-[#cce7ea]'
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`w-1.5 h-1.5 rounded-full ${user.active ? 'bg-[#14b8a6] animate-pulse' : 'bg-[#8ba7ab]'}`}
+                        />
                         {user.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="py-2 px-3 text-right">
-                      <div className="flex items-center justify-end gap-0.5">
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1 font-mono">
                         <button
                           aria-label={`Editar usuario ${user.fullName}`}
-                          className={`p-1 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors touch-manipulation ${focusRing}`}
+                          className={`p-1.5 rounded text-[#004b4e] hover:bg-[#e8f7f9] border border-transparent hover:border-[#cce7ea] transition-colors cursor-pointer touch-manipulation ${focusRing}`}
                           onClick={() => { setEditing(user) }}
                           title="Editar"
                           type="button"
                         >
-                          <span aria-hidden="true" className="material-symbols-outlined text-sm">edit</span>
+                          <span aria-hidden="true" className="material-symbols-outlined text-base">edit</span>
                         </button>
                         {canDeactivate && (
                           <button
                             aria-label={`Desactivar usuario ${user.fullName}`}
-                            className={`p-1 rounded text-error hover:bg-error-container/40 transition-colors touch-manipulation ${focusRing}`}
+                            className={`p-1.5 rounded text-[#ba1a1a] hover:bg-[#ffdad6]/50 border border-transparent hover:border-[#ba1a1a]/40 transition-colors cursor-pointer touch-manipulation ${focusRing}`}
                             onClick={() => { setDeactivating(user) }}
                             title="Desactivar"
                             type="button"
                           >
-                            <span aria-hidden="true" className="material-symbols-outlined text-sm">block</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-base">block</span>
                           </button>
                         )}
                       </div>
@@ -340,14 +393,21 @@ export function UsersPage() {
         </div>
 
         {filteredUsers.length > 0 && (
-          <nav aria-label="Paginación de usuarios" className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-surface-container bg-surface-container-low/40">
-            <p className="text-[11px] text-on-surface-variant tabular-nums">
-              {`Mostrando ${String(pageStart + 1)}–${String(pageEnd)} de ${String(filteredUsers.length)}`}
-            </p>
+          <nav
+            aria-label="Paginación de usuarios"
+            className="px-4 py-3 bg-[#f7fcfc] border-t border-[#cce7ea] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-[#557b7f]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="tabular-nums">
+                {`Mostrando ${String(pageStart + 1)}–${String(pageEnd)} de ${String(filteredUsers.length)}`}
+              </span>
+              <span>·</span>
+              <span className="uppercase text-[11px]">PÁGINA {currentPage} DE {totalPages}</span>
+            </div>
             <div className="flex items-center gap-1">
               <button
                 aria-label="Página anterior"
-                className={`p-1 rounded text-on-surface-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation ${focusRing}`}
+                className={`px-2.5 py-1 rounded bg-white border border-[#cce7ea] text-[#557b7f] hover:bg-[#e8f7f9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer font-mono font-semibold ${focusRing}`}
                 disabled={currentPage === 1}
                 onClick={() => { setPage(currentPage - 1) }}
                 type="button"
@@ -359,7 +419,11 @@ export function UsersPage() {
                   key={page}
                   aria-current={page === currentPage ? 'page' : undefined}
                   aria-label={`Página ${String(page)}`}
-                  className={`min-w-7 px-2 py-1 rounded-md text-[11px] font-bold tabular-nums transition-colors touch-manipulation ${focusRing} ${page === currentPage ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+                  className={`min-w-8 px-2.5 py-1 rounded text-xs font-bold font-mono tabular-nums transition-colors cursor-pointer ${focusRing} ${
+                    page === currentPage
+                      ? 'bg-[#004b4e] text-white border border-[#004b4e]'
+                      : 'bg-white hover:bg-[#e8f7f9] border border-[#cce7ea] text-[#004b4e]'
+                  }`}
                   onClick={() => { setPage(page) }}
                   type="button"
                 >
@@ -368,7 +432,7 @@ export function UsersPage() {
               ))}
               <button
                 aria-label="Siguiente página"
-                className={`p-1 rounded text-on-surface-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation ${focusRing}`}
+                className={`px-2.5 py-1 rounded bg-white border border-[#cce7ea] text-[#557b7f] hover:bg-[#e8f7f9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer font-mono font-semibold ${focusRing}`}
                 disabled={currentPage === totalPages}
                 onClick={() => { setPage(currentPage + 1) }}
                 type="button"

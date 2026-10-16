@@ -58,14 +58,14 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   return (
     <section
       aria-labelledby="order-form-title"
-      className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_-4px_rgba(19,42,47,0.06)] border border-surface-container-high/60 p-space-lg"
+      className="bg-white rounded border border-[#cce7ea] shadow-sm p-6 font-sans mb-4"
     >
-      <div className="flex items-start justify-between gap-2 pb-3 border-b border-surface-container-low">
+      <div className="flex items-start justify-between gap-2 pb-3 border-b border-[#cce7ea]">
         <div>
-          <h2 id="order-form-title" className="text-sm font-bold text-on-surface">
+          <h2 id="order-form-title" className="text-base font-bold text-[#004b4e] font-sans">
             Registrar pedido
           </h2>
-          <p className="text-[11px] text-on-surface-variant">
+          <p className="text-xs text-[#557b7f] font-sans mt-0.5">
             Indica dónde y cuándo se entrega. Los campos marcados con * son obligatorios.
           </p>
         </div>
@@ -85,14 +85,14 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
         <OrderDetailsFields idPrefix="order" values={fields} errors={errors} disabled={isPending} onChange={update} />
 
         {mutation.isError ? (
-          <div role="alert" className="lg:col-span-2 bg-error-container text-on-error-container rounded-lg px-3 py-2 text-[11px]">
+          <div role="alert" className="lg:col-span-2 bg-[#ffdad6]/60 border border-[#ffdad6] text-[#ba1a1a] rounded-lg px-4 py-3 font-mono text-xs">
             No se pudo registrar el pedido. {userMessage(mutation.error)} Revisa los datos e inténtalo de nuevo.
           </div>
         ) : null}
 
-        <div className="lg:col-span-2 flex items-center justify-end gap-2 pt-1">
+        <div className="lg:col-span-2 flex items-center justify-end gap-2 pt-2 border-t border-[#cce7ea] mt-2">
           <button
-            className="px-3 py-2 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
+            className="px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider text-[#557b7f] hover:bg-[#e8f7f9] hover:text-[#004b4e] border border-[#cce7ea] bg-white transition-colors cursor-pointer font-semibold"
             disabled={isPending}
             onClick={onCancel}
             type="button"
@@ -100,11 +100,11 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
             Cancelar
           </button>
           <button
-            className="flex items-center gap-1 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-3 py-2 rounded-lg shadow-md text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-[#004b4e] hover:bg-[#0a6568] text-white px-5 py-2 rounded-lg shadow-sm font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer disabled:opacity-50 border border-[#004b4e]"
             disabled={isPending}
             type="submit"
           >
-            <span className="material-symbols-outlined text-sm" aria-hidden="true">add_box</span>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">add_box</span>
             <span>{isPending ? 'Registrando…' : 'Registrar pedido'}</span>
           </button>
         </div>

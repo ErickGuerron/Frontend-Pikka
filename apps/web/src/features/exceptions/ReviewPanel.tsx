@@ -103,44 +103,73 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
   return (
     <section
       aria-labelledby="review-title"
-      className="bg-surface-container-lowest rounded-2xl shadow-[0_8px_24px_-4px_rgba(19,42,47,0.06)] border border-surface-container-high/60 p-space-lg"
+      className="bg-white rounded-xl shadow-sm border border-[#cce7ea] p-5"
     >
-      <div className="pb-3 border-b border-surface-container-low">
-        <h2 id="review-title" className="text-sm font-bold text-on-surface">Revisar pedido</h2>
-        <p className="text-[12px] text-on-surface">
+      <div className="pb-3.5 border-b border-[#cce7ea]">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-base text-[#004b4e]" aria-hidden="true">
+            rate_review
+          </span>
+          <h2 id="review-title" className="text-sm font-bold text-[#004b4e] font-sans">
+            Revisar pedido
+          </h2>
+        </div>
+        <p className="mt-1 text-xs font-mono text-[#557b7f]">
           {order.address} · {formatDate(order.deliveryDate)} · {formatWindow(order.windowStart, order.windowEnd)}
         </p>
-        <ul className="flex flex-wrap gap-1 pt-1">
+        <ul className="flex flex-wrap gap-1.5 pt-2">
           {order.reviewReasons.map((reviewReason) => (
-            <li key={reviewReason} className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-bold">
+            <li
+              key={reviewReason}
+              className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200"
+            >
               {reviewReasonLabels[reviewReason]}
             </li>
           ))}
         </ul>
       </div>
 
-      <form className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-3" noValidate onSubmit={onSubmit}>
+      <form className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 pt-4" noValidate onSubmit={onSubmit}>
         <fieldset className="lg:col-span-2 flex flex-col gap-2">
           <legend className={fieldLabelClass}>Decisión *</legend>
-          {reviewActionValues.map((value) => (
-            <label key={value} className="flex items-start gap-2 text-[12px] text-on-surface">
-              <input
-                type="radio"
-                name="review-action"
-                value={value}
-                checked={action === value}
-                disabled={isPending || (value === 'CONFIRM' && spatial)}
-                onChange={() => { setAction(value); }}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-semibold">{reviewActionLabels[value]}</span>
-                <span className="block text-[10px] text-on-surface-variant">
-                  {value === 'CONFIRM' && spatial ? 'No disponible: sin zona o sin ubicar, corrige la dirección o rechaza.' : reviewActionHints[value]}
-                </span>
-              </span>
-            </label>
-          ))}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {reviewActionValues.map((value) => {
+              const isSelected = action === value
+              const isDisabled = isPending || (value === 'CONFIRM' && spatial)
+              return (
+                <label
+                  key={value}
+                  className={`flex flex-col gap-1 p-3 rounded-lg border cursor-pointer transition-all ${
+                    isDisabled
+                      ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200'
+                      : isSelected
+                      ? 'bg-[#e8f7f9] border-[#004b4e] shadow-xs ring-1 ring-[#004b4e]'
+                      : 'bg-white border-[#cce7ea] hover:bg-[#f0fafb]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="review-action"
+                      value={value}
+                      checked={isSelected}
+                      disabled={isDisabled}
+                      onChange={() => { setAction(value); }}
+                      className="accent-[#004b4e]"
+                    />
+                    <span className="font-sans font-bold text-xs text-[#061f23]">
+                      {reviewActionLabels[value]}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-sans text-[#557b7f] pl-5">
+                    {value === 'CONFIRM' && spatial
+                      ? 'No disponible: sin zona o sin ubicar, corrige o rechaza.'
+                      : reviewActionHints[value]}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
         </fieldset>
 
         <div className="lg:col-span-2 flex flex-col gap-1">
@@ -163,14 +192,14 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
         ) : null}
 
         {mutation.isError ? (
-          <div role="alert" className="lg:col-span-2 bg-error-container text-on-error-container rounded-lg px-3 py-2 text-[11px]">
+          <div role="alert" className="lg:col-span-2 bg-[#ffdad6] text-[#ba1a1a] border border-[#ffb4ab] rounded-lg px-3 py-2 text-[11px] font-mono">
             No se pudo registrar la decisión. {userMessage(mutation.error)} Inténtalo de nuevo.
           </div>
         ) : null}
 
-        <div className="lg:col-span-2 flex items-center justify-end gap-2 pt-1">
+        <div className="lg:col-span-2 flex items-center justify-end gap-2.5 pt-2 border-t border-[#cce7ea]">
           <button
-            className="px-3 py-2 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
+            className="px-4 py-2 rounded-lg font-mono text-xs font-semibold uppercase tracking-wider text-[#004b4e] border border-[#cce7ea] bg-white hover:bg-[#e8f7f9] cursor-pointer transition-colors disabled:opacity-50"
             disabled={isPending}
             onClick={onCancel}
             type="button"
@@ -178,7 +207,7 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
             Cancelar
           </button>
           <button
-            className="bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-3 py-2 rounded-lg shadow-md text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+            className="bg-[#004b4e] hover:bg-[#0a6568] text-white px-4 py-2 rounded-lg font-mono text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer transition-colors disabled:opacity-50 border border-[#004b4e]"
             disabled={isPending}
             type="submit"
           >

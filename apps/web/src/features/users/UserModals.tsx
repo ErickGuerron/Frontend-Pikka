@@ -116,9 +116,9 @@ function Dialog({ labelId, role = 'dialog', wide = true, nested = false, suspend
       ref={panelRef}
       role={role}
     >
-      <div aria-hidden="true" className="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm" onClick={() => { closeRef.current() }} />
+      <div aria-hidden="true" className="fixed inset-0 bg-[#002628]/60 backdrop-blur-sm" onClick={() => { closeRef.current() }} />
       <div
-        className={`relative w-full ${wide ? 'max-w-xl' : 'max-w-md'} overscroll-contain bg-surface-container-lowest rounded-2xl shadow-[0_20px_50px_rgba(6,31,35,0.25)] border border-surface-container overflow-hidden z-10`}
+        className={`relative w-full ${wide ? 'max-w-xl' : 'max-w-md'} overscroll-contain bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,38,40,0.25)] border border-[#cce7ea] overflow-hidden z-10 font-sans`}
       >
         {children}
       </div>
@@ -144,14 +144,14 @@ interface DialogHeaderProps {
 function DialogHeader({ titleId, title, subtitle, onClose }: DialogHeaderProps) {
   return (
     <>
-      <div className="px-space-lg pt-space-lg pb-4 flex items-start justify-between gap-3 border-b border-surface-container-low">
+      <div className="px-6 py-4 flex items-start justify-between gap-3 border-b border-[#cce7ea] bg-[#f7fcfc]">
         <div className="min-w-0">
-          <h2 className="font-headline-md text-on-surface font-bold leading-tight text-balance" id={titleId}>{title}</h2>
-          <p className="font-body-sm text-on-surface-variant text-pretty">{subtitle}</p>
+          <h2 className="font-sans text-xl text-[#004b4e] font-bold leading-tight text-balance" id={titleId}>{title}</h2>
+          <p className="font-sans text-xs text-[#557b7f] text-pretty mt-0.5">{subtitle}</p>
         </div>
         <button
           aria-label="Cerrar modal"
-          className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer touch-manipulation ${focusRing}`}
+          className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-[#557b7f] hover:text-[#004b4e] hover:bg-[#e8f7f9] transition-colors cursor-pointer touch-manipulation ${focusRing}`}
           onClick={onClose}
           type="button"
         >
@@ -195,7 +195,7 @@ function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () 
     <button
       aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
       aria-pressed={visible}
-      className={`absolute inset-y-0 right-0 flex items-center px-3 rounded-r-lg text-outline hover:text-on-surface transition-colors touch-manipulation ${focusRing}`}
+      className={`absolute inset-y-0 right-0 flex items-center px-3 rounded-r-lg text-[#557b7f] hover:text-[#004b4e] transition-colors touch-manipulation ${focusRing}`}
       onClick={onToggle}
       type="button"
     >
@@ -224,9 +224,9 @@ function PasswordStrength({ password }: { password: string }) {
   const announcement = met.length === 0 ? '' : `Cumplidos: ${met.map((rule) => shortRuleLabels[rule.id]).join(', ')}.`
   return (
     <div className="flex flex-col gap-1">
-      <div aria-hidden="true" className="h-1 w-full rounded-full bg-surface-container-high overflow-hidden">
+      <div aria-hidden="true" className="h-1.5 w-full rounded-full bg-[#cce7ea] overflow-hidden">
         <div
-          className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 ${complete ? 'bg-secondary' : 'bg-error'}`}
+          className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 ${complete ? 'bg-[#14b8a6]' : 'bg-[#ba1a1a]'}`}
           data-testid="password-strength-fill"
           style={{ width: `${String(percent)}%` }}
         />
@@ -239,7 +239,7 @@ function PasswordStrength({ password }: { password: string }) {
 function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) => void }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Rol asignado</legend>
+      <legend className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#557b7f] mb-1">Rol asignado</legend>
       <div className="grid grid-cols-3 gap-2.5">
         {assignableRoles.map((r) => (
           <label key={r} className="cursor-pointer">
@@ -251,37 +251,37 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
               type="radio"
               value={r}
             />
-            <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary peer-focus-visible:ring-2 peer-focus-visible:ring-secondary text-on-surface transition-[background-color,border-color] flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
+            <div className="p-3 rounded-xl bg-[#f7fcfc] border border-[#cce7ea] peer-checked:border-[#004b4e] peer-checked:bg-[#004b4e] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#004b4e] text-[#004b4e] transition-all flex flex-col items-center text-center gap-1.5 hover:bg-[#e8f7f9] shadow-xs">
               <span aria-hidden="true" className="material-symbols-outlined text-2xl">{roleIcons[r]}</span>
-              <span className="font-label-badge uppercase font-bold">{roleLabels[r]}</span>
+              <span className="font-mono text-[10px] uppercase font-bold tracking-wider">{roleLabels[r]}</span>
             </div>
           </label>
         ))}
       </div>
-      <div className="bg-surface-container p-3 rounded-xl flex flex-col">
-        <span className="font-body-sm font-bold text-primary">{roleDescriptions[value].title}</span>
-        <span className="font-body-sm text-on-surface-variant">{roleDescriptions[value].description}</span>
+      <div className="bg-[#e8f7f9] border border-[#cce7ea] p-3 rounded-xl flex flex-col gap-0.5">
+        <span className="font-sans text-xs font-bold text-[#004b4e]">{roleDescriptions[value].title}</span>
+        <span className="font-sans text-xs text-[#557b7f]">{roleDescriptions[value].description}</span>
       </div>
     </fieldset>
   )
 }
 
 const footerButtonClass =
-  `px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer touch-manipulation ${focusRing}`
+  `px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider text-[#557b7f] hover:bg-[#e8f7f9] hover:text-[#004b4e] border border-[#cce7ea] bg-white transition-colors cursor-pointer touch-manipulation font-semibold ${focusRing}`
 const destructiveButtonClass =
-  `px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
+  `px-4 py-2 rounded-lg bg-[#ba1a1a] hover:bg-[#93000a] text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer touch-manipulation disabled:opacity-50 border border-[#ba1a1a] shadow-sm ${focusRing}`
 const primaryButtonClass =
-  `flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-[background-color,box-shadow] motion-safe:active:scale-95 font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
+  `flex items-center gap-2 bg-[#004b4e] hover:bg-[#0a6568] text-white px-5 py-2 rounded-lg shadow-sm hover:shadow transition-[background-color,box-shadow] motion-safe:active:scale-95 font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer touch-manipulation disabled:opacity-50 border border-[#004b4e] ${focusRing}`
 
 /** Confirmación al cerrar un formulario con cambios sin guardar. */
 function DiscardChangesDialog({ onKeep, onDiscard }: { onKeep: () => void; onDiscard: () => void }) {
   const titleId = useId()
   return (
     <Dialog labelId={titleId} nested onClose={onKeep} role="alertdialog" wide={false}>
-      <div className="p-space-lg flex flex-col gap-4">
-        <h2 className="font-headline-md text-on-surface font-bold leading-tight" id={titleId}>¿Descartar cambios?</h2>
-        <p className="font-body-sm text-on-surface-variant">Los datos escritos en este formulario se perderán.</p>
-        <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="p-6 flex flex-col gap-4 font-sans">
+        <h2 className="text-xl text-[#004b4e] font-bold leading-tight" id={titleId}>¿Descartar cambios?</h2>
+        <p className="text-xs text-[#557b7f]">Los datos escritos en este formulario se perderán.</p>
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#cce7ea]">
           <button autoFocus className={footerButtonClass} onClick={onKeep} type="button">Seguir editando</button>
           <button className={destructiveButtonClass} onClick={onDiscard} type="button">Descartar</button>
         </div>
@@ -360,7 +360,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
         title="Crear Nuevo Usuario"
         titleId={titleId}
       />
-      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
+      <form className="p-6 flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain font-sans" noValidate onSubmit={onSubmit} ref={formRef}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
             autoComplete="given-name"
@@ -405,12 +405,12 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
           value={form.password}
         />
         <PasswordStrength password={form.password} />
-        <p className="font-body-sm text-on-surface-variant">El usuario deberá renovar su contraseña en el primer inicio de sesión.</p>
+        <p className="text-xs text-[#557b7f] font-sans">El usuario deberá renovar su contraseña en el primer inicio de sesión.</p>
         <RoleRadios onChange={(role) => { update('role', role) }} value={form.role} />
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#cce7ea] mt-2">
           <button className={footerButtonClass} onClick={requestClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Creando…' : 'Crear usuario'}
@@ -487,7 +487,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
         title="Editar Usuario"
         titleId={titleId}
       />
-      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
+      <form className="p-6 flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain font-sans" noValidate onSubmit={onSubmit} ref={formRef}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <TextField
             autoComplete="given-name"
@@ -509,8 +509,8 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
         </div>
         <TextField autoComplete="off" label="Correo" readOnly spellCheck={false} value={user.email} />
         {roleLocked ? (
-          <p className="font-body-sm text-on-surface-variant">
-            Rol: <span className="font-bold text-on-surface">{roleLabels[user.role]}</span>. Los clientes no cambian de rol desde esta pantalla.
+          <p className="text-xs text-[#557b7f] font-sans">
+            Rol: <span className="font-bold text-[#004b4e]">{roleLabels[user.role]}</span>. Los clientes no cambian de rol desde esta pantalla.
           </p>
         ) : (
           <RoleRadios onChange={setRole} value={role} />
@@ -518,7 +518,7 @@ export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-surface-container-low mt-2">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-[#cce7ea] mt-2">
           <button className={footerButtonClass} onClick={requestClose} type="button">Cancelar</button>
           <button className={primaryButtonClass} disabled={mutation.isPending} type="submit">
             {mutation.isPending ? 'Guardando…' : 'Guardar cambios'}
@@ -554,17 +554,17 @@ export function DeactivateUserDialog({ user, onClose, onSaved }: DeactivateUserD
 
   return (
     <Dialog labelId={titleId} onClose={onClose} role="alertdialog" wide={false}>
-      <div className="p-space-lg flex flex-col gap-4">
-        <h2 className="font-headline-md text-on-surface font-bold leading-tight" id={titleId}>
+      <div className="p-6 flex flex-col gap-4 font-sans">
+        <h2 className="text-xl text-[#004b4e] font-bold leading-tight" id={titleId}>
           Desactivar a {user.fullName}
         </h2>
-        <p className="font-body-sm text-on-surface-variant">
+        <p className="text-xs text-[#557b7f]">
           El usuario dejará de poder iniciar sesión. Su historial se conserva: no se borra nada.
         </p>
 
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
-        <div className="flex items-center justify-between gap-3 pt-2">
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#cce7ea]">
           <button autoFocus className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button
             className={destructiveButtonClass}

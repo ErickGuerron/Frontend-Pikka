@@ -1,34 +1,53 @@
-import { Cookie, Flower2, Gift, Headset, MapPin, Snowflake, type LucideIcon } from 'lucide-react'
-
-/** Colecciones: categorías editoriales de la landing. No son datos del catálogo ni llevan cifras. */
-export const COLLECTIONS: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: Flower2, title: 'Ramos y arreglos', text: 'Flores para regalar o decorar.' },
-  { icon: Gift, title: 'Cajas de regalo', text: 'Combinaciones listas para dar.' },
-  { icon: Cookie, title: 'Chocolates y galletas', text: 'Dulces para compartir o regalar.' },
-]
-
-/** Proceso de entrega. Claims a validar por el negocio: ver el cuerpo del commit. */
-export const TRACKING_STEPS: { title: string; text: string }[] = [
-  { title: 'Sellado en almacén', text: 'Tu pedido se prepara y se sella antes de salir.' },
-  { title: 'Despacho en flota', text: 'Sale a ruta con la flota de reparto de Pikka.' },
-  { title: 'Entrega con código PIN', text: 'La entrega se confirma con un código PIN al llegar.' },
-]
-
-/** Compromisos. Claims a validar por el negocio: ver el cuerpo del commit. */
-export const COMMITMENTS: { icon: LucideIcon; title: string; text: string }[] = [
+export const COLLECTIONS = [
   {
-    icon: Snowflake,
-    title: 'Empaque isotérmico',
-    text: 'Empaque pensado para mantener tu pedido en buen estado durante el trayecto.',
+    code: 'COLECCIÓN 01',
+    title: 'Pastelería de Autor',
+    text: 'Transporte zero-tilt nivelado en contenedor isotérmico sellado para repostería delicada.',
   },
   {
-    icon: MapPin,
-    title: 'Seguimiento de tu pedido',
-    text: 'Consulta el estado y la ruta de tu pedido desde tu cuenta.',
+    code: 'COLECCIÓN 02',
+    title: 'Regalos en 30 Minutos',
+    text: 'Cajas sorpresa de alta gama, tarjeta caligrafiada a mano y sellado hermético.',
   },
   {
-    icon: Headset,
-    title: 'Atención de operadores',
-    text: 'Si algo no sale bien, un operador revisa tu caso.',
+    code: 'COLECCIÓN 03',
+    title: 'Audio & Accesorios',
+    text: 'Sellos de seguridad de fábrica, garantía oficial vigente y entrega con código PIN.',
+  },
+]
+
+export const TRACKING_STEPS = [
+  {
+    step: '[01]',
+    title: 'Sellado e inspección en almacén central',
+    text: 'Control de temperatura y fijación mecánica para postres y cristalería fina.',
+  },
+  {
+    step: '[02]',
+    title: 'Despacho con flota eléctrica de proximidad',
+    text: 'Cápsulas isotérmicas con sensores giroscópicos y de temperatura en tiempo real.',
+  },
+  {
+    step: '[03]',
+    title: 'Entrega autenticada mediante código PIN',
+    text: 'Custodia verificada únicamente con el código emitido en la aplicación oficial.',
+  },
+]
+
+export const COMMITMENTS = [
+  {
+    title: 'Empaque isotérmico certificado',
+    text: 'Contenedores sellados al vacío y aislantes térmicos pasivos que conservan la frescura de postres, flores y dermocosmética durante todo el trayecto.',
+    feature: 'Sensores de inclinación y apertura activa',
+  },
+  {
+    title: 'Telemetría satelital en vivo',
+    text: 'Ubicación precisa en tiempo real vía GPS de alta tasa de refresco. Sin ventanas de entrega ambiguas ni demoras no informadas.',
+    feature: 'Notificaciones automáticas directas',
+  },
+  {
+    title: 'Garantía de reposición inmediata',
+    text: 'Si tu producto sufre una alteración o si tardamos más del tiempo pactado, realizamos reembolso directo o envío inmediato de reposición sin costo.',
+    feature: 'Soporte por operador humano < 30 seg',
   },
 ]
