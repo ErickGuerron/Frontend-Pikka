@@ -49,6 +49,7 @@ const soldOut = { ...water, id: '55555555-5555-5555-5555-555555555555', name: 'J
 function baseHandler(url: string) {
   if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
   if (url.includes('/api/v1/products')) return { status: 200, body: { products: [water, soldOut] } }
+  if (url.endsWith('/api/v1/coverage/zones')) return { status: 200, body: { zones: [] } }
   return { status: 200, body: { status: 'ready' } }
 }
 
@@ -120,6 +121,9 @@ describe('registro de pedido', () => {
     await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
 
     expect(screen.getByText('Elige al menos un producto.')).toBeInTheDocument()
+    expect(screen.getByText(/Indica una referencia del lugar/)).toBeInTheDocument()
+    expect(screen.getByText('Ingresa un teléfono de contacto.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Referencia del lugar/)).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
     expect(screen.getByText('Escribe la dirección completa (mínimo 5 caracteres).')).toBeInTheDocument()
     expect(screen.getByText('Elige la fecha de entrega.')).toBeInTheDocument()
@@ -147,6 +151,9 @@ describe('registro de pedido', () => {
     expect(screen.getByText('Total estimado $5.00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), '  Av. Central 123, Col. Centro  ')
+    await user.type(screen.getByLabelText(/Referencia del lugar/), 'Casa azul junto a la farmacia')
+    await user.type(screen.getByLabelText(/Teléfono de contacto/), '099 123-4567')
+    await user.type(screen.getByLabelText(/Código postal/), '170150')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '11:00' } })
@@ -156,6 +163,9 @@ describe('registro de pedido', () => {
     const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
     expect(sentBody(call?.[1])).toEqual({
       address: 'Av. Central 123, Col. Centro',
+      addressReference: 'Casa azul junto a la farmacia',
+      postalCode: '170150',
+      contactPhone: '0991234567',
       items: [{ productId: water.id, quantity: 2 }],
       latitude: -0.2,
       longitude: -78.5,
@@ -194,6 +204,8 @@ describe('registro de pedido', () => {
     await user.click(await screen.findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
     await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), 'Av. Central 123')
+    await user.type(screen.getByLabelText(/Referencia del lugar/), 'Casa azul junto a la farmacia')
+    await user.type(screen.getByLabelText(/Teléfono de contacto/), '099 123-4567')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '11:00' } })

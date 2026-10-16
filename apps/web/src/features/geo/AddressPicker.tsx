@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Field, fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { reversePlace } from './api'
 import { LazyMapCanvas } from './LazyMapCanvas'
+import type { MapZone } from './MapCanvas'
 import { PlaceSearch } from './PlaceSearch'
 import type { Place } from './photon'
 import type { Coordinate } from './types'
@@ -12,6 +13,8 @@ export interface AddressPickerProps {
   /** Lugar seleccionado, o null si no hay selección. Es un componente controlado. */
   value: Place | null
   onChange: (place: Place | null) => void
+  /** Zonas de cobertura a dibujar en el mapa. */
+  zones?: readonly MapZone[]
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
   highlight?: readonly Coordinate[] | null
   /** Huecos de la zona resaltada (dona). */
@@ -36,6 +39,7 @@ export interface AddressPickerProps {
 export function AddressPicker({
   value,
   onChange,
+  zones = [],
   highlight = null,
   highlightHoles = [],
   fitBounds = null,
@@ -92,6 +96,7 @@ export function AddressPicker({
       <PlaceSearch onSelect={pickFromSearch} variant="inline" />
       <LazyMapCanvas
         className={mapClassName}
+        zones={zones}
         picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
         highlight={highlight}
         highlightHoles={highlightHoles}

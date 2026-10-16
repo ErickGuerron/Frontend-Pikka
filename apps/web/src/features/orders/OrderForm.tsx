@@ -2,10 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import type { Place } from '@/features/geo/photon'
+import { useCoverageZones } from '@/features/geo/coverage'
 import { userMessage } from '@/shared/api/errors'
+import { normalizePhone } from '@/shared/validation/contact'
 import { ErrorMessage, fieldLabelClass } from '@/shared/ui/form'
 import { createOrder } from './api'
 import { OrderDetailsFields } from './OrderDetailsFields'
+import { OrderContactFields, type OrderContactValues } from './OrderContactFields'
 import { OrderItemsPicker } from './OrderItemsPicker'
 import type { Order, OrderLine } from './types'
 import { localToday, validateNewOrder, type OrderErrors, type OrderFields } from './validation'
@@ -24,6 +27,8 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   // El lugar elegido en el mapa es la única fuente de la ubicación (latitud y longitud).
   const [place, setPlace] = useState<Place | null>(null)
   const [items, setItems] = useState<OrderLine[]>([])
+  const [contact, setContact] = useState<OrderContactValues>({ addressReference: '', postalCode: '', contactPhone: '' })
+  const coverage = useCoverageZones()
   const [errors, setErrors] = useState<OrderErrors>({})
 
   const mutation = useMutation({
@@ -41,12 +46,15 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     const location = place === null ? null : { latitude: place.latitude, longitude: place.longitude }
-    const draft = { ...fields, address: fields.address.trim(), location, items }
+    const draft = { ...fields, address: fields.address.trim(), location, items, ...contact }
     const found = validateNewOrder(draft, localToday())
     setErrors(found)
     if (Object.keys(found).length > 0 || location === null) return
     mutation.mutate({
       address: draft.address,
+      addressReference: contact.addressReference.trim(),
+      ...(contact.postalCode.trim() === '' ? {} : { postalCode: contact.postalCode.trim() }),
+      contactPhone: normalizePhone(contact.contactPhone.trim()),
       items,
       latitude: location.latitude,
       longitude: location.longitude,
@@ -81,7 +89,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
 
         <div className="lg:col-span-2 flex flex-col gap-1">
           <span className={fieldLabelClass}>Ubicación de entrega *</span>
-          <AddressPicker value={place} onChange={setPlace} />
+          <AddressPicker value={place} onChange={setPlace} zones={coverage.data ?? []} />
           {errors.location ? (
             <ErrorMessage id="order-location-error">{errors.location}</ErrorMessage>
           ) : (
@@ -90,6 +98,16 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
         </div>
 
         <OrderDetailsFields idPrefix="order" values={fields} errors={errors} disabled={isPending} onChange={update} />
+
+        <div className="lg:col-span-2">
+          <OrderContactFields
+            idPrefix="order"
+            values={contact}
+            errors={errors}
+            disabled={isPending}
+            onChange={(key, value) => { setContact((current) => ({ ...current, [key]: value })) }}
+          />
+        </div>
 
         {mutation.isError ? (
           <div role="alert" className="lg:col-span-2 bg-[#ffdad6]/60 border border-[#ffdad6] text-[#ba1a1a] rounded-lg px-4 py-3 font-mono text-xs">

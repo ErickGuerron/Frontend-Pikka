@@ -40,6 +40,7 @@ const water = {
 async function setUpOrdersPage(page: Page) {
   await mockAuth(page)
   await page.route('**/api/v1/products**', (route) => route.fulfill({ json: { products: [water] } }))
+  await page.route('**/api/v1/coverage/zones', (route) => route.fulfill({ json: { zones: [] } }))
   await mockPhoton(page)
   await blockTiles(page)
   const received = await mockOrdersApi(page)
@@ -63,6 +64,8 @@ test('registra un pedido con su ubicación del mapa y lo ve en el listado', asyn
   const [latText, lngText] = (await shown.textContent() ?? '').split(', ')
 
   await page.getByLabel(/Dirección de entrega/).fill('Av. Central 123, Col. Centro')
+  await page.getByLabel(/Referencia del lugar/).fill('Casa azul junto a la farmacia')
+  await page.getByLabel(/Teléfono de contacto/).fill('0991234567')
   await page.getByLabel(/Fecha de entrega/).fill('2099-12-31')
   await page.getByLabel('Desde').fill('09:00')
   await page.getByLabel('Hasta').fill('11:00')
@@ -76,6 +79,7 @@ test('registra un pedido con su ubicación del mapa y lo ve en el listado', asyn
   const body = received[0] as { latitude: number; longitude: number; address: string; items: unknown }
   expect(body.address).toBe('Av. Central 123, Col. Centro')
   expect(body.items).toEqual([{ productId: water.id, quantity: 1 }])
+  expect(body).toMatchObject({ addressReference: 'Casa azul junto a la farmacia', contactPhone: '0991234567' })
   expect(body.latitude.toFixed(5)).toBe(latText)
   expect(body.longitude.toFixed(5)).toBe(lngText)
 })
@@ -86,6 +90,8 @@ test('no permite registrar un pedido sin elegir la ubicación en el mapa', async
   await page.getByRole('button', { name: 'Nuevo pedido' }).click()
   await page.getByRole('button', { name: 'Agregar una unidad de Agua 1L' }).click()
   await page.getByLabel(/Dirección de entrega/).fill('Av. Central 123, Col. Centro')
+  await page.getByLabel(/Referencia del lugar/).fill('Casa azul junto a la farmacia')
+  await page.getByLabel(/Teléfono de contacto/).fill('0991234567')
   await page.getByLabel(/Fecha de entrega/).fill('2099-12-31')
   await page.getByLabel('Desde').fill('09:00')
   await page.getByLabel('Hasta').fill('11:00')

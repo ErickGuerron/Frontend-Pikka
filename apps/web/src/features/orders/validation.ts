@@ -1,14 +1,22 @@
 import type { Coordinate } from '@/features/geo/types'
+import { validatePhone, validatePostalCode, validateReference } from '@/shared/validation/contact'
 import { MAX_LINE_QUANTITY, type NewOrder } from './types'
 
 /** Campos de texto del pedido, sin la ubicación del mapa ni los productos. */
-export type OrderFields = Omit<NewOrder, 'latitude' | 'longitude' | 'items'>
+export type OrderFields = Omit<
+  NewOrder,
+  'latitude' | 'longitude' | 'items' | 'addressReference' | 'postalCode' | 'contactPhone'
+>
 
 /** Pedido en edición: la ubicación puede faltar hasta que el usuario la elija en el mapa. */
 export interface OrderDraft extends OrderFields {
   location: Coordinate | null
   /** Solo al crear; la corrección de un pedido en revisión no toca los productos. */
   items?: NewOrder['items']
+  /** Datos de contacto: solo al crear; la corrección de un pedido en revisión no los toca. */
+  addressReference?: string
+  postalCode?: string
+  contactPhone?: string
 }
 
 export type OrderErrors = Partial<Record<keyof OrderDraft, string>>
@@ -37,6 +45,19 @@ export function validateNewOrder(input: OrderDraft, today: string): OrderErrors 
     ) {
       errors.items = `Cada producto va una sola vez, de 1 a ${String(MAX_LINE_QUANTITY)} unidades.`
     }
+  }
+
+  if (input.addressReference !== undefined) {
+    const reference = validateReference(input.addressReference)
+    if (reference !== undefined) errors.addressReference = reference
+  }
+  if (input.postalCode !== undefined) {
+    const postal = validatePostalCode(input.postalCode)
+    if (postal !== undefined) errors.postalCode = postal
+  }
+  if (input.contactPhone !== undefined) {
+    const phone = validatePhone(input.contactPhone)
+    if (phone !== undefined) errors.contactPhone = phone
   }
 
   if (input.location === null) {

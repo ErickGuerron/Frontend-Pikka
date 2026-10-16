@@ -5,6 +5,8 @@ import { orderStatuses } from './types'
 
 const input = {
   address: 'Av. Amazonas 100',
+  addressReference: 'Edificio azul, piso 3',
+  contactPhone: '0991234567',
   items: [{ productId: '44444444-4444-4444-4444-444444444444', quantity: 1 }],
   latitude: -0.18,
   longitude: -78.47,
