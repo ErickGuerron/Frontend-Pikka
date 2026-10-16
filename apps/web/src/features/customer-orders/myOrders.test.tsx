@@ -34,9 +34,22 @@ const order = (over: Partial<CustomerOrder>): CustomerOrder => ({
   ...over,
 })
 
+const water = {
+  id: '44444444-4444-4444-4444-444444444444',
+  name: 'Agua 1L',
+  description: 'Botella',
+  unitPrice: '2.50',
+  active: true,
+  stockQuantity: 10,
+  createdAt: '2026-10-01T00:00:00Z',
+  updatedAt: '2026-10-01T00:00:00Z',
+}
+const catalog = { status: 200, body: { products: [water] } }
+
 function serve(orders: CustomerOrder[] | { status: number; body: unknown }) {
   return mockApi((url, init) => {
     if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
+    if (url.includes('/api/v1/products')) return catalog
     if (url.endsWith('/api/v1/orders/mine')) return Array.isArray(orders) ? { status: 200, body: { orders } } : orders
     if (url.endsWith('/cancel') && init.method === 'POST') return { status: 200, body: order({ status: 'CANCELLED' }) }
     return { status: 200, body: { status: 'ready' } }
@@ -183,6 +196,7 @@ describe('Mis Pedidos: crear pedido', () => {
   }
 
   async function fillForm(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, point: string) {
+    await user.click(await within(dialog).findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
     await user.click(within(dialog).getByRole('button', { name: point }))
     await user.clear(within(dialog).getByLabelText(/Dirección de entrega/))
     await user.type(within(dialog).getByLabelText(/Dirección de entrega/), 'Av. Nueva 500')
@@ -194,6 +208,7 @@ describe('Mis Pedidos: crear pedido', () => {
   it('valida los campos obligatorios y la fecha pasada', async () => {
     const { user, dialog } = await openForm()
     await user.click(within(dialog).getByRole('button', { name: 'Crear pedido' }))
+    expect(within(dialog).getByText('Elige al menos un producto.')).toBeInTheDocument()
     expect(within(dialog).getByText('Elige la fecha de entrega.')).toBeInTheDocument()
     expect(within(dialog).getByText('Elige una ventana de entrega.')).toBeInTheDocument()
     expect(within(dialog).getByText(/Escribe la dirección completa/)).toBeInTheDocument()
@@ -226,6 +241,7 @@ describe('Mis Pedidos: crear pedido', () => {
     const fetchMock = mockApi((url, init) => {
       if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
       if (url.endsWith('/orders/mine')) return { status: 200, body: { orders: [] } }
+      if (url.includes('/api/v1/products')) return catalog
       if (url.endsWith('/api/v1/orders') && init.method === 'POST') return { status: 201, body: order({ status: 'PENDING' }) }
       return { status: 200, body: {} }
     })
@@ -240,6 +256,7 @@ describe('Mis Pedidos: crear pedido', () => {
     const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
     expect(sentBody(call?.[1])).toEqual({
       address: 'Av. Nueva 500',
+      items: [{ productId: water.id, quantity: 1 }],
       latitude: -0.2,
       longitude: -78.5,
       deliveryDate: '2099-06-01',

@@ -54,9 +54,19 @@ export interface Order {
   createdAt: string
 }
 
+/** Línea de un pedido: producto y cantidad (OrderItemRequest, 1 a 50 unidades). */
+export interface OrderLine {
+  productId: string
+  quantity: number
+}
+
+export const MAX_LINE_QUANTITY = 50
+
 /** Payload de creación: exactamente lo que acepta CreateOrderRequest. */
 export interface NewOrder {
   address: string
+  /** Al menos un producto, sin repetir (ADR 0009). El precio lo fija el servidor. */
+  items: OrderLine[]
   /** Opcional: punto del mapa. Si falta, el backend geocodifica la dirección. */
   latitude?: number
   longitude?: number

@@ -26,8 +26,20 @@ async function mockOrdersApi(page: Page) {
   return received
 }
 
+const water = {
+  id: '44444444-4444-4444-4444-444444444444',
+  name: 'Agua 1L',
+  description: 'Botella',
+  unitPrice: '2.50',
+  active: true,
+  stockQuantity: 10,
+  createdAt: '2026-10-01T00:00:00Z',
+  updatedAt: '2026-10-01T00:00:00Z',
+}
+
 async function setUpOrdersPage(page: Page) {
   await mockAuth(page)
+  await page.route('**/api/v1/products**', (route) => route.fulfill({ json: { products: [water] } }))
   await mockPhoton(page)
   await blockTiles(page)
   const received = await mockOrdersApi(page)
@@ -42,6 +54,7 @@ test('registra un pedido con su ubicación del mapa y lo ve en el listado', asyn
   await expect(page.getByText('Aún no hay pedidos registrados')).toBeVisible()
 
   await page.getByRole('button', { name: 'Nuevo pedido' }).click()
+  await page.getByRole('button', { name: 'Agregar una unidad de Agua 1L' }).click()
   await clickMap(page, 200, 150)
 
   // La coordenada que se muestra en pantalla es la que debe viajar al backend.
@@ -60,8 +73,9 @@ test('registra un pedido con su ubicación del mapa y lo ve en el listado', asyn
   await expect(page.getByRole('cell', { name: '09:00–11:00' })).toBeVisible()
 
   expect(received).toHaveLength(1)
-  const body = received[0] as { latitude: number; longitude: number; address: string }
+  const body = received[0] as { latitude: number; longitude: number; address: string; items: unknown }
   expect(body.address).toBe('Av. Central 123, Col. Centro')
+  expect(body.items).toEqual([{ productId: water.id, quantity: 1 }])
   expect(body.latitude.toFixed(5)).toBe(latText)
   expect(body.longitude.toFixed(5)).toBe(lngText)
 })
@@ -70,6 +84,7 @@ test('no permite registrar un pedido sin elegir la ubicación en el mapa', async
   const received = await setUpOrdersPage(page)
 
   await page.getByRole('button', { name: 'Nuevo pedido' }).click()
+  await page.getByRole('button', { name: 'Agregar una unidad de Agua 1L' }).click()
   await page.getByLabel(/Dirección de entrega/).fill('Av. Central 123, Col. Centro')
   await page.getByLabel(/Fecha de entrega/).fill('2099-12-31')
   await page.getByLabel('Desde').fill('09:00')

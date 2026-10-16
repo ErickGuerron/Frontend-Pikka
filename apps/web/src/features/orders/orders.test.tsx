@@ -33,9 +33,22 @@ const pendingOrder: Order = {
 
 const deliveredOrder: Order = { ...pendingOrder, id: 'o-2', address: 'Calle Norte 45', status: 'DELIVERED' }
 
-/** Responde al perfil autenticado y a /ready; el resto lo decide cada prueba. */
+const water = {
+  id: '44444444-4444-4444-4444-444444444444',
+  name: 'Agua 1L',
+  description: 'Botella',
+  unitPrice: '2.50',
+  active: true,
+  stockQuantity: 10,
+  createdAt: '2026-10-01T00:00:00Z',
+  updatedAt: '2026-10-01T00:00:00Z',
+}
+const soldOut = { ...water, id: '55555555-5555-5555-5555-555555555555', name: 'Jugo', stockQuantity: 0 }
+
+/** Responde al perfil autenticado, al catálogo y a /ready; el resto lo decide cada prueba. */
 function baseHandler(url: string) {
   if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
+  if (url.includes('/api/v1/products')) return { status: 200, body: { products: [water, soldOut] } }
   return { status: 200, body: { status: 'ready' } }
 }
 
@@ -106,6 +119,7 @@ describe('registro de pedido', () => {
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
     await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
 
+    expect(screen.getByText('Elige al menos un producto.')).toBeInTheDocument()
     expect(screen.getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
     expect(screen.getByText('Escribe la dirección completa (mínimo 5 caracteres).')).toBeInTheDocument()
     expect(screen.getByText('Elige la fecha de entrega.')).toBeInTheDocument()
@@ -127,6 +141,10 @@ describe('registro de pedido', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+    const add = await screen.findByRole('button', { name: 'Agregar una unidad de Agua 1L' })
+    await user.click(add)
+    await user.click(add)
+    expect(screen.getByText('Total estimado $5.00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), '  Av. Central 123, Col. Centro  ')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
@@ -138,6 +156,7 @@ describe('registro de pedido', () => {
     const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
     expect(sentBody(call?.[1])).toEqual({
       address: 'Av. Central 123, Col. Centro',
+      items: [{ productId: water.id, quantity: 2 }],
       latitude: -0.2,
       longitude: -78.5,
       deliveryDate: '2099-12-31',
@@ -145,6 +164,21 @@ describe('registro de pedido', () => {
       windowEnd: '11:00',
     })
     expect(screen.queryByRole('button', { name: 'Registrar pedido' })).not.toBeInTheDocument()
+  })
+
+  it('no deja pedir un producto agotado ni pasar del stock disponible', async () => {
+    mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [] } : baseHandler(url)))
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+
+    expect(await screen.findByRole('button', { name: 'Agregar una unidad de Jugo' })).toBeDisabled()
+    expect(screen.getByText('Agotado')).toBeInTheDocument()
+    const add = screen.getByRole('button', { name: 'Agregar una unidad de Agua 1L' })
+    for (let i = 0; i < 12; i += 1) await user.click(add)
+    expect(screen.getByLabelText('Cantidad de Agua 1L')).toHaveTextContent('10')
+    expect(add).toBeDisabled()
   })
 
   it('conserva los datos y muestra el error si el registro falla', async () => {
@@ -157,6 +191,7 @@ describe('registro de pedido', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+    await user.click(await screen.findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
     await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
     await user.type(screen.getByLabelText(/Dirección de entrega/), 'Av. Central 123')
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })

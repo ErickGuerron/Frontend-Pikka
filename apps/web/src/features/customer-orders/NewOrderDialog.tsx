@@ -1,6 +1,8 @@
 import { useState, type SyntheticEvent } from 'react'
 import { AddressPicker } from '@/features/geo/AddressPicker'
 import type { Place } from '@/features/geo/photon'
+import { OrderItemsPicker } from '@/features/orders/OrderItemsPicker'
+import type { OrderLine } from '@/features/orders/types'
 import { localToday, validateNewOrder, type OrderErrors } from '@/features/orders/validation'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
@@ -24,6 +26,7 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [windowStart, setWindowStart] = useState('')
   const [notes, setNotes] = useState('')
+  const [items, setItems] = useState<OrderLine[]>([])
   const [errors, setErrors] = useState<OrderErrors>({})
 
   const windowEnd = deliveryWindows.find((w) => w.start === windowStart)?.end ?? ''
@@ -40,11 +43,11 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
     event.preventDefault()
     const location = place === null ? null : { latitude: place.latitude, longitude: place.longitude }
     const fields = { address: address.trim(), deliveryDate, windowStart, windowEnd }
-    const found = validateNewOrder({ ...fields, location }, localToday())
+    const found = validateNewOrder({ ...fields, location, items }, localToday())
     setErrors(found)
     if (Object.keys(found).length > 0) return
     create.mutate(
-      { ...fields, ...(location ?? {}), ...(notes.trim() === '' ? {} : { notes: notes.trim() }) },
+      { ...fields, items, ...(location ?? {}), ...(notes.trim() === '' ? {} : { notes: notes.trim() }) },
       { onSuccess: onCreated },
     )
   }
@@ -52,8 +55,10 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
   const windowError = errors.windowStart ?? errors.windowEnd ? 'Elige una ventana de entrega.' : undefined
 
   return (
-    <Modal title="Hacer nuevo pedido" titleId="new-order-title" onClose={onClose} wide>
+    <Modal title="Hacer nuevo pedido" titleId="new-order-title" eyebrow="Catálogo & Pedir" onClose={onClose} wide>
       <form noValidate className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <OrderItemsPicker value={items} onChange={setItems} error={errors.items} disabled={create.isPending} />
+
         <div className="flex flex-col gap-1">
           <span className={fieldLabelClass}>Punto en el mapa (opcional)</span>
           <AddressPicker value={place} onChange={onPlace} />
@@ -148,7 +153,7 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
           <button
             type="submit"
             disabled={create.isPending}
-            className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            className="cursor-pointer rounded-xl bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary shadow-md transition-all hover:bg-primary active:scale-[0.98] disabled:opacity-60"
           >
             {create.isPending ? 'Creando…' : 'Crear pedido'}
           </button>

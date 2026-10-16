@@ -6,7 +6,8 @@ import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass } from '@/shared/ui/form'
 import { createOrder } from './api'
 import { OrderDetailsFields } from './OrderDetailsFields'
-import type { Order } from './types'
+import { OrderItemsPicker } from './OrderItemsPicker'
+import type { Order, OrderLine } from './types'
 import { localToday, validateNewOrder, type OrderErrors, type OrderFields } from './validation'
 
 interface OrderFormProps {
@@ -22,6 +23,7 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   const [fields, setFields] = useState<OrderFields>(emptyFields)
   // El lugar elegido en el mapa es la única fuente de la ubicación (latitud y longitud).
   const [place, setPlace] = useState<Place | null>(null)
+  const [items, setItems] = useState<OrderLine[]>([])
   const [errors, setErrors] = useState<OrderErrors>({})
 
   const mutation = useMutation({
@@ -39,12 +41,13 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     const location = place === null ? null : { latitude: place.latitude, longitude: place.longitude }
-    const draft = { ...fields, address: fields.address.trim(), location }
+    const draft = { ...fields, address: fields.address.trim(), location, items }
     const found = validateNewOrder(draft, localToday())
     setErrors(found)
     if (Object.keys(found).length > 0 || location === null) return
     mutation.mutate({
       address: draft.address,
+      items,
       latitude: location.latitude,
       longitude: location.longitude,
       deliveryDate: draft.deliveryDate,
@@ -66,12 +69,16 @@ export function OrderForm({ onCancel, onCreated }: OrderFormProps) {
             Registrar pedido
           </h2>
           <p className="text-xs text-[#557b7f] font-sans mt-0.5">
-            Indica dónde y cuándo se entrega. Los campos marcados con * son obligatorios.
+            Elige los productos e indica dónde y cuándo se entrega. Los campos marcados con * son obligatorios.
           </p>
         </div>
       </div>
 
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-3" noValidate onSubmit={onSubmit}>
+        <div className="lg:col-span-2">
+          <OrderItemsPicker value={items} onChange={setItems} error={errors.items} disabled={isPending} />
+        </div>
+
         <div className="lg:col-span-2 flex flex-col gap-1">
           <span className={fieldLabelClass}>Ubicación de entrega *</span>
           <AddressPicker value={place} onChange={setPlace} />

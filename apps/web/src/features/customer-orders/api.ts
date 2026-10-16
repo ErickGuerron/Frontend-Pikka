@@ -31,8 +31,8 @@ export function listMyOrders(signal?: AbortSignal): Promise<CustomerOrder[]> {
 /** `notes` is intentionally not sent: the OpenAPI CreateOrderRequest has no such field. */
 export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
   if (isDemoMode()) return createDemoOrder(input)
-  const { address, latitude, longitude, deliveryDate, windowStart, windowEnd } = input
-  return http.post('/api/v1/orders', parseOrder, { body: { address, latitude, longitude, deliveryDate, windowStart, windowEnd } })
+  const { address, latitude, longitude, deliveryDate, windowStart, windowEnd, items } = input
+  return http.post('/api/v1/orders', parseOrder, { body: { address, latitude, longitude, deliveryDate, windowStart, windowEnd, items } })
 }
 
 /** Avisos sobre la revisión de los pedidos del cliente. En demo no hay avisos reales. */
