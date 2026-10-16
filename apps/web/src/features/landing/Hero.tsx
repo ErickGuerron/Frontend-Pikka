@@ -13,7 +13,7 @@ export function Hero() {
               </div>
 
               <h1 className="text-3xl font-normal leading-[1.12] tracking-tight text-[var(--landing-deep)] sm:text-4xl lg:text-5xl">
-                Lo mejor de la ciudad,
+                Lo mejor de la ciudad,{' '}
                 <br />
                 <span className="font-light italic text-[var(--landing-secondary)]">en tu puerta en minutos.</span>
               </h1>
@@ -25,29 +25,29 @@ export function Hero() {
 
               <div className="flex flex-wrap items-center gap-2 pt-2 font-mono text-[11px]">
                 <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
-                  TIEMPO PROMEDIO: <span className="font-bold text-[var(--landing-deep)]">26 MIN</span>
+                  COBERTURA: <span className="font-bold text-[var(--landing-deep)]">LOCAL</span>
                 </div>
                 <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
-                  TEMPERATURA CABINA: <span className="font-bold text-[var(--landing-deep)]">4.0 °C</span>
+                  TRANSPORTE: <span className="font-bold text-[var(--landing-deep)]">ISOTÉRMICO</span>
                 </div>
                 <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
-                  CALIFICACIÓN: <span className="font-bold text-[var(--landing-deep)]">★ 4.9 / 5.0</span>
+                  ENTREGA: <span className="font-bold text-[var(--landing-deep)]">CUIDADA</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 pt-4">
                 <a
                   href="#catalogo"
-                  className="flex items-center gap-2 rounded-full border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-[var(--landing-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
+                  className="flex items-center gap-2 rounded-full border border-[var(--landing-deep)] bg-primary px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
                 >
-                  <span>Explorar catálogo disponible</span>
-                  <span>→</span>
+                  <span>Explorar catálogo</span>
+                  <span aria-hidden="true">→</span>
                 </a>
                 <a
                   href="#rastreo"
                   className="rounded-full border border-[var(--landing-deep)] bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-[var(--landing-deep)] transition-colors hover:bg-[var(--landing-tag-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
                 >
-                  <span>Ver protocolo técnico</span>
+                  <span>Cómo funciona</span>
                 </a>
               </div>
             </div>
@@ -71,7 +71,7 @@ export function Hero() {
                 <div className="grid w-full grid-cols-2 gap-2 border-t border-[var(--landing-line)] pt-2 font-mono text-[10px] text-[var(--landing-text)]">
                   <div className="rounded border border-[var(--landing-line)] bg-white p-1.5">
                     <span className="block text-[9px] text-[var(--landing-muted)]">DESPACHO</span>
-                    <span className="font-bold text-[var(--landing-deep)]">LISTO EN 6 MIN</span>
+                    <span className="font-bold text-[var(--landing-deep)]">PREPARADO CON CUIDADO</span>
                   </div>
                   <div className="rounded border border-[var(--landing-line)] bg-white p-1.5">
                     <span className="block text-[9px] text-[var(--landing-muted)]">MONITOREO</span>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { roles, roleLabels, type Role, type User } from '@/features/auth/types'
+import { KpiGrid } from '@/shared/ui/kpi'
 import { getUsers, usersKey } from './api'
 import { roleIcons } from './roleIcons'
 import { CreateUserModal, DeactivateUserDialog, EditUserModal } from './UserModals'
@@ -186,35 +187,7 @@ export function UsersPage() {
       </div>
 
       {/* KPIs de Telemetría Superior (Estilo Dossier / Radar de Ingeniería con datos reales) */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="bg-white rounded border border-[#cce7ea] p-4 flex flex-col justify-between shadow-sm hover:border-[#004b4e] transition-all min-w-0"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-[#cce7ea]">
-              <span className="text-[10px] font-mono text-[#557b7f] uppercase tracking-wider font-semibold truncate">
-                {kpi.label}
-              </span>
-              <span className="text-[9px] font-mono text-[#004b4e] bg-[#e8f7f9] px-1.5 py-0.5 rounded border border-[#cce7ea] font-bold">
-                {kpi.badge}
-              </span>
-            </div>
-            <div className="pt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-2xl sm:text-3xl font-bold font-mono text-[#004b4e] tabular-nums">
-                  {kpi.value}
-                </span>
-                <span className="text-xs font-mono text-[#557b7f] ml-1">{kpi.unit}</span>
-              </div>
-              <span className="text-[10px] font-mono text-[#006b5f] bg-[#e8f7f9] px-2 py-0.5 rounded border border-[#cce7ea] font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" />
-                {kpi.tag}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <KpiGrid items={kpis} />
 
       {/* Directorio General de Personal con Toolbar Técnica */}
       <div className="bg-white rounded border border-[#cce7ea] shadow-sm overflow-hidden">

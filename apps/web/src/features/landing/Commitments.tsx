@@ -9,9 +9,9 @@ interface Pillar {
 
 const PILLARS: Pillar[] = [
   {
-    title: 'Empaque isotérmico certificado',
-    text: 'Contenedores sellados al vacío y aislantes térmicos pasivos que conservan la frescura de postres, flores y dermocosmética durante todo el trayecto.',
-    feature: 'Sensores de inclinación y apertura activa',
+    title: 'Empaque isotérmico',
+    text: 'Empaque pensado para mantener tu pedido en buen estado y preservar la frescura durante todo el trayecto.',
+    feature: 'Protección para postres, flores y regalos',
     icon: ({ className = 'h-5 w-5' }) => (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -24,9 +24,9 @@ const PILLARS: Pillar[] = [
     ),
   },
   {
-    title: 'Telemetría satelital en vivo',
-    text: 'Ubicación precisa en tiempo real vía GPS de alta tasa de refresco. Sin ventanas de entrega ambiguas ni demoras no informadas.',
-    feature: 'Notificaciones automáticas directas',
+    title: 'Seguimiento de tu pedido',
+    text: 'Consulta el estado y la ruta de tu pedido desde tu cuenta sin ventanas ambiguas ni demoras no informadas.',
+    feature: 'Información clara en cada etapa',
     icon: ({ className = 'h-5 w-5' }) => (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
@@ -35,9 +35,9 @@ const PILLARS: Pillar[] = [
     ),
   },
   {
-    title: 'Garantía de reposición inmediata',
-    text: 'Si tu producto sufre una alteración o si tardamos más del tiempo pactado, realizamos reembolso directo o envío inmediato de reposición sin costo.',
-    feature: 'Soporte por operador humano < 30 seg',
+    title: 'Atención de operadores',
+    text: 'Si algo no sale bien, un operador revisa tu caso y te da respuesta y soporte inmediato.',
+    feature: 'Acompañamiento en todo momento',
     icon: ({ className = 'h-5 w-5' }) => (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path

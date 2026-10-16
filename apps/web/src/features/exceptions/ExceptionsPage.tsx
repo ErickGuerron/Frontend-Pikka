@@ -4,6 +4,8 @@ import { getOrderExceptions } from '@/features/orders/api'
 import { formatDate, formatWindow } from '@/features/orders/format'
 import { reviewReasonLabels, type Order, type ReviewAction } from '@/features/orders/types'
 import { userMessage } from '@/shared/api/errors'
+import { KpiGrid } from '@/shared/ui/kpi'
+import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { ReviewPanel } from './ReviewPanel'
 
 const decisionMessages: Record<ReviewAction, string> = {
@@ -22,6 +24,7 @@ export function ExceptionsPage() {
     queryFn: getOrderExceptions,
   })
 
+  const pager = usePagination(orders)
   const selected: Order | null = orders.find((order) => order.id === selectedId) ?? null
 
   const handleDecided = (action: ReviewAction) => {
@@ -46,6 +49,14 @@ export function ExceptionsPage() {
           </p>
         </div>
       </div>
+
+      <KpiGrid
+        items={[
+          { label: 'En revisión', badge: 'COLA', value: orders.length, unit: 'pedidos', tag: 'Pendientes' },
+          { label: 'Varios motivos', badge: 'ALERTA', value: orders.filter((o) => o.reviewReasons.length > 1).length, unit: 'pedidos', tag: 'Prioritarios' },
+          { label: 'Motivos distintos', badge: 'TIPOS', value: new Set(orders.flatMap((o) => o.reviewReasons)).size, unit: 'tipos', tag: 'Incidencias' },
+        ]}
+      />
 
       {feedback ? (
         <div role="status" className="flex items-center justify-between gap-2 bg-[#e8f7f9] border border-[#cce7ea] text-[#006b5f] rounded-lg px-4 py-3 font-mono text-xs">
@@ -95,7 +106,7 @@ export function ExceptionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#cce7ea]">
-                {orders.map((order) => (
+                {pager.pageItems.map((order) => (
                   <tr key={order.id} className="hover:bg-[#f7fcfc] transition-colors">
                     <td className="px-4 py-3 font-semibold font-mono text-[#004b4e] whitespace-nowrap">{formatDate(order.deliveryDate)}</td>
                     <td className="px-4 py-3 font-mono text-[#557b7f] whitespace-nowrap">{formatWindow(order.windowStart, order.windowEnd)}</td>
@@ -124,6 +135,7 @@ export function ExceptionsPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination label="excepciones" {...pager} onPage={pager.setPage} />
           </div>
         )}
       </section>

@@ -8,8 +8,13 @@ export interface NewProductForm {
   initialStock: string
 }
 
+export const NAME_MAX = 100
+export const DESCRIPTION_MAX = 200
+export const STOCK_MAX_DIGITS = 6
+
 export interface NewProductErrors {
   name?: string
+  description?: string
   unitPrice?: string
   initialStock?: string
 }
@@ -34,15 +39,19 @@ export function validateNewProduct(form: NewProductForm): NewProductErrors {
   const errors: NewProductErrors = {}
   const name = form.name.trim()
   if (name === '') errors.name = 'Escribe el nombre del producto.'
-  else if (name.length > 120) errors.name = 'El nombre no puede pasar de 120 caracteres.'
+  else if (name.length > NAME_MAX) errors.name = `El nombre no puede pasar de ${String(NAME_MAX)} caracteres.`
+
+  if (form.description.trim().length > DESCRIPTION_MAX) {
+    errors.description = `La descripción no puede pasar de ${String(DESCRIPTION_MAX)} caracteres.`
+  }
 
   if (!pricePattern.test(form.unitPrice.trim())) {
     errors.unitPrice = 'Indica el precio en dólares, con hasta dos decimales. Por ejemplo, 2.50.'
   }
 
   const stock = form.initialStock.trim()
-  if (stock !== '' && !wholeNumberPattern.test(stock)) {
-    errors.initialStock = 'El stock inicial debe ser un número entero, de 0 en adelante.'
+  if (stock !== '' && (!wholeNumberPattern.test(stock) || stock.length > STOCK_MAX_DIGITS)) {
+    errors.initialStock = `El stock inicial debe ser un número entero de hasta ${String(STOCK_MAX_DIGITS)} cifras, sin letras ni signos.`
   }
   return errors
 }
@@ -59,11 +68,17 @@ export function toNewProduct(form: NewProductForm) {
   }
 }
 
+/** Deja un signo opcional al inicio y hasta 6 dígitos; descarta letras y cualquier otro símbolo. */
+export function sanitizeDelta(value: string): string {
+  const sign = /^\s*([+-])/.exec(value)?.[1] ?? ''
+  return sign + value.replace(/\D/g, '').slice(0, STOCK_MAX_DIGITS)
+}
+
 export function validateAdjustment(form: AdjustmentForm): AdjustmentErrors {
   const errors: AdjustmentErrors = {}
   const delta = form.delta.trim()
-  if (!signedWholeNumberPattern.test(delta) || Number(delta) === 0) {
-    errors.delta = 'Indica una cantidad entera distinta de cero.'
+  if (!signedWholeNumberPattern.test(delta) || Number(delta) === 0 || delta.replace(/\D/g, '').length > STOCK_MAX_DIGITS) {
+    errors.delta = `Indica una cantidad entera distinta de cero, de hasta ${String(STOCK_MAX_DIGITS)} cifras.`
   } else if (form.type === 'RESTOCK' && Number(delta) < 0) {
     errors.delta = 'Una entrada suma stock: usa una cantidad positiva.'
   }

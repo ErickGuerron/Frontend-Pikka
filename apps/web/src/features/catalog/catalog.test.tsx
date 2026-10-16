@@ -155,6 +155,48 @@ describe('administración de productos (personal)', () => {
   })
 })
 
+describe('ajuste de stock en modal', () => {
+  async function openStock() {
+    serve(operatorUser)
+    renderApp('/productos')
+    const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: 'Ajustar stock de Agua 1L' })
+    await user.click(trigger)
+    return { user, trigger }
+  }
+
+  it('se abre como diálogo modal, Escape lo cierra y devuelve el foco al botón', async () => {
+    const { user, trigger } = await openStock()
+
+    expect(screen.getByRole('dialog', { name: 'Stock de Agua 1L' })).toHaveAttribute('aria-modal', 'true')
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('la cantidad admite signo y hasta 6 cifras, sin letras', async () => {
+    const { user } = await openStock()
+    const delta = screen.getByLabelText('Cantidad (+ suma, - resta)')
+
+    await user.type(delta, '-a1b2')
+    expect(delta).toHaveValue('-12')
+
+    await user.clear(delta)
+    await user.type(delta, '12345678')
+    expect(delta).toHaveValue('123456')
+  })
+})
+
+describe('producto sin stock', () => {
+  it('ofrece "Agregar stock" cuando el stock es cero', async () => {
+    serve(operatorUser, [{ ...water, stockQuantity: 0 }])
+    renderApp('/productos')
+
+    expect(await screen.findByRole('button', { name: 'Agregar stock de Agua 1L' })).toHaveTextContent('Agregar stock')
+  })
+})
+
 describe('alta de producto en modal', () => {
   async function openModal() {
     const fetchMock = serve(operatorUser)
@@ -232,17 +274,26 @@ describe('alta de producto en modal', () => {
     expect(sentBody(postCalls(fetchMock)[0]?.[1])).toEqual({ name: 'Nuevo', unitPrice: '2.50', initialStock: 5 })
   })
 
-  it('con control de stock rechaza un stock inicial negativo', async () => {
-    const { fetchMock, user } = await openModal()
+  it('el stock inicial descarta letras y signos y se limita a 6 cifras', async () => {
+    const { user } = await openModal()
 
-    await user.type(screen.getByLabelText('Nombre'), 'Nuevo')
-    await user.type(screen.getByLabelText('Precio (USD)'), '2.50')
     await user.click(screen.getByLabelText('Controla stock'))
-    await user.type(screen.getByLabelText('Stock inicial'), '-1')
-    await user.click(screen.getByRole('button', { name: 'Guardar producto' }))
+    const stock = screen.getByLabelText('Stock inicial')
+    await user.type(stock, '-a1b2.3')
+    expect(stock).toHaveValue('123')
 
-    expect(await screen.findByText('El stock inicial debe ser un número entero, de 0 en adelante.')).toBeInTheDocument()
-    expect(postCalls(fetchMock)).toHaveLength(0)
+    await user.clear(stock)
+    await user.type(stock, '12345678')
+    expect(stock).toHaveValue('123456')
+  })
+
+  it('nombre hasta 100 caracteres y descripción hasta 200', async () => {
+    const { user } = await openModal()
+
+    expect(screen.getByLabelText('Nombre')).toHaveAttribute('maxlength', '100')
+    expect(screen.getByLabelText('Descripción (opcional)')).toHaveAttribute('maxlength', '200')
+    await user.type(screen.getByLabelText('Nombre'), 'x'.repeat(120))
+    expect(screen.getByLabelText('Nombre')).toHaveValue('x'.repeat(100))
   })
 
   it('al guardar invalida la lista, cierra el modal y confirma', async () => {

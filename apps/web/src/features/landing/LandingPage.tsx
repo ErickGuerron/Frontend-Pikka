@@ -14,7 +14,6 @@ import './landing.css'
  */
 export function LandingPage() {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('all')
 
   return (
     <div className="landing min-h-screen bg-[var(--landing-bg)] font-sans text-[var(--landing-text)] antialiased selection:bg-[var(--landing-fixed)] selection:text-[var(--landing-deep)]">
@@ -25,21 +24,12 @@ export function LandingPage() {
         Saltar al contenido
       </a>
 
-      <LandingHeader
-        onSearch={setQuery}
-        selectedCategory={category}
-        onSelectCategory={setCategory}
-      />
+      <LandingHeader onSearch={setQuery} />
 
       <main id="contenido" tabIndex={-1}>
         <Hero />
         <Collections />
-        <ProductCarousel
-          query={query}
-          onClearQuery={() => setQuery('')}
-          activeCategory={category}
-          onSelectCategory={setCategory}
-        />
+        <ProductCarousel query={query} onClearQuery={() => { setQuery('') }} />
         <Tracking />
         <Commitments />
       </main>

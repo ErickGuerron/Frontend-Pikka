@@ -89,7 +89,7 @@ export function TrackingPage() {
             ) : null}
             {dataUpdatedAt > 0 ? (
               <span
-                className="text-[11px] text-[#557b7f] bg-[#f0fafb] border border-[#cce7ea] px-2.5 py-1 rounded"
+                className="text-[11px] text-[#004b4e] bg-[#f0fafb] border border-[#cce7ea] px-2.5 py-1 rounded font-semibold"
                 aria-live="polite"
               >
                 Última actualización: {new Date(dataUpdatedAt).toLocaleTimeString('es-EC')}

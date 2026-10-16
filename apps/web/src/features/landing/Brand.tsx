@@ -18,7 +18,7 @@ export function Brand({
   const textColor = isWhite ? 'text-white' : 'text-[var(--landing-deep)]'
   const dotColor = isWhite ? 'bg-[#2dd4bf]' : 'bg-[var(--landing-accent)]'
   const boxBg = isWhite
-    ? 'border-[#14b8a6]/30 bg-[#001d1f]'
+    ? 'border-[var(--landing-accent)]/30 bg-[var(--landing-primary-panel)]'
     : 'border-[var(--landing-deep)] bg-[var(--landing-deep)]'
 
   return (

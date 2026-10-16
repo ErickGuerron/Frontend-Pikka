@@ -50,7 +50,8 @@ function optionalString(obj: Record<string, unknown>, key: string): string | und
 
 export function parseProduct(data: unknown): Product {
   const obj = object(data, 'product')
-  const stock = obj.stockQuantity
+  // El gateway envía null (no omite el campo) cuando el producto no controla stock.
+  const stock = obj.stockQuantity ?? undefined
   if (stock !== undefined && typeof stock !== 'number') throw new ParseError('stockQuantity: expected number')
   return {
     id: string(obj, 'id'),

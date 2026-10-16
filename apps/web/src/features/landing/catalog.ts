@@ -10,6 +10,8 @@ export interface PublicProduct {
   description: string | undefined
   /** Decimal en USD tal como lo envía el API, p. ej. "12.50". */
   unitPrice: string
+  /** URL de la imagen si el API la envía; sin ella la tarjeta usa un fondo de color. */
+  imageUrl: string | undefined
 }
 
 const decimalPrice = /^\d+(\.\d{1,2})?$/
@@ -21,7 +23,8 @@ export function parsePublicProducts(data: unknown): PublicProduct[] {
     const unitPrice = string(item, 'unitPrice')
     if (!decimalPrice.test(unitPrice)) throw new ParseError('unitPrice: expected decimal')
     const description = typeof item.description === 'string' && item.description !== '' ? item.description : undefined
-    return { id: string(item, 'id'), name: string(item, 'name'), description, unitPrice }
+    const imageUrl = typeof item.imageUrl === 'string' && /^(https?:\/\/|\/)/.test(item.imageUrl) ? item.imageUrl : undefined
+    return { id: string(item, 'id'), name: string(item, 'name'), description, unitPrice, imageUrl }
   })
 }
 

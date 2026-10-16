@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
+import { KpiGrid } from '@/shared/ui/kpi'
+import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { isDriversDemoMode, listDrivers } from './api'
 import { driverStatusLabels, driverStatuses, filterDrivers, type DriverStatus } from './types'
 
@@ -14,6 +16,7 @@ export function DriversPage() {
     queryFn: listDrivers,
   })
   const visible = useMemo(() => filterDrivers(drivers, query, status), [drivers, query, status])
+  const pager = usePagination(visible)
 
   return (
     <div className="flex flex-col gap-4 max-w-7xl">
@@ -41,6 +44,15 @@ export function DriversPage() {
           </div>
         </div>
       </div>
+
+      <KpiGrid
+        items={[
+          { label: 'Total', badge: 'GLOBAL', value: drivers.length, unit: 'repartidores', tag: 'Flota' },
+          { label: 'Disponibles', badge: 'LIBRES', value: drivers.filter((d) => d.status === 'AVAILABLE').length, unit: 'sin ruta', tag: 'Listos' },
+          { label: 'En ruta', badge: 'TRÁNSITO', value: drivers.filter((d) => d.status === 'ON_ROUTE').length, unit: 'en reparto', tag: 'Operando' },
+          { label: 'Inactivos', badge: 'BAJA', value: drivers.filter((d) => !d.active).length, unit: 'desactivados', tag: 'Fuera de flota' },
+        ]}
+      />
 
       {/* Technical Filter Toolbar */}
       <div className="bg-white rounded-xl border border-[#cce7ea] p-4 shadow-sm flex flex-wrap items-center gap-3">
@@ -113,7 +125,7 @@ export function DriversPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#cce7ea]">
-                {visible.map((driver) => {
+                {pager.pageItems.map((driver) => {
                   const statusColor =
                     driver.status === 'AVAILABLE'
                       ? 'bg-teal-50 text-teal-800 border-teal-200'
@@ -155,6 +167,7 @@ export function DriversPage() {
                 })}
               </tbody>
             </table>
+            <Pagination label="repartidores" {...pager} onPage={pager.setPage} />
           </div>
         )}
       </section>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router'
+
 export function Tracking() {
   return (
     <section
@@ -11,25 +13,25 @@ export function Tracking() {
           <div className="space-y-6 lg:col-span-5">
             <div className="inline-flex items-center gap-2 rounded border border-[var(--landing-accent)]/30 bg-[var(--landing-accent)]/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-[var(--landing-accent-light)]">
               <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[var(--landing-accent-light)]" />
-              <span>TELEMETRÍA SATELITAL · SEGUNDO A SEGUNDO</span>
+              <span>LOGÍSTICA DE PRECISIÓN · PROTOCOLO OFICIAL</span>
             </div>
 
             <h2 id="rastreo-titulo" className="text-3xl font-normal leading-tight tracking-tight !text-white sm:text-4xl">
-              Transparencia técnica sobre la ruta y estado del despacho
+              Así llega tu pedido
             </h2>
 
             <p className="text-sm leading-relaxed text-[var(--landing-fixed-dim)]">
-              Supervisión telemétrica continua: geolocalización milimétrica, índice térmico en cabina activa y ventana
-              de arribo calculada sin holguras infladas.
+              Cada entrega sigue un riguroso protocolo en tres etapas. Desde tu cuenta personal puedes consultar el
+              estado y avance de tus pedidos en tiempo real.
             </p>
 
             <div className="space-y-3 pt-2 font-mono text-xs">
               <div className="flex items-start gap-3 rounded border border-[var(--landing-accent)]/20 bg-white/5 p-3.5">
                 <span className="text-[11px] font-bold text-[var(--landing-accent-light)]">[01]</span>
                 <div>
-                  <h3 className="font-bold !text-white">Sellado e inspección en almacén central</h3>
+                  <h3 className="font-bold !text-white">Sellado en almacén</h3>
                   <p className="mt-0.5 text-[11px] text-[var(--landing-fixed-dim)]">
-                    Control de temperatura y fijación mecánica para postres y cristalería fina.
+                    Tu pedido se prepara y se sella en empaque isotérmico antes de salir.
                   </p>
                 </div>
               </div>
@@ -37,9 +39,9 @@ export function Tracking() {
               <div className="flex items-start gap-3 rounded border border-[var(--landing-accent)]/20 bg-white/5 p-3.5">
                 <span className="text-[11px] font-bold text-[var(--landing-accent-light)]">[02]</span>
                 <div>
-                  <h3 className="font-bold !text-white">Despacho con flota eléctrica de proximidad</h3>
+                  <h3 className="font-bold !text-white">Despacho en flota</h3>
                   <p className="mt-0.5 text-[11px] text-[var(--landing-fixed-dim)]">
-                    Cápsulas isotérmicas con sensores giroscópicos y de temperatura en tiempo real.
+                    Sale a ruta con la flota de repartidores dedicados de Pikka.
                   </p>
                 </div>
               </div>
@@ -47,12 +49,22 @@ export function Tracking() {
               <div className="flex items-start gap-3 rounded border border-[var(--landing-accent)]/20 bg-white/5 p-3.5">
                 <span className="text-[11px] font-bold text-[var(--landing-accent-light)]">[03]</span>
                 <div>
-                  <h3 className="font-bold !text-white">Entrega autenticada mediante código PIN</h3>
+                  <h3 className="font-bold !text-white">Entrega con código PIN</h3>
                   <p className="mt-0.5 text-[11px] text-[var(--landing-fixed-dim)]">
-                    Custodia verificada únicamente con el código emitido en la aplicación oficial.
+                    La entrega se valida con un código PIN de confirmación al recibir.
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded border border-primary bg-primary px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-white font-semibold transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <span>Entra a tu cuenta para seguir tu pedido</span>
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
           </div>
 
@@ -63,15 +75,15 @@ export function Tracking() {
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--landing-accent-light)]" />
                   <div>
-                    <span className="font-bold text-white">DESPACHO ACTIVO #PK-8942</span>
+                    <span className="font-bold text-white">PROTOCOLO DE ENRUTAMIENTO</span>
                     <span className="block text-[10px] text-[var(--landing-fixed-dim)]">
-                      PASTEL BELGA & CAFÉ DE ALTURA
+                      LOGÍSTICA URBANA PROGRAMADA
                     </span>
                   </div>
                 </div>
                 <div className="text-right text-[10px] text-[var(--landing-fixed-dim)]">
-                  <span>UTC: 14:32:05</span>
-                  <span className="block font-bold text-[var(--landing-fixed)]">HUB PROVIDENCIA → TU DOMICILIO</span>
+                  <span>SISTEMA PIKKA</span>
+                  <span className="block font-bold text-[var(--landing-fixed)]">ORIGEN → DESTINO</span>
                 </div>
               </div>
 
@@ -128,7 +140,7 @@ export function Tracking() {
                     strokeLinecap="round"
                   />
 
-                  {/* Hub waypoint */}
+                  {/* Origin waypoint */}
                   <g transform="translate(110, 215)">
                     <circle r="16" fill="var(--landing-accent)" fillOpacity="0.2" />
                     <circle r="7" fill="var(--landing-primary-dark)" stroke="var(--landing-accent-light)" strokeWidth="2.5" />
@@ -161,9 +173,8 @@ export function Tracking() {
                   <div className="flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent-light)]" />
                     <span className="text-[9px] uppercase tracking-wider text-[var(--landing-fixed-dim)]">ORIGEN:</span>
-                    <span className="font-bold text-white">HUB PROVIDENCIA</span>
+                    <span className="font-bold text-white">ALMACÉN DE SALIDA</span>
                   </div>
-                  <div className="text-[9px] text-[var(--landing-fixed-dim)]">LAT: -33.4281 · LON: -70.6124</div>
                 </div>
 
                 <div className="absolute bottom-3 right-3 space-y-0.5 rounded border border-[var(--landing-accent)]/30 bg-[var(--landing-primary-panel)]/90 px-2.5 py-1.5 text-right font-mono text-[10px] shadow-sm backdrop-blur-sm">
@@ -172,12 +183,7 @@ export function Tracking() {
                     <span className="text-[9px] uppercase tracking-wider text-[var(--landing-fixed-dim)]">:DESTINO</span>
                     <span className="h-1.5 w-1.5 rounded-full bg-white" />
                   </div>
-                  <div className="text-[9px] font-medium text-[var(--landing-accent-light)]">CALIBRACIÓN RUTA: 100% OK</div>
-                </div>
-
-                <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded border border-[var(--landing-accent)]/20 bg-[var(--landing-primary-dark)]/80 px-2 py-1 font-mono text-[9px] text-[var(--landing-fixed-dim)] backdrop-blur-sm">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[var(--landing-accent-light)]" />
-                  <span>GPS SENSOR ACTIVO · 12 SAT</span>
+                  <div className="text-[9px] font-medium text-[var(--landing-accent-light)]">ENTREGA SEGURA</div>
                 </div>
               </div>
 
@@ -185,21 +191,21 @@ export function Tracking() {
               <div className="grid grid-cols-3 divide-x divide-[var(--landing-accent)]/20 bg-[var(--landing-primary-panel)] p-4 text-center font-mono">
                 <div>
                   <span className="block text-[9px] uppercase tracking-wider text-[var(--landing-fixed-dim)]">
-                    TIEMPO ESTIMADO
+                    ETAPA 1
                   </span>
-                  <span className="mt-0.5 block text-lg font-bold text-white">14 MIN</span>
+                  <span className="mt-0.5 block text-xs font-bold text-white">SELLADO</span>
                 </div>
                 <div>
                   <span className="block text-[9px] uppercase tracking-wider text-[var(--landing-fixed-dim)]">
-                    DISTANCIA FALTANTE
+                    ETAPA 2
                   </span>
-                  <span className="mt-0.5 block text-lg font-bold text-[var(--landing-accent-light)]">1.4 KM</span>
+                  <span className="mt-0.5 block text-xs font-bold text-[var(--landing-accent-light)]">DESPACHO</span>
                 </div>
                 <div>
                   <span className="block text-[9px] uppercase tracking-wider text-[var(--landing-fixed-dim)]">
-                    TEMPERATURA CAJA
+                    ETAPA 3
                   </span>
-                  <span className="mt-0.5 block text-lg font-bold text-white">4.1 °C</span>
+                  <span className="mt-0.5 block text-xs font-bold text-white">ENTREGA PIN</span>
                 </div>
               </div>
             </div>

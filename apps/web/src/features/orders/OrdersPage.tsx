@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
+import { KpiGrid } from '@/shared/ui/kpi'
+import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { getOrders } from './api'
 import { formatDate, formatWindow } from './format'
 import { OrderForm } from './OrderForm'
@@ -38,6 +40,7 @@ export function OrdersPage() {
   })
 
   const visibleOrders = statusFilter === 'ALL' ? orders : orders.filter((o) => o.status === statusFilter)
+  const pager = usePagination(visibleOrders)
   const pendingCount = orders.filter((o) => o.status === 'PENDING').length
   const inRouteCount = orders.filter((o) => IN_ROUTE.includes(o.status)).length
   const deliveredCount = orders.filter((o) => o.status === 'DELIVERED').length
@@ -92,12 +95,14 @@ export function OrdersPage() {
       ) : null}
 
       {/* Indicadores estilo Dossier */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="Total" value={orders.length} unit="pedidos" tag="General" />
-        <Kpi label="Pendientes" value={pendingCount} unit="por asignar" tag="En cola" />
-        <Kpi label="En ruta" value={inRouteCount} unit="asignados / camino" tag="Distribución" />
-        <Kpi label="Entregados" value={deliveredCount} unit="completados" tag="Finalizados" />
-      </div>
+      <KpiGrid
+        items={[
+          { label: 'Total', badge: 'GLOBAL', value: orders.length, unit: 'pedidos', tag: 'General' },
+          { label: 'Pendientes', badge: 'ESPERA', value: pendingCount, unit: 'por asignar', tag: 'En cola' },
+          { label: 'En ruta', badge: 'TRÁNSITO', value: inRouteCount, unit: 'asignados / camino', tag: 'Distribución' },
+          { label: 'Entregados', badge: 'CIERRE', value: deliveredCount, unit: 'completados', tag: 'Finalizados' },
+        ]}
+      />
 
       {/* Tabla con filtro */}
       <section className="bg-white rounded border border-[#cce7ea] shadow-sm overflow-hidden">
@@ -166,7 +171,7 @@ export function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#cce7ea]">
-                {visibleOrders.map((order) => (
+                {pager.pageItems.map((order) => (
                   <tr key={order.id} className="hover:bg-[#f7fcfc] transition-colors">
                     <td className="px-4 py-3 font-semibold font-mono text-[#004b4e] whitespace-nowrap">{formatDate(order.deliveryDate)}</td>
                     <td className="px-4 py-3 font-mono text-[#557b7f] whitespace-nowrap">{formatWindow(order.windowStart, order.windowEnd)}</td>
@@ -180,35 +185,10 @@ export function OrdersPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination label="pedidos" {...pager} onPage={pager.setPage} />
           </div>
         )}
       </section>
-    </div>
-  )
-}
-
-interface KpiProps {
-  label: string
-  value: number
-  unit: string
-  tag: string
-}
-
-function Kpi({ label, value, unit, tag }: KpiProps) {
-  return (
-    <div className="bg-white rounded border border-[#cce7ea] p-4 flex flex-col justify-between shadow-sm hover:border-[#004b4e] transition-all min-w-0">
-      <div className="flex items-center justify-between pb-2 border-b border-[#cce7ea]">
-        <span className="uppercase font-mono font-semibold tracking-wider text-[10px] text-[#557b7f] truncate">{label}</span>
-        <span className="text-[9px] font-mono text-[#004b4e] bg-[#e8f7f9] px-1.5 py-0.5 rounded border border-[#cce7ea] font-bold">
-          {tag}
-        </span>
-      </div>
-      <div className="pt-3 flex items-baseline justify-between min-w-0">
-        <div>
-          <span className="text-2xl sm:text-3xl font-bold font-mono text-[#004b4e] tabular-nums">{value}</span>
-          <span className="text-xs font-mono text-[#557b7f] ml-1">{unit}</span>
-        </div>
-      </div>
     </div>
   )
 }

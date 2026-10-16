@@ -1,11 +1,19 @@
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
+import { useRef, useState, type SyntheticEvent } from 'react'
+import { useDialog } from '@/shared/ui/dialog'
 import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
 import { userMessage } from '@/shared/api/errors'
 import { useCreateProduct } from './hooks'
-import { toNewProduct, validateNewProduct, type NewProductErrors, type NewProductForm as Form } from './validation'
+import {
+  DESCRIPTION_MAX,
+  NAME_MAX,
+  STOCK_MAX_DIGITS,
+  toNewProduct,
+  validateNewProduct,
+  type NewProductErrors,
+  type NewProductForm as Form,
+} from './validation'
 
 const empty: Form = { name: '', description: '', unitPrice: '', initialStock: '' }
-const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
 
 interface ProductFormModalProps {
   onClose: () => void
@@ -22,23 +30,16 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
   const nameRef = useRef<HTMLInputElement>(null)
   const pending = create.isPending
 
-  useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    nameRef.current?.focus()
-    return () => { opener?.focus() }
-  }, [])
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !pending) onClose()
-      if (event.key === 'Tab') trapFocus(event, dialogRef.current)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('keydown', onKey) }
-  }, [onClose, pending])
+  useDialog(dialogRef, nameRef, onClose, pending)
 
   const set = (key: keyof Form) => (event: { target: { value: string } }) => {
     setForm((current) => ({ ...current, [key]: event.target.value }))
+  }
+
+  // El stock solo admite dígitos: se descartan letras, signos y lo que pase del máximo al escribir o pegar.
+  const setStock = (event: { target: { value: string } }) => {
+    const digits = event.target.value.replace(/\D/g, '').slice(0, STOCK_MAX_DIGITS)
+    setForm((current) => ({ ...current, initialStock: digits }))
   }
 
   const submit = (event: SyntheticEvent) => {
@@ -77,7 +78,7 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
               ref={nameRef}
               className={inputClass}
               value={form.name}
-              maxLength={120}
+              maxLength={NAME_MAX}
               aria-invalid={errors.name !== undefined}
               aria-describedby={errors.name === undefined ? undefined : 'product-name-error'}
               onChange={set('name')}
@@ -86,8 +87,16 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
           {errors.name === undefined ? null : <ErrorMessage id="product-name-error">{errors.name}</ErrorMessage>}
 
           <Field label="Descripción (opcional)">
-            <input className={inputClass} value={form.description} maxLength={500} onChange={set('description')} />
+            <input
+              className={inputClass}
+              value={form.description}
+              maxLength={DESCRIPTION_MAX}
+              aria-invalid={errors.description !== undefined}
+              aria-describedby={errors.description === undefined ? undefined : 'product-description-error'}
+              onChange={set('description')}
+            />
           </Field>
+          {errors.description === undefined ? null : <ErrorMessage id="product-description-error">{errors.description}</ErrorMessage>}
 
           <Field label="Precio (USD)">
             <input
@@ -117,10 +126,12 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
                 <input
                   className={inputClass}
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={STOCK_MAX_DIGITS}
                   value={form.initialStock}
                   aria-invalid={errors.initialStock !== undefined}
                   aria-describedby={errors.initialStock === undefined ? undefined : 'product-stock-error'}
-                  onChange={set('initialStock')}
+                  onChange={setStock}
                 />
               </Field>
               {errors.initialStock === undefined ? null : <ErrorMessage id="product-stock-error">{errors.initialStock}</ErrorMessage>}
@@ -154,22 +165,4 @@ export function ProductFormModal({ onClose, onCreated }: ProductFormModalProps) 
       </div>
     </div>
   )
-}
-
-/** Mantiene el Tab dentro del diálogo: del último control al primero y viceversa. */
-function trapFocus(event: KeyboardEvent, dialog: HTMLElement | null) {
-  if (dialog === null) return
-  const items = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
-  const first = items[0]
-  const last = items.at(-1)
-  if (first === undefined || last === undefined) return
-  const active = document.activeElement
-  const outside = active === null || !dialog.contains(active)
-  if (event.shiftKey && (outside || active === first)) {
-    event.preventDefault()
-    last.focus()
-  } else if (!event.shiftKey && (outside || active === last)) {
-    event.preventDefault()
-    first.focus()
-  }
 }

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
+import { KpiGrid } from '@/shared/ui/kpi'
+import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { ProductFormModal } from './ProductFormModal'
 import { useProducts, useSetProductActive } from './hooks'
 import { StockPanel } from './StockPanel'
@@ -8,6 +10,8 @@ import type { Product } from './types'
 /** Administración de productos para ADMIN y OPERATOR: incluye inactivos y gestiona stock. */
 export function ProductAdminPage() {
   const products = useProducts(true)
+  const all = products.data ?? []
+  const pager = usePagination(all)
   const setActive = useSetProductActive()
   const [creating, setCreating] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -45,6 +49,15 @@ export function ProductAdminPage() {
           </button>
         </div>
       </div>
+
+      <KpiGrid
+        items={[
+          { label: 'Total', badge: 'GLOBAL', value: all.length, unit: 'productos', tag: 'Catálogo' },
+          { label: 'Activos', badge: 'VISIBLES', value: all.filter((p) => p.active).length, unit: 'a la venta', tag: 'Ofrecidos' },
+          { label: 'Inactivos', badge: 'OCULTOS', value: all.filter((p) => !p.active).length, unit: 'sin ofrecer', tag: 'Pausados' },
+          { label: 'Sin stock', badge: 'ALERTA', value: all.filter((p) => p.stockQuantity === 0).length, unit: 'agotados', tag: 'Reponer' },
+        ]}
+      />
 
       {creating ? (
         <ProductFormModal
@@ -97,7 +110,7 @@ export function ProductAdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#cce7ea]">
-              {products.data.map((product) => (
+              {pager.pageItems.map((product) => (
                 <tr key={product.id} className="hover:bg-[#f7fcfc] transition-colors">
                   <td className="px-4 py-3 font-semibold text-[#061f23]">
                     <div className="flex items-center gap-2">
@@ -133,11 +146,11 @@ export function ProductAdminPage() {
                     {product.stockQuantity === undefined ? null : (
                       <button
                         type="button"
-                        aria-label={`Ajustar stock de ${product.name}`}
+                        aria-label={`${product.stockQuantity === 0 ? 'Agregar' : 'Ajustar'} stock de ${product.name}`}
                         className="cursor-pointer rounded-lg border border-[#004b4e] bg-white hover:bg-[#e8f7f9] px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-[#004b4e] transition-colors"
                         onClick={() => { setStockOf(product) }}
                       >
-                        Ajustar stock
+                        {product.stockQuantity === 0 ? 'Agregar stock' : 'Ajustar stock'}
                       </button>
                     )}
                     <button
@@ -157,6 +170,7 @@ export function ProductAdminPage() {
           {products.data.length === 0 ? (
             <p className="p-8 text-center font-mono text-xs text-[#557b7f]">Aún no hay productos.</p>
           ) : null}
+          <Pagination label="productos" {...pager} onPage={pager.setPage} />
         </div>
       )}
 

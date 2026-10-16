@@ -22,19 +22,9 @@ export function LandingFooter() {
               Plataforma oficial de comercio rápido y logística de precisión. Selección curada y entrega garantizada
               de artículos gourmet, pastelería y piezas tecnológicas en minutos.
             </p>
-            <div className="flex items-center gap-2.5 pt-2 font-mono text-xs">
-              <button
-                type="button"
-                className="rounded border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-3 py-1.5 text-white transition-colors hover:bg-[var(--landing-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
-              >
-                App Store
-              </button>
-              <button
-                type="button"
-                className="rounded border border-[var(--landing-deep)] bg-[var(--landing-deep)] px-3 py-1.5 text-white transition-colors hover:bg-[var(--landing-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
-              >
-                Google Play
-              </button>
+            <div className="flex items-center gap-2 pt-2 font-mono text-xs text-[var(--landing-deep)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent)]" />
+              <span className="font-semibold">ENTREGAS A DOMICILIO EN MINUTOS</span>
             </div>
           </div>
 
@@ -135,7 +125,7 @@ export function LandingFooter() {
             </ul>
             <div className="pt-2">
               <span className="inline-block rounded border border-[var(--landing-line)] bg-white px-2 py-1 font-mono text-[10px] font-semibold text-[var(--landing-deep)]">
-                PAGOS CIFRADOS TLS 256-BIT
+                COMPRA PROTEGIDA Y VERIFICADA
               </span>
             </div>
           </div>
@@ -143,10 +133,10 @@ export function LandingFooter() {
 
         {/* Bottom copyright row */}
         <div className="flex flex-col items-center justify-between gap-4 pt-8 text-[11px] text-[var(--landing-muted)] sm:flex-row">
-          <p>© {currentYear} Pikka Inc. Todos los derechos reservados · Sistema de Entrega de Precisión.</p>
+          <p>© {currentYear} Pikka</p>
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent)]" />
-            <span className="font-semibold text-[var(--landing-deep)]">OPERACIÓN ACTIVA EN CDMX Y SANTIAGO</span>
+            <span className="font-semibold text-[var(--landing-deep)]">LOGÍSTICA URBANA Y COBERTURA LOCAL</span>
           </div>
         </div>
       </div>
