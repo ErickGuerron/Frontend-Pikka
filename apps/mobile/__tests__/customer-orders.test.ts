@@ -10,6 +10,12 @@ import {
   validateNewOrder,
 } from '../src/features/customer-orders/types'
 
+const contact = {
+  addressReference: 'Casa azul',
+  contactPhone: '+593991234567',
+  items: [{ productId: 'p-agua-20l', quantity: 2 }],
+}
+
 beforeEach(() => {
   resetDemoOrders()
 })
@@ -31,8 +37,16 @@ describe('order rules', () => {
   })
 
   it('validates a new order', () => {
-    const ok = { address: 'Av. Amazonas 123', deliveryDate: '2026-10-12', windowStart: '09:00', windowEnd: '12:00' }
+    const ok = { ...contact, address: 'Av. Amazonas 123', deliveryDate: '2026-10-12', windowStart: '09:00', windowEnd: '12:00' }
     expect(validateNewOrder(ok, '2026-10-11')).toEqual({})
+    expect(validateNewOrder({ ...ok, addressReference: 'ab' }, '2026-10-11').addressReference).toBeDefined()
+    expect(validateNewOrder({ ...ok, postalCode: '12' }, '2026-10-11').postalCode).toBeDefined()
+    expect(validateNewOrder({ ...ok, postalCode: '' }, '2026-10-11').postalCode).toBeUndefined()
+    expect(validateNewOrder({ ...ok, contactPhone: '12345' }, '2026-10-11').contactPhone).toBeDefined()
+    expect(validateNewOrder({ ...ok, items: [] }, '2026-10-11').items).toMatch(/al menos un producto/)
+    expect(validateNewOrder({ ...ok, items: [{ productId: 'p1', quantity: 51 }] }, '2026-10-11').items).toBeDefined()
+    expect(validateNewOrder({ ...ok, items: [{ productId: 'p1', quantity: 0 }] }, '2026-10-11').items).toBeDefined()
+    expect(validateNewOrder({ ...ok, items: [{ productId: 'p1', quantity: 1 }, { productId: 'p1', quantity: 2 }] }, '2026-10-11').items).toBeDefined()
     expect(validateNewOrder({ ...ok, address: 'abc' }, '2026-10-11').address).toBeDefined()
     expect(validateNewOrder({ ...ok, deliveryDate: '2026-10-10' }, '2026-10-11').deliveryDate).toMatch(/anterior a hoy/)
     expect(validateNewOrder({ ...ok, deliveryDate: '2026-02-31' }, '2026-10-11').deliveryDate).toBeDefined()
@@ -61,7 +75,11 @@ describe('order rules', () => {
 })
 
 describe('demo adapter', () => {
-  const input = { deliveryDate: '2026-10-12', windowStart: '09:00', windowEnd: '12:00' }
+  const input = { ...contact, deliveryDate: '2026-10-12', windowStart: '09:00', windowEnd: '12:00' }
+
+  it('rejects an order without items like the backend does', async () => {
+    await expect(createDemoOrder({ ...input, address: 'Calle 1, Quito', items: [] })).rejects.toMatchObject({ status: 400 })
+  })
 
   it('creates PENDING for covered and PENDING_REVIEW for uncovered addresses', async () => {
     const covered = await createDemoOrder({ ...input, address: 'Calle 1, Quito' })

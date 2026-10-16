@@ -4,16 +4,38 @@ import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
 import { colors } from '../../theme/colors'
+import { normalizePhone, POSTAL_MAX, REFERENCE_MAX, sanitizePhoneInput } from '../contact/validation'
+import { useCatalog } from './hooks'
+import { OrderItemsPicker } from './OrderItemsPicker'
 import { useOrdersStore } from './orders-store'
-import { deliveryWindows, localToday, validateNewOrder, type CustomerOrder, type OrderErrors } from './types'
+import { formatCents, priceLines, totalCents } from './products'
+import {
+  deliveryWindows,
+  formatWindow,
+  localToday,
+  validateNewOrder,
+  type CustomerOrder,
+  type NewCustomerOrder,
+  type OrderErrors,
+  type OrderLine,
+} from './types'
 
 interface Props {
   onCreated: (order: CustomerOrder) => void
 }
 
+type Step = 'form' | 'confirm'
+
+/** Two steps: the form, then a summary the customer confirms; nothing is sent before that. */
 export function NewOrderForm({ onCreated }: Props) {
   const create = useOrdersStore((s) => s.create)
+  const catalog = useCatalog()
+  const [step, setStep] = useState<Step>('form')
   const [address, setAddress] = useState('')
+  const [addressReference, setAddressReference] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [items, setItems] = useState<OrderLine[]>([])
   const [deliveryDate, setDeliveryDate] = useState(localToday())
   const [windowStart, setWindowStart] = useState('')
   const [notes, setNotes] = useState('')
@@ -21,16 +43,31 @@ export function NewOrderForm({ onCreated }: Props) {
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const submit = async () => {
+  const chosen = deliveryWindows.find((w) => w.start === windowStart)
+  const buildInput = (): NewCustomerOrder => ({
+    address: address.trim(),
+    addressReference: addressReference.trim(),
+    ...(postalCode.trim() === '' ? {} : { postalCode: postalCode.trim() }),
+    contactPhone: normalizePhone(contactPhone.trim()),
+    deliveryDate: deliveryDate.trim(),
+    windowStart: chosen?.start ?? '',
+    windowEnd: chosen?.end ?? '',
+    items,
+    notes: notes.trim(),
+  })
+
+  const review = () => {
     setServerError(null)
-    const chosen = deliveryWindows.find((w) => w.start === windowStart)
-    const input = { address: address.trim(), deliveryDate: deliveryDate.trim(), windowStart: chosen?.start ?? '', windowEnd: chosen?.end ?? '', notes: notes.trim() }
-    const found = validateNewOrder(input, localToday())
+    const found = validateNewOrder(buildInput(), localToday())
     setErrors(found)
-    if (Object.keys(found).length > 0) return
+    if (Object.keys(found).length === 0) setStep('confirm')
+  }
+
+  const confirm = async () => {
+    setServerError(null)
     setLoading(true)
     try {
-      onCreated(await create(input))
+      onCreated(await create(buildInput()))
     } catch (error) {
       setServerError(userMessage(error))
     } finally {
@@ -38,10 +75,60 @@ export function NewOrderForm({ onCreated }: Props) {
     }
   }
 
+  if (step === 'confirm') {
+    const input = buildInput()
+    const lines = priceLines(input.items, catalog.products)
+    const rows: [string, string][] = [
+      ['Dirección', input.address],
+      ['Referencia', input.addressReference],
+      ['Código postal', input.postalCode ?? 'No indicado'],
+      ['Teléfono de contacto', input.contactPhone],
+      ['Fecha de entrega', input.deliveryDate],
+      ['Ventana', formatWindow(input.windowStart, input.windowEnd)],
+    ]
+    return (
+      <View style={styles.form}>
+        <Text style={styles.title}>Confirma tu pedido</Text>
+        <Text style={styles.hint}>Revisa que todo esté bien. Al confirmar enviaremos el pedido.</Text>
+        <View style={styles.summary}>
+          {rows.map(([label, value]) => (
+            <View key={label} style={styles.item}>
+              <Text style={styles.label}>{label}</Text>
+              <Text style={styles.value}>{value}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.summary}>
+          {lines.map((line) => (
+            <View key={line.productId} style={styles.lineRow}>
+              <Text style={styles.value}>{`${String(line.quantity)} × ${line.name}`}</Text>
+              <Text style={styles.value}>{formatCents(line.cents * line.quantity)}</Text>
+            </View>
+          ))}
+          <View style={[styles.lineRow, styles.totalRow]}>
+            <Text style={styles.total}>Total estimado</Text>
+            <Text style={styles.total}>{formatCents(totalCents(lines))}</Text>
+          </View>
+        </View>
+        {serverError ? (
+          <Text accessibilityRole="alert" style={styles.serverError}>
+            {serverError}
+          </Text>
+        ) : null}
+        <Button label="Confirmar pedido" onPress={() => { void confirm() }} loading={loading} />
+        <Button label="Editar datos" variant="outline" onPress={() => { setStep('form') }} disabled={loading} />
+      </View>
+    )
+  }
+
   return (
     <View style={styles.form}>
-      <Field label="Dirección de entrega" value={address} onChangeText={setAddress} error={errors.address} placeholder="Calle, número y referencia" editable={!loading} />
-      <Field label="Fecha de entrega (AAAA-MM-DD)" value={deliveryDate} onChangeText={setDeliveryDate} error={errors.deliveryDate} keyboardType="numbers-and-punctuation" maxLength={10} editable={!loading} />
+      <OrderItemsPicker catalog={catalog} value={items} onChange={setItems} error={errors.items} />
+      <Field label="Dirección de entrega" value={address} onChangeText={setAddress} error={errors.address} placeholder="Calle y número" />
+      <Field label="Referencia del lugar" value={addressReference} onChangeText={setAddressReference} error={errors.addressReference} placeholder="Casa azul, junto a la tienda" maxLength={REFERENCE_MAX} />
+      <Field label="Código postal (opcional)" value={postalCode} onChangeText={setPostalCode} error={errors.postalCode} autoCapitalize="characters" maxLength={POSTAL_MAX} />
+      <Field label="Teléfono de contacto" value={contactPhone} onChangeText={(text) => { setContactPhone(sanitizePhoneInput(text)) }} error={errors.contactPhone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
+      <Field label="Fecha de entrega (AAAA-MM-DD)" value={deliveryDate} onChangeText={setDeliveryDate} error={errors.deliveryDate} keyboardType="numbers-and-punctuation" maxLength={10} />
       <View style={styles.group}>
         <Text style={styles.label}>Ventana de entrega</Text>
         <View style={styles.chips}>
@@ -66,14 +153,9 @@ export function NewOrderForm({ onCreated }: Props) {
           </Text>
         ) : null}
       </View>
-      <Field label="Notas (opcional)" value={notes} onChangeText={setNotes} multiline editable={!loading} />
+      <Field label="Notas (opcional)" value={notes} onChangeText={setNotes} multiline />
       <Text style={styles.hint}>Las notas son solo de referencia en esta versión: todavía no se envían al servicio.</Text>
-      {serverError ? (
-        <Text accessibilityRole="alert" style={styles.serverError}>
-          {serverError}
-        </Text>
-      ) : null}
-      <Button label="Confirmar pedido" onPress={() => { void submit() }} loading={loading} />
+      <Button label="Revisar pedido" onPress={review} />
     </View>
   )
 }
@@ -81,6 +163,7 @@ export function NewOrderForm({ onCreated }: Props) {
 const styles = StyleSheet.create({
   form: { gap: 12 },
   group: { gap: 6 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.onSurface },
   label: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderRadius: 999, borderWidth: 1, borderColor: colors.outlineVariant, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surfaceContainerLowest },
@@ -89,5 +172,11 @@ const styles = StyleSheet.create({
   chipTextOn: { color: colors.onPrimary },
   error: { fontSize: 12, color: colors.error },
   hint: { fontSize: 12, color: colors.onSurfaceVariant },
+  summary: { gap: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, padding: 12 },
+  item: { gap: 2 },
+  value: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
+  lineRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  totalRow: { borderTopWidth: 1, borderTopColor: colors.outlineVariant, paddingTop: 8 },
+  total: { fontSize: 14, fontWeight: '700', color: colors.primary },
   serverError: { color: colors.error, backgroundColor: colors.errorContainer, borderRadius: 8, padding: 10, fontSize: 13 },
 })

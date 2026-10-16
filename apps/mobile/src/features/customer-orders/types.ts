@@ -1,4 +1,5 @@
 import { isRecord, object, oneOf, enumArray, ParseError, string } from '../../api/parse'
+import { validatePhone, validatePostalCode, validateReference } from '../contact/validation'
 
 /** Order statuses (contracts/openapi/openapi.yaml, OrderStatus). */
 export const orderStatuses = [
@@ -48,6 +49,14 @@ export interface CustomerOrder {
   createdAt: string
 }
 
+/** One product line of an order (contract: productId + quantity 1..50, no repeats). */
+export interface OrderLine {
+  productId: string
+  quantity: number
+}
+
+export const MAX_LINE_QUANTITY = 50
+
 /**
  * Creation payload. Coordinates are not collected on mobile (no map/geocoder yet), so the
  * future endpoint must geocode the address server side or the app must add a picker.
@@ -55,9 +64,15 @@ export interface CustomerOrder {
  */
 export interface NewCustomerOrder {
   address: string
+  addressReference: string
+  /** Optional; an empty string means "not given" and is never sent. */
+  postalCode?: string
+  /** Normalized by the caller (no spaces, hyphens, dots or parentheses). */
+  contactPhone: string
   deliveryDate: string
   windowStart: string
   windowEnd: string
+  items: OrderLine[]
   notes?: string
 }
 
@@ -152,6 +167,10 @@ export function pickCurrentOrder(orders: readonly CustomerOrder[]): CustomerOrde
 
 export interface OrderErrors {
   address?: string
+  addressReference?: string
+  postalCode?: string
+  contactPhone?: string
+  items?: string
   deliveryDate?: string
   window?: string
 }
@@ -178,6 +197,20 @@ export function validateNewOrder(input: NewCustomerOrder, today: string): OrderE
   const errors: OrderErrors = {}
   if (input.address.trim().length < MIN_ADDRESS_LENGTH) {
     errors.address = `Escribe la dirección completa (mínimo ${String(MIN_ADDRESS_LENGTH)} caracteres).`
+  }
+  const reference = validateReference(input.addressReference)
+  if (reference) errors.addressReference = reference
+  const postal = validatePostalCode(input.postalCode ?? '')
+  if (postal) errors.postalCode = postal
+  const phone = validatePhone(input.contactPhone)
+  if (phone) errors.contactPhone = phone
+  if (input.items.length === 0) {
+    errors.items = 'Elige al menos un producto.'
+  } else if (
+    input.items.some((line) => !Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > MAX_LINE_QUANTITY) ||
+    new Set(input.items.map((line) => line.productId)).size !== input.items.length
+  ) {
+    errors.items = `Cada producto va una sola vez, de 1 a ${String(MAX_LINE_QUANTITY)} unidades.`
   }
   if (!isRealDate(input.deliveryDate)) errors.deliveryDate = 'Usa el formato AAAA-MM-DD, por ejemplo 2026-12-31.'
   else if (input.deliveryDate < today) errors.deliveryDate = 'La fecha de entrega no puede ser anterior a hoy.'

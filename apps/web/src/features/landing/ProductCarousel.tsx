@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { placeholderColor } from '@/shared/ui/product-color'
 import { ScrollCarousel } from './ScrollCarousel'
 import { filterProducts, formatPrice, usePublicProducts, type PublicProduct } from './catalog'
 
@@ -6,15 +7,6 @@ const TITLE_ID = 'catalogo-titulo'
 const SKELETON_CARDS = 3
 const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)] focus-visible:ring-offset-2'
 const primaryButton = `rounded-full border border-[var(--landing-deep)] bg-primary px-5 py-1.5 font-mono text-xs uppercase tracking-wider text-white transition-colors hover:bg-primary-container ${focus}`
-
-/** Fondos para productos sin imagen; el color depende del id para que no cambie entre cargas. */
-const PLACEHOLDER_COLORS = ['#a5eff2', '#d7f0d0', '#ffe3c2', '#e6d9f5', '#ffd6d6', '#d3e4fd']
-
-function placeholderColor(id: string): string {
-  let hash = 0
-  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0
-  return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length] ?? '#a5eff2'
-}
 
 const slideBasis = 'basis-full md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)]'
 

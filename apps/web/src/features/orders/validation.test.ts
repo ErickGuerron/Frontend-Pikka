@@ -10,6 +10,28 @@ const valid = {
   windowEnd: '11:00',
 }
 
+describe('validateNewOrder: productos', () => {
+  const line = { productId: 'p-1', quantity: 2 }
+
+  it('acepta un pedido con productos', () => {
+    expect(validateNewOrder({ ...valid, items: [line] }, today)).toEqual({})
+  })
+
+  it('exige al menos un producto al crear', () => {
+    expect(validateNewOrder({ ...valid, items: [] }, today).items).toMatch(/al menos un producto/)
+  })
+
+  it('rechaza cantidades fuera de 1 a 50 y productos repetidos', () => {
+    expect(validateNewOrder({ ...valid, items: [{ ...line, quantity: 0 }] }, today).items).toBeDefined()
+    expect(validateNewOrder({ ...valid, items: [{ ...line, quantity: 51 }] }, today).items).toBeDefined()
+    expect(validateNewOrder({ ...valid, items: [line, line] }, today).items).toBeDefined()
+  })
+
+  it('sin items (corrección de un pedido en revisión) no los exige', () => {
+    expect(validateNewOrder(valid, today).items).toBeUndefined()
+  })
+})
+
 describe('validateNewOrder', () => {
   it('acepta un pedido completo y vigente', () => {
     expect(validateNewOrder(valid, today)).toEqual({})

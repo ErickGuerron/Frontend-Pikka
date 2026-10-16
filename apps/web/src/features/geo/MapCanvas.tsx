@@ -4,12 +4,22 @@ import { CircleMarker, MapContainer, Polygon, Polyline, TileLayer, Tooltip, useM
 import { toLatLngTuples } from './latlng'
 import type { Coordinate } from './types'
 
+/** Zona de cobertura a dibujar: contorno, huecos y nombre. */
+export interface MapZone {
+  id: string
+  name: string
+  ring: readonly Coordinate[]
+  holes: readonly (readonly Coordinate[])[]
+}
+
 /** Centro por defecto: Quito, donde el equipo ubica sus pruebas. */
 const DEFAULT_CENTER: [number, number] = [-0.1807, -78.4678]
 
 export interface MapCanvasProps {
   /** Vértices de la zona en edición: se dibujan como contorno y como marcadores. */
   drawing?: readonly Coordinate[]
+  /** Zonas de cobertura: se dibujan en verde con su nombre, debajo del resto de capas. */
+  zones?: readonly MapZone[]
   /** Punto seleccionado, marcado en rojo. */
   picked?: Coordinate | null
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
@@ -45,6 +55,7 @@ export interface MapCanvasProps {
 /** Mapa base de OpenStreetMap, sin API key. Respeta la política de uso de sus teselas. */
 export function MapCanvas({
   drawing = [],
+  zones = [],
   picked = null,
   highlight = null,
   highlightHoles = [],
@@ -69,6 +80,16 @@ export function MapCanvas({
       <ClickListener onMapClick={onMapClick} />
       <FocusController target={focus} />
       <FitController bounds={fitBounds} />
+      {zones.map((zone) => (
+        // El hueco va como anillo interior: queda transparente y se ve que ahí no hay cobertura.
+        <Polygon
+          key={`z-${zone.id}`}
+          positions={[toLatLngTuples(zone.ring), ...zone.holes.map((hole) => toLatLngTuples(hole))]}
+          pathOptions={{ color: '#047857', weight: 2, fillColor: '#10b981', fillOpacity: 0.18 }}
+        >
+          <Tooltip sticky direction="top">{zone.name}</Tooltip>
+        </Polygon>
+      ))}
       {reference !== null && reference.length > 0 && (
         <Polygon positions={toLatLngTuples(reference)} pathOptions={{ color: '#0e7075', weight: 1, dashArray: '4 4', fill: false }} />
       )}

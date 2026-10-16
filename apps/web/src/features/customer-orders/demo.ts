@@ -111,6 +111,9 @@ export function createDemoOrder(input: NewCustomerOrder): Promise<CustomerOrder>
   const order: CustomerOrder = {
     id: nextId(),
     address: input.address,
+    addressReference: input.addressReference,
+    ...(input.postalCode === undefined ? {} : { postalCode: input.postalCode }),
+    contactPhone: input.contactPhone,
     latitude,
     longitude,
     deliveryDate: input.deliveryDate,

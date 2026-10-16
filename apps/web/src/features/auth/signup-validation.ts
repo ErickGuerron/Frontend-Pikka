@@ -1,3 +1,5 @@
+import { validateCity, validatePhone } from '@/shared/validation/contact'
+
 // Client-side policy only: the backend enforces just fullName 1-120, email <= 254 and password 8-72 bytes.
 const MAX_FULL_NAME = 120
 // Two parts joined by one space must stay within MAX_FULL_NAME: 59 + 1 + 59 = 119.
@@ -9,6 +11,8 @@ const MAX_PASSWORD_BYTES = 72 // bcrypt limit enforced by the backend
 export interface SignupValues {
   nombre: string
   apellido: string
+  city: string
+  phone: string
   email: string
   password: string
   confirm: string
@@ -94,6 +98,11 @@ export function validateSignup(values: SignupValues): SignupErrors {
   if (!nombre && !apellido && Array.from(joinFullName(values.nombre, values.apellido)).length > MAX_FULL_NAME) {
     errors.apellido = 'El nombre completo admite hasta 120 caracteres.'
   }
+
+  const city = validateCity(values.city)
+  if (city) errors.city = city
+  const phone = validatePhone(values.phone, 'Ingresa tu número de teléfono.')
+  if (phone) errors.phone = phone
 
   const email = validateEmail(values.email)
   if (email) errors.email = email

@@ -52,11 +52,31 @@ export interface Order {
   reviewReasons: ReviewReason[]
   /** RFC 3339, UTC. */
   createdAt: string
+  /** Datos de entrega; los pedidos anteriores a esos campos no los traen. */
+  addressReference?: string
+  postalCode?: string
+  contactPhone?: string
 }
+
+/** Línea de un pedido: producto y cantidad (OrderItemRequest, 1 a 50 unidades). */
+export interface OrderLine {
+  productId: string
+  quantity: number
+}
+
+export const MAX_LINE_QUANTITY = 50
 
 /** Payload de creación: exactamente lo que acepta CreateOrderRequest. */
 export interface NewOrder {
   address: string
+  /** Referencia del lugar para el repartidor (obligatoria). */
+  addressReference: string
+  /** Código postal (opcional). */
+  postalCode?: string
+  /** Teléfono de contacto, normalizado (obligatorio). */
+  contactPhone: string
+  /** Al menos un producto, sin repetir (ADR 0009). El precio lo fija el servidor. */
+  items: OrderLine[]
   /** Opcional: punto del mapa. Si falta, el backend geocodifica la dirección. */
   latitude?: number
   longitude?: number
@@ -94,7 +114,18 @@ export function parseOrder(data: unknown): Order {
     status: oneOf(o, 'status', orderStatuses),
     reviewReasons: enumArray(o, 'reviewReasons', reviewReasonValues),
     createdAt: string(o, 'createdAt'),
+    ...optionalText(o, 'addressReference'),
+    ...optionalText(o, 'postalCode'),
+    ...optionalText(o, 'contactPhone'),
   }
+}
+
+/** Campo de texto opcional: se omite si no viene o viene vacío. */
+function optionalText<K extends string>(o: Record<string, unknown>, key: K): { [P in K]?: string } {
+  const value = o[key]
+  if (value === undefined || value === null || value === '') return {}
+  if (typeof value !== 'string') throw new ParseError(`${key}: expected string`)
+  return { [key]: value } as { [P in K]?: string }
 }
 
 export function parseOrders(data: unknown): Order[] {

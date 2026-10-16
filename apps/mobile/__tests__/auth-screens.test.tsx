@@ -20,6 +20,8 @@ beforeEach(() => {
 async function fillSignup(password: string) {
   await fireEvent.changeText(screen.getByLabelText('Nombre'), 'Ana')
   await fireEvent.changeText(screen.getByLabelText('Apellido'), 'Lopez')
+  await fireEvent.changeText(screen.getByLabelText('Ciudad'), ' Quito ')
+  await fireEvent.changeText(screen.getByLabelText('Teléfono'), '+593 99-123-4567')
   await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'ana@pikka.com')
   await fireEvent.changeText(screen.getByLabelText('Contraseña'), password)
   await fireEvent.changeText(screen.getByLabelText('Confirmar contraseña'), password)
@@ -40,7 +42,21 @@ describe('SignupForm', () => {
     expect(screen.queryByText(/Falta:/)).toBeNull()
   })
 
-  it('stores the session on success and sends the joined full name', async () => {
+  it('requires phone and city before calling the API', async () => {
+    const fetchMock = mockFetch(201, session)
+    await render(<SignupForm />)
+    await fireEvent.changeText(screen.getByLabelText('Nombre'), 'Ana')
+    await fireEvent.changeText(screen.getByLabelText('Apellido'), 'Lopez')
+    await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'ana@pikka.com')
+    await fireEvent.changeText(screen.getByLabelText('Contraseña'), 'Abcdef1!')
+    await fireEvent.changeText(screen.getByLabelText('Confirmar contraseña'), 'Abcdef1!')
+    await fireEvent.press(screen.getByLabelText('Crear cuenta'))
+    expect(await screen.findByText('Ingresa tu ciudad.')).toBeTruthy()
+    expect(screen.getByText('Ingresa tu número de teléfono.')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('stores the session on success and sends the joined full name, normalized phone and city', async () => {
     const fetchMock = mockFetch(201, session)
     await render(<SignupForm />)
     await fillSignup('Abcdef1!')
@@ -50,7 +66,7 @@ describe('SignupForm', () => {
     })
     const [url, init] = fetchMock.mock.calls[0] as [string, { body: string }]
     expect(url).toMatch(/\/api\/v1\/auth\/signup$/)
-    expect(JSON.parse(init.body)).toEqual({ email: 'ana@pikka.com', password: 'Abcdef1!', fullName: 'Ana Lopez' })
+    expect(JSON.parse(init.body)).toEqual({ email: 'ana@pikka.com', password: 'Abcdef1!', fullName: 'Ana Lopez', phone: '+593991234567', city: 'Quito' })
   })
 
   it('maps 409 to the duplicate-record message', async () => {
