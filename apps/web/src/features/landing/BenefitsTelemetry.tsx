@@ -10,7 +10,7 @@ function TelemetryCard() {
   return (
     <div className="overflow-hidden rounded-2xl bg-primary p-5 text-on-primary shadow-xl sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xl font-bold">Seguimiento de ruta Pikka</h3>
+        <p className="text-xl font-bold">Seguimiento de ruta Pikka</p>
         <span className="rounded-full bg-tertiary-fixed px-3 py-1 text-xs font-bold text-on-tertiary-fixed-variant">
           DEMO ILUSTRATIVA
         </span>
@@ -25,16 +25,15 @@ function TelemetryCard() {
         <path
           d="M50 170 C 120 170, 120 70, 200 90 S 300 60, 350 50"
           fill="none"
-          stroke="#6bf9e4"
           strokeWidth="4"
           strokeDasharray="8 8"
           strokeLinecap="round"
-          className="landing-route"
+          className="landing-route stroke-secondary-fixed"
         />
-        <circle cx="50" cy="170" r="10" fill="#a5eff2" />
-        <circle cx="200" cy="90" r="9" fill="#ffdcc3" />
-        <circle cx="350" cy="50" r="10" fill="#6bf9e4" />
-        <g fontSize="12" fill="#ffffff" fontWeight="600">
+        <circle cx="50" cy="170" r="10" className="fill-primary-fixed" />
+        <circle cx="200" cy="90" r="9" className="fill-tertiary-fixed" />
+        <circle cx="350" cy="50" r="10" className="fill-secondary-fixed" />
+        <g fontSize="12" fontWeight="600" className="fill-white">
           <text x="38" y="198">A · Hub Central</text>
           <text x="150" y="124">Conductor Nutria #14</text>
           <text x="262" y="34">B · Destino Final</text>
@@ -43,8 +42,8 @@ function TelemetryCard() {
       <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
         {STATS.map((s) => (
           <div key={s.label} className="rounded-xl bg-primary-container p-3">
-            <dd className="font-mono text-lg font-medium">{s.value}</dd>
             <dt className="text-xs text-primary-fixed">{s.label}</dt>
+            <dd className="text-lg font-medium tabular-nums">{s.value}</dd>
           </div>
         ))}
       </dl>

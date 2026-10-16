@@ -4,7 +4,8 @@ import { Brand } from './Brand'
 const LINKS = [
   { href: '#inicio', label: 'Inicio' },
   { href: '#servicios', label: 'Servicios' },
-  { href: '#zonas', label: 'Zonas de Entrega' },
+  { href: '#productos', label: 'Productos' },
+  { href: '#zonas', label: 'Zonas de entrega' },
   { href: '#preguntas', label: 'Preguntas' },
 ]
 

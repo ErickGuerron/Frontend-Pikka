@@ -6,8 +6,7 @@ const btn =
 export function FinalCta() {
   return (
     <section aria-labelledby="cta-titulo" className="px-4 py-20 sm:px-6">
-      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary-container to-secondary p-8 text-center text-on-primary shadow-xl sm:p-14">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-secondary-fixed/30 blur-3xl" />
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-primary p-8 text-center text-on-primary shadow-xl sm:p-14">
         <p className="relative inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wide">
           ENTREGA DIRECTA A TU HOGAR
         </p>
@@ -19,7 +18,7 @@ export function FinalCta() {
         </p>
         <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Link to="/login?modo=registro" className={`${btn} bg-white text-primary hover:bg-primary-fixed`}>
-            Crear cuenta
+            Crear mi cuenta
           </Link>
           <Link to="/login" className={`${btn} border border-white/60 text-white hover:bg-white/10`}>
             Iniciar sesión

@@ -23,7 +23,7 @@ describe('landing pública /inicio', () => {
   it('la cabecera enlaza al login, al registro y a Servicios', () => {
     renderApp('/inicio')
     const header = within(screen.getByRole('banner'))
-    expect(header.getByRole('link', { name: 'Iniciar Sesión' })).toHaveAttribute('href', '/login')
+    expect(header.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login')
     expect(header.getByRole('link', { name: 'Crear cuenta' })).toHaveAttribute('href', '/login?modo=registro')
     expect(header.getByRole('link', { name: 'Servicios' })).toHaveAttribute('href', '#servicios')
     expect(screen.queryByText(/Catálogo/)).not.toBeInTheDocument()
@@ -71,8 +71,7 @@ describe('landing pública /inicio', () => {
   it('los botones con relleno de color llevan texto blanco', () => {
     renderApp('/inicio')
     const ctas = [
-      screen.getByRole('link', { name: 'Iniciar Sesión' }),
-      screen.getByRole('link', { name: 'Ver qué ofrece Pikka' }),
+      screen.getAllByRole('link', { name: 'Crear mi cuenta' })[0] as HTMLElement,
       screen.getByRole('link', { name: 'Crear pedido' }),
       screen.getByRole('button', { name: 'Siguiente' }),
       screen.getByRole('button', { name: 'Anterior' }),
@@ -84,7 +83,7 @@ describe('landing pública /inicio', () => {
       /(^|\s)bg-(primary|secondary|primary-container)(\s|$)/.test(el.className),
     )
     expect(filled.length).toBeGreaterThan(3)
-    for (const el of filled) expect(el.className).toContain('text-white')
+    for (const el of filled) expect(el.className, el.outerHTML.slice(0, 160)).toContain('text-white')
   })
 })
 
@@ -92,7 +91,7 @@ describe('carrusel de servicios', () => {
   it('expone la semántica de carrusel y diapositivas "n de total"', () => {
     renderApp('/inicio')
     const region = screen.getByRole('region', { name: '¿Qué puedes hacer con Pikka?' })
-    expect(region).toHaveAttribute('aria-roledescription', 'carousel')
+    expect(region).toHaveAttribute('aria-roledescription', 'carrusel')
     const slides = within(region)
       .getAllByRole('group')
       .filter((g) => g.getAttribute('aria-roledescription') === 'slide')

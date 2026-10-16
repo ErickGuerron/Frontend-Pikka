@@ -4,7 +4,8 @@ import { Brand } from './Brand'
 const NAV = [
   { href: '#inicio', label: 'Inicio' },
   { href: '#servicios', label: 'Servicios' },
-  { href: '#zonas', label: 'Zonas de Entrega' },
+  { href: '#productos', label: 'Productos' },
+  { href: '#zonas', label: 'Zonas de entrega' },
   { href: '#preguntas', label: 'Preguntas' },
 ]
 
@@ -34,7 +35,7 @@ export function LandingHeader() {
             href="#rastreo"
             className={`hidden rounded-lg border border-secondary px-4 py-2 text-sm font-semibold text-secondary hover:bg-secondary-fixed/40 md:inline-block ${focus}`}
           >
-            Rastrear Pedido
+            Rastrear pedido
           </a>
           <Link
             to="/login?modo=registro"
@@ -46,7 +47,7 @@ export function LandingHeader() {
             to="/login"
             className={`rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-container ${focus}`}
           >
-            Iniciar Sesión
+            Iniciar sesión
           </Link>
         </div>
       </div>
