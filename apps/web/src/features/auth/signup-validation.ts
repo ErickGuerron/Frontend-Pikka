@@ -32,7 +32,7 @@ function validateNamePart(value: string, requiredMessage: string): string | unde
   return undefined
 }
 
-function validateEmail(raw: string): string | undefined {
+export function validateEmail(raw: string): string | undefined {
   const email = raw.trim()
   if (email.length === 0) return 'Ingresa tu correo electrónico.'
   if (email.length > MAX_EMAIL_LENGTH) return `El correo admite hasta ${String(MAX_EMAIL_LENGTH)} caracteres.`
