@@ -36,28 +36,39 @@ export function MyOrdersPage() {
   }
 
   return (
-    <div ref={topRef} className="mx-auto flex max-w-5xl flex-col gap-6 py-6">
-      <header className="flex flex-col gap-3 rounded-2xl border border-surface-container-high/60 bg-surface-container-lowest p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold text-on-surface">Mis Pedidos</h1>
-          {onTheWay > 0 ? (
-            <span className="rounded-full bg-secondary-container px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-on-secondary-container">
-              {onTheWay} {onTheWay === 1 ? 'pedido en camino' : 'pedidos en camino'}
-            </span>
-          ) : null}
-          {isDemoMode() ? (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900">
-              DEMO · datos simulados
-            </span>
-          ) : null}
+    <div ref={topRef} className="flex flex-col gap-5 max-w-5xl">
+      <header className="flex flex-col gap-4 rounded-xl border border-[#cce7ea] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 rounded border border-[#cce7ea] bg-[#e8f7f9] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-[#004b4e]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
+            <span className="font-semibold">PORTAL CLIENTE · MONITOREO DE ENTREGAS</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#004b4e] font-sans tracking-tight">
+              Mis Pedidos
+            </h1>
+            {onTheWay > 0 ? (
+              <span className="rounded font-mono px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#e8f7f9] text-[#006b5f] border border-[#cce7ea]">
+                {onTheWay} {onTheWay === 1 ? 'pedido en camino' : 'pedidos en camino'}
+              </span>
+            ) : null}
+            {isDemoMode() ? (
+              <span className="rounded font-mono px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                DEMO · datos simulados
+              </span>
+            ) : null}
+          </div>
         </div>
         <button
           type="button"
           disabled={orders.isError}
-          className="cursor-pointer rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer rounded-lg bg-[#004b4e] hover:bg-[#0a6568] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm border border-[#004b4e] transition-colors disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 self-start sm:self-auto"
           onClick={() => { setCreating(true) }}
         >
-          Hacer nuevo pedido
+          <span className="material-symbols-outlined text-base" aria-hidden="true">
+            add_circle
+          </span>
+          <span>Hacer nuevo pedido</span>
         </button>
       </header>
 

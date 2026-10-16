@@ -1,8 +1,31 @@
-/* Landing-only styles. Color tokens come from the shared Tailwind theme. */
+/*
+ * Landing-only styles. Tokens match the Pikka Editorial design mockup.
+ */
 .landing {
+  --landing-deep: #004b4e;
+  --landing-primary: #004b4e;
+  --landing-primary-hover: #0a6568;
+  --landing-primary-dark: #003638;
+  --landing-primary-darker: #002628;
+  --landing-primary-radar: #00181a;
+  --landing-primary-panel: #001d1f;
+  --landing-accent: #14b8a6;
+  --landing-accent-light: #2dd4bf;
+  --landing-fixed: #a5eff2;
+  --landing-fixed-dim: #89d3d6;
+  --landing-secondary: #006b5f;
+  --landing-bg: #f0fafb;
+  --landing-line: #cce7ea;
+  --landing-muted: #557b7f;
+  --landing-card: #f7fcfc;
+  --landing-tag-bg: #e8f7f9;
+  --landing-placeholder: #8ba7ab;
+  --landing-text: #061f23;
+  --landing-text-variant: #3f4949;
+
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  background: #effcff;
-  color: #061f23;
+  background-color: var(--landing-bg);
+  color: var(--landing-text);
   overflow-x: hidden;
 }
 
@@ -10,53 +33,19 @@ html:has(.landing) {
   scroll-behavior: smooth;
 }
 
-@keyframes landing-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.landing-float {
-  animation: landing-float 5s ease-in-out infinite;
-}
-
-@keyframes landing-dash {
-  to {
-    stroke-dashoffset: -24;
-  }
-}
-
-.landing-route {
-  animation: landing-dash 2s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html:has(.landing) {
     scroll-behavior: auto;
   }
-  .landing-float,
-  .landing-route {
-    animation: none;
-  }
 }
 
-/* Carousel track: hide the scrollbar, swipe/scroll stays native. */
-.landing-track {
-  scrollbar-width: none;
-}
-
-.landing-track::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .landing-track {
-    scroll-behavior: auto;
-  }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /*
@@ -64,7 +53,8 @@ html:has(.landing) {
  * beats Tailwind utilities (which live in a cascade layer). Links in the landing
  * that carry a text-* utility must get their color from that utility.
  */
-.landing a[class*='text-'] {
+.landing a[class*='text-'],
+.landing :is(h1, h2, h3, h4, h5, h6)[class*='text-'] {
   color: revert-layer;
 }
 

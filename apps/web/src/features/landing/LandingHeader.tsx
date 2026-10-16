@@ -1,53 +1,61 @@
+import { useState, type SyntheticEvent } from 'react'
+import { Search } from 'lucide-react'
 import { Link } from 'react-router'
 import { Brand } from './Brand'
 
-const NAV = [
-  { href: '#inicio', label: 'Inicio' },
-  { href: '#servicios', label: 'Servicios' },
-  { href: '#productos', label: 'Productos' },
-  { href: '#zonas', label: 'Zonas de entrega' },
-  { href: '#preguntas', label: 'Preguntas' },
-]
+interface LandingHeaderProps {
+  onSearch: (query: string) => void
+}
 
-const focus =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
+export function LandingHeader({ onSearch }: LandingHeaderProps) {
+  const [value, setValue] = useState('')
 
-export function LandingHeader() {
+  const submit = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    onSearch(value.trim())
+    window.location.hash = 'catalogo'
+  }
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-outline-variant/40 bg-surface/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <a href="#inicio" className={`rounded-lg ${focus}`} aria-label="Pikka, ir al inicio">
-          <Brand />
-        </a>
-        <nav aria-label="Principal" className="hidden items-center gap-6 xl:flex">
-          {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={`rounded text-sm font-semibold text-on-surface-variant hover:text-primary ${focus}`}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-50 border-b border-[var(--landing-line)] bg-[var(--landing-bg)]/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div className="flex shrink-0 items-center">
+          <a href="#inicio" aria-label="Pikka, volver al inicio" className="group flex items-center">
+            <Brand />
+          </a>
+        </div>
+
+        {/* Search bar in editorial style */}
+        <form role="search" onSubmit={submit} className="flex min-w-0 flex-1 justify-center max-w-sm sm:max-w-md mx-2">
+          <div className="relative w-full">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--landing-muted)]" />
+            <input
+              type="search"
+              aria-label="Buscar productos"
+              placeholder="Buscar productos…"
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value)
+              }}
+              className="h-8.5 w-full rounded border border-[var(--landing-line)] bg-white pl-8 pr-3 font-mono text-xs text-[var(--landing-text)] placeholder:text-[var(--landing-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
+            />
+          </div>
+        </form>
+
+        {/* Right CTA links */}
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href="#rastreo"
-            className={`hidden rounded-lg border border-secondary px-4 py-2 text-sm font-semibold text-secondary hover:bg-secondary-fixed/40 md:inline-block ${focus}`}
+            className="hidden items-center gap-1.5 rounded border border-[var(--landing-line)] bg-white px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-[var(--landing-deep)] transition-colors hover:border-[var(--landing-deep)] lg:flex"
           >
-            Rastrear pedido
+            <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[var(--landing-accent)]" />
+            <span>Rastrear</span>
           </a>
           <Link
-            to="/login?modo=registro"
-            className={`hidden rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-surface-container sm:inline-block ${focus}`}
-          >
-            Crear cuenta
-          </Link>
-          <Link
             to="/login"
-            className={`rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-container ${focus}`}
+            className="flex items-center gap-2 rounded border border-[var(--landing-deep)] bg-primary px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider text-white transition-colors hover:bg-primary-container"
           >
-            Iniciar sesión
+            <span>Mi cuenta</span>
           </Link>
         </div>
       </div>

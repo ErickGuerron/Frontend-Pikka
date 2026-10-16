@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { userMessage } from '@/shared/api/errors'
+import { KpiGrid } from '@/shared/ui/kpi'
+import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { isDriversDemoMode, listDrivers } from './api'
 import { driverStatusLabels, driverStatuses, filterDrivers, type DriverStatus } from './types'
 
@@ -14,36 +16,60 @@ export function DriversPage() {
     queryFn: listDrivers,
   })
   const visible = useMemo(() => filterDrivers(drivers, query, status), [drivers, query, status])
+  const pager = usePagination(visible)
 
   return (
-    <div className="flex flex-col gap-2 pt-2 pb-6">
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <h1 className="text-base font-bold text-on-surface tracking-tight">Repartidores</h1>
-          {isDriversDemoMode() ? (
-            <span className="uppercase tracking-wider bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded-full font-bold text-[9px]">
-              Demo · datos simulados
-            </span>
-          ) : null}
+    <div className="flex flex-col gap-4 max-w-7xl">
+      {/* Dossier Header */}
+      <div className="bg-white rounded-xl border border-[#cce7ea] p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 rounded border border-[#cce7ea] bg-[#e8f7f9] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-[#004b4e]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
+              <span className="font-semibold">DOSSIER FLOTA · LOGÍSTICA DE ÚLTIMA MILLA</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#004b4e] font-sans tracking-tight">
+                Repartidores
+              </h1>
+              {isDriversDemoMode() ? (
+                <span className="uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-mono font-bold text-[9px]">
+                  Demo · datos simulados
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs font-mono text-[#557b7f]">
+              Disponibilidad, estado en ruta y control operativo de la flota activa.
+            </p>
+          </div>
         </div>
-        <p className="text-[11px] text-on-surface-variant leading-tight">Disponibilidad de los repartidores de hoy.</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <label className="flex flex-col gap-0.5 text-[10px] text-on-surface-variant">
-          Buscar
+      <KpiGrid
+        items={[
+          { label: 'Total', badge: 'GLOBAL', value: drivers.length, unit: 'repartidores', tag: 'Flota' },
+          { label: 'Disponibles', badge: 'LIBRES', value: drivers.filter((d) => d.status === 'AVAILABLE').length, unit: 'sin ruta', tag: 'Listos' },
+          { label: 'En ruta', badge: 'TRÁNSITO', value: drivers.filter((d) => d.status === 'ON_ROUTE').length, unit: 'en reparto', tag: 'Operando' },
+          { label: 'Inactivos', badge: 'BAJA', value: drivers.filter((d) => !d.active).length, unit: 'desactivados', tag: 'Fuera de flota' },
+        ]}
+      />
+
+      {/* Technical Filter Toolbar */}
+      <div className="bg-white rounded-xl border border-[#cce7ea] p-4 shadow-sm flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
+          <span>Buscar</span>
           <input
-            className="px-2 py-1.5 rounded-lg border border-outline-variant text-[11px] text-on-surface bg-surface-container-lowest"
+            className="px-3 py-1.5 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             onChange={(event) => { setQuery(event.target.value); }}
             placeholder="Nombre o teléfono"
             type="search"
             value={query}
           />
         </label>
-        <label className="flex flex-col gap-0.5 text-[10px] text-on-surface-variant">
-          Estado
+        <label className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
+          <span>Estado</span>
           <select
-            className="px-2 py-1.5 rounded-lg border border-outline-variant text-[11px] text-on-surface bg-surface-container-lowest"
+            className="px-3 py-1.5 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             onChange={(event) => { setStatus(event.target.value as DriverStatus | 'ALL'); }}
             value={status}
           >
@@ -53,16 +79,24 @@ export function DriversPage() {
             ))}
           </select>
         </label>
+        <div className="ml-auto text-xs font-mono text-[#557b7f]">
+          TOTAL: <span className="font-bold text-[#004b4e]">{visible.length}</span> REPARTIDORES
+        </div>
       </div>
 
-      <section className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 overflow-hidden">
+      {/* Fleet Table */}
+      <section className="bg-white rounded-xl border border-[#cce7ea] shadow-sm overflow-hidden">
         {isLoading ? (
-          <p role="status" className="px-4 py-8 text-center text-[11px] text-on-surface-variant">Cargando repartidores…</p>
+          <p role="status" className="px-4 py-12 text-center font-mono text-xs text-[#557b7f]">
+            Cargando repartidores…
+          </p>
         ) : isError ? (
-          <div role="alert" className="px-4 py-6 flex flex-col items-center gap-2 text-center">
-            <p className="text-[11px] text-error">No pudimos cargar los repartidores. {userMessage(error)}</p>
+          <div role="alert" className="px-4 py-8 flex flex-col items-center gap-3 text-center">
+            <p className="font-mono text-xs text-[#ba1a1a]">
+              No pudimos cargar los repartidores. {userMessage(error)}
+            </p>
             <button
-              className="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 transition-colors border border-[#004b4e]"
               disabled={isFetching}
               onClick={() => { void refetch(); }}
               type="button"
@@ -71,31 +105,70 @@ export function DriversPage() {
             </button>
           </div>
         ) : drivers.length === 0 ? (
-          <p className="px-4 py-8 text-center text-[12px] text-on-surface">No hay repartidores registrados.</p>
+          <p className="px-4 py-12 text-center font-mono text-xs text-[#557b7f]">
+            No hay repartidores registrados.
+          </p>
         ) : visible.length === 0 ? (
-          <p className="px-4 py-8 text-center text-[12px] text-on-surface">Ningún repartidor coincide con el filtro.</p>
+          <p className="px-4 py-12 text-center font-mono text-xs text-[#557b7f]">
+            Ningún repartidor coincide con el filtro.
+          </p>
         ) : (
-          <table className="w-full text-left text-[11px]">
-            <caption className="sr-only">Repartidores con su teléfono, estado y si están activos</caption>
-            <thead className="bg-surface-container-low/60 text-on-surface-variant uppercase tracking-wider text-[9px]">
-              <tr>
-                <th scope="col" className="px-4 py-2 font-bold">Nombre</th>
-                <th scope="col" className="px-4 py-2 font-bold">Teléfono</th>
-                <th scope="col" className="px-4 py-2 font-bold">Estado</th>
-                <th scope="col" className="px-4 py-2 font-bold">Activo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((driver) => (
-                <tr key={driver.id} className="border-t border-surface-container">
-                  <td className="px-4 py-2 text-on-surface font-semibold">{driver.fullName}</td>
-                  <td className="px-4 py-2 text-on-surface">{driver.phone}</td>
-                  <td className="px-4 py-2 text-on-surface">{driverStatusLabels[driver.status]}</td>
-                  <td className="px-4 py-2 text-on-surface">{driver.active ? 'Sí' : 'No'}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <caption className="sr-only">Repartidores con su teléfono, estado y si están activos</caption>
+              <thead className="bg-[#f0fafb] text-[#557b7f] font-mono uppercase tracking-wider text-[10px] border-b border-[#cce7ea]">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-bold">Nombre</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Teléfono</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Estado</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Activo</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#cce7ea]">
+                {pager.pageItems.map((driver) => {
+                  const statusColor =
+                    driver.status === 'AVAILABLE'
+                      ? 'bg-teal-50 text-teal-800 border-teal-200'
+                      : driver.status === 'ON_ROUTE'
+                      ? 'bg-blue-50 text-blue-800 border-blue-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+
+                  return (
+                    <tr key={driver.id} className="hover:bg-[#f7fcfc] transition-colors">
+                      <td className="px-4 py-3 text-[#061f23] font-semibold flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="h-7 w-7 rounded-full bg-[#e8f7f9] text-[#004b4e] font-bold font-mono text-[11px] flex items-center justify-center border border-[#cce7ea]"
+                        >
+                          {driver.fullName.charAt(0).toUpperCase()}
+                        </span>
+                        <span>{driver.fullName}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[#557b7f]">{driver.phone}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2.5 py-0.5 rounded font-mono text-[10px] font-bold border ${statusColor}`}>
+                          {driverStatusLabels[driver.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {driver.active ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#006b5f] bg-[#e8f7f9] px-2 py-0.5 rounded border border-[#cce7ea]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#006b5f]" />
+                            Sí
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#ba1a1a] bg-[#ffdad6]/40 px-2 py-0.5 rounded border border-[#ffdad6]">
+                            No
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            <Pagination label="repartidores" {...pager} onPage={pager.setPage} />
+          </div>
         )}
       </section>
     </div>

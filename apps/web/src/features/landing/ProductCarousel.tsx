@@ -1,68 +1,92 @@
 import { Link } from 'react-router'
 import { ScrollCarousel } from './ScrollCarousel'
-import { formatPrice, usePublicProducts, type PublicProduct } from './catalog'
+import { filterProducts, formatPrice, usePublicProducts, type PublicProduct } from './catalog'
 
-const TITLE_ID = 'productos-titulo'
+const TITLE_ID = 'catalogo-titulo'
 const SKELETON_CARDS = 3
+const focus = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)] focus-visible:ring-offset-2'
+const primaryButton = `rounded-full border border-[var(--landing-deep)] bg-primary px-5 py-1.5 font-mono text-xs uppercase tracking-wider text-white transition-colors hover:bg-primary-container ${focus}`
 
-const skeletonCard = 'h-64 shrink-0 basis-full snap-start animate-pulse rounded-2xl bg-surface-container motion-reduce:animate-none md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)]'
+/** Fondos para productos sin imagen; el color depende del id para que no cambie entre cargas. */
+const PLACEHOLDER_COLORS = ['#a5eff2', '#d7f0d0', '#ffe3c2', '#e6d9f5', '#ffd6d6', '#d3e4fd']
 
-/** Catálogo público de productos. Sin stock: solo nombre, descripción y precio. */
-export function ProductCarousel() {
+function placeholderColor(id: string): string {
+  let hash = 0
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0
+  return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length] ?? '#a5eff2'
+}
+
+const slideBasis = 'basis-full md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)]'
+
+interface ProductCarouselProps {
+  /** Texto del buscador de cabecera; filtra por nombre cuando el catálogo ya cargó. */
+  query?: string
+  onClearQuery?: () => void
+}
+
+/** Catálogo público con datos reales del API. Sin stock ni calificaciones: nombre, descripción, precio y pedido. */
+export function ProductCarousel({ query = '', onClearQuery }: ProductCarouselProps) {
   const { data: products, isPending, isError, isFetching, refetch } = usePublicProducts()
 
   // Sin productos la sección no aporta nada: se oculta en lugar de mostrar un hueco.
   if (!isPending && !isError && products.length === 0) return null
 
+  const visible = isPending || isError ? [] : filterProducts(products, query)
+
   return (
-    <section id="productos" className="scroll-mt-20 bg-surface-container-low px-4 py-20 sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="inline-block rounded-full bg-secondary-fixed px-3 py-1 text-xs font-bold tracking-wide text-on-secondary-container">
-              CATÁLOGO
-            </p>
-            <h2 id={TITLE_ID} className="mt-4 text-3xl font-bold tracking-tight sm:text-[40px] sm:leading-[48px]">
-              Productos disponibles
-            </h2>
+    <section id="catalogo" className="scroll-mt-20 border-t border-[var(--landing-line)] bg-[var(--landing-bg)] py-12 sm:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mb-8 border-b border-[var(--landing-line)] pb-4">
+          <h2 id={TITLE_ID} className="text-2xl font-semibold tracking-tight text-[var(--landing-deep)] sm:text-3xl">
+            Catálogo
+          </h2>
+          <p className="mt-1 font-mono text-xs text-[var(--landing-muted)]">Elige un producto y haz tu pedido con tu cuenta.</p>
+        </div>
+
+        {isPending ? (
+          <div data-testid="products-skeleton" aria-busy="true" className="flex gap-6 overflow-hidden">
+            <p className="sr-only">Cargando productos…</p>
+            {Array.from({ length: SKELETON_CARDS }, (_, i) => (
+              <div
+                key={i}
+                aria-hidden="true"
+                className={`h-64 shrink-0 animate-pulse rounded border border-[var(--landing-line)] bg-[var(--landing-tag-bg)] motion-reduce:animate-none ${slideBasis}`}
+              />
+            ))}
           </div>
-          <Link
-            to="/login?modo=registro"
-            className="shrink-0 rounded-xl bg-primary px-6 py-3 text-center font-semibold text-white shadow-sm transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-          >
-            Crear mi cuenta
-          </Link>
-        </div>
+        ) : null}
 
-        <div className="mt-10">
-          {isPending ? (
-            <div data-testid="products-skeleton" aria-busy="true" className="flex gap-6 overflow-hidden">
-              <p className="sr-only">Cargando productos…</p>
-              {Array.from({ length: SKELETON_CARDS }, (_, i) => (
-                <div key={i} aria-hidden="true" className={skeletonCard} />
-              ))}
-            </div>
-          ) : null}
+        {isError ? (
+          <div role="alert" className="rounded border border-[var(--landing-line)] bg-white p-6 font-mono">
+            <p className="text-sm font-semibold text-[var(--landing-deep)]">No pudimos cargar los productos.</p>
+            <p className="mt-1 text-xs text-[var(--landing-muted)]">Revisa tu conexión e inténtalo de nuevo.</p>
+            <button
+              type="button"
+              disabled={isFetching}
+              onClick={() => {
+                void refetch()
+              }}
+              className={`mt-4 disabled:cursor-not-allowed disabled:opacity-40 ${primaryButton}`}
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : null}
 
-          {isError ? (
-            <div role="alert" className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-6">
-              <p className="font-semibold">No pudimos cargar los productos.</p>
-              <p className="mt-1 text-sm text-on-surface-variant">Revisa tu conexión e inténtalo de nuevo.</p>
-              <button
-                type="button"
-                disabled={isFetching}
-                onClick={() => {
-                  void refetch()
-                }}
-                className="mt-4 rounded-xl bg-primary px-5 py-2 font-semibold text-white transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-              >
-                Reintentar
+        {!isPending && !isError && visible.length === 0 ? (
+          <div className="flex flex-col items-start gap-4 rounded border border-[var(--landing-line)] bg-white p-6 font-mono">
+            <p role="status" className="text-sm text-[var(--landing-deep)]">
+              Ningún producto coincide con “{query}”.
+            </p>
+            {onClearQuery ? (
+              <button type="button" onClick={onClearQuery} className={primaryButton}>
+                Quitar filtro
               </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+        ) : null}
 
-          {!isPending && !isError ? <ProductSlides products={products} /> : null}
-        </div>
+        {visible.length > 0 ? <ProductSlides products={visible} /> : null}
       </div>
     </section>
   )
@@ -80,19 +104,30 @@ function ProductSlides({ products }: { products: PublicProduct[] }) {
           role="group"
           aria-roledescription="slide"
           aria-label={`${String(i + 1)} de ${String(products.length)}`}
-          className="flex shrink-0 basis-full snap-start flex-col overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-container-lowest shadow-sm md:basis-[calc((100%-1.5rem)/2)] lg:basis-[calc((100%-3rem)/3)] xl:basis-[calc((100%-4.5rem)/4)]"
+          className={`flex shrink-0 snap-start flex-col overflow-hidden rounded border border-[var(--landing-line)] bg-white shadow-sm lg:basis-[calc((100%-3rem)/3)] ${slideBasis}`}
         >
-          <div aria-hidden="true" className="flex h-32 items-center justify-center bg-primary-fixed">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-surface-container-lowest text-2xl font-bold text-primary">
-              {product.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className="flex flex-1 flex-col p-6">
-            <h3 className="break-words text-lg font-bold">{product.name}</h3>
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt="" loading="lazy" className="h-44 w-full border-b border-[var(--landing-line)] object-cover" />
+          ) : (
+            <div
+              aria-hidden="true"
+              style={{ backgroundColor: placeholderColor(product.id) }}
+              className="flex h-44 items-center justify-center border-b border-[var(--landing-line)]"
+            >
+              <span className="text-5xl font-bold text-[var(--landing-deep)]/70">{product.name.charAt(0).toUpperCase()}</span>
+            </div>
+          )}
+          <div className="flex flex-1 flex-col p-4 sm:p-5">
+            <h3 className="break-words text-base font-semibold tracking-tight text-[var(--landing-deep)]">{product.name}</h3>
             {product.description ? (
-              <p className="mt-2 line-clamp-2 text-base leading-6 text-on-surface-variant">{product.description}</p>
+              <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[var(--landing-muted)]">{product.description}</p>
             ) : null}
-            <p className="mt-auto pt-4 text-xl font-bold tabular-nums text-primary">{formatPrice(product.unitPrice)}</p>
+            <div className="mt-auto flex items-center justify-between gap-4 pt-4">
+              <p className="font-mono text-base font-bold tabular-nums text-[var(--landing-deep)]">{formatPrice(product.unitPrice)}</p>
+              <Link to="/login?modo=registro" className={`shrink-0 ${primaryButton}`}>
+                Hacer pedido
+              </Link>
+            </div>
           </div>
         </div>
       ))}

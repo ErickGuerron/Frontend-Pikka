@@ -154,3 +154,158 @@ describe('administración de productos (personal)', () => {
     expect(within(history).getByText('Venta')).toBeInTheDocument()
   })
 })
+
+describe('ajuste de stock en modal', () => {
+  async function openStock() {
+    serve(operatorUser)
+    renderApp('/productos')
+    const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: 'Ajustar stock de Agua 1L' })
+    await user.click(trigger)
+    return { user, trigger }
+  }
+
+  it('se abre como diálogo modal, Escape lo cierra y devuelve el foco al botón', async () => {
+    const { user, trigger } = await openStock()
+
+    expect(screen.getByRole('dialog', { name: 'Stock de Agua 1L' })).toHaveAttribute('aria-modal', 'true')
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('la cantidad admite signo y hasta 6 cifras, sin letras', async () => {
+    const { user } = await openStock()
+    const delta = screen.getByLabelText('Cantidad (+ suma, - resta)')
+
+    await user.type(delta, '-a1b2')
+    expect(delta).toHaveValue('-12')
+
+    await user.clear(delta)
+    await user.type(delta, '12345678')
+    expect(delta).toHaveValue('123456')
+  })
+})
+
+describe('producto sin stock', () => {
+  it('ofrece "Agregar stock" cuando el stock es cero', async () => {
+    serve(operatorUser, [{ ...water, stockQuantity: 0 }])
+    renderApp('/productos')
+
+    expect(await screen.findByRole('button', { name: 'Agregar stock de Agua 1L' })).toHaveTextContent('Agregar stock')
+  })
+})
+
+describe('alta de producto en modal', () => {
+  async function openModal() {
+    const fetchMock = serve(operatorUser)
+    renderApp('/productos')
+    const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: 'Nuevo producto' })
+    await user.click(trigger)
+    return { fetchMock, user, trigger }
+  }
+
+  const postCalls = (fetchMock: ReturnType<typeof serve>) =>
+    fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')
+
+  it('se abre desde "Nuevo producto" como diálogo con foco en el nombre', async () => {
+    await openModal()
+
+    const dialog = screen.getByRole('dialog', { name: 'Nuevo producto' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(screen.getByLabelText('Nombre')).toHaveFocus()
+  })
+
+  it('Escape cierra y devuelve el foco al botón que lo abrió', async () => {
+    const { user, trigger } = await openModal()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('Tab no sale del diálogo: desde el último control vuelve al primero', async () => {
+    const { user } = await openModal()
+
+    screen.getByRole('button', { name: 'Guardar producto' }).focus()
+    await user.tab()
+
+    expect(screen.getByLabelText('Nombre')).toHaveFocus()
+  })
+
+  it('valida nombre y precio, marca los campos y enlaza el mensaje, sin enviar', async () => {
+    const { fetchMock, user } = await openModal()
+
+    await user.click(screen.getByRole('button', { name: 'Guardar producto' }))
+
+    const name = screen.getByLabelText('Nombre')
+    expect(name).toHaveAttribute('aria-invalid', 'true')
+    expect(name).toHaveAccessibleDescription('Escribe el nombre del producto.')
+    expect(screen.getByLabelText('Precio (USD)')).toHaveAttribute('aria-invalid', 'true')
+    expect(postCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('no pide stock inicial si el producto no controla stock', async () => {
+    const { fetchMock, user } = await openModal()
+
+    expect(screen.queryByLabelText('Stock inicial')).not.toBeInTheDocument()
+    await user.type(screen.getByLabelText('Nombre'), 'Nuevo')
+    await user.type(screen.getByLabelText('Precio (USD)'), '2.50')
+    await user.click(screen.getByRole('button', { name: 'Guardar producto' }))
+
+    await waitFor(() => { expect(postCalls(fetchMock)).toHaveLength(1) })
+    expect(sentBody(postCalls(fetchMock)[0]?.[1])).toEqual({ name: 'Nuevo', unitPrice: '2.50' })
+  })
+
+  it('con control de stock envía el stock inicial como entero', async () => {
+    const { fetchMock, user } = await openModal()
+
+    await user.type(screen.getByLabelText('Nombre'), 'Nuevo')
+    await user.type(screen.getByLabelText('Precio (USD)'), '2.50')
+    await user.click(screen.getByLabelText('Controla stock'))
+    await user.type(screen.getByLabelText('Stock inicial'), '5')
+    await user.click(screen.getByRole('button', { name: 'Guardar producto' }))
+
+    await waitFor(() => { expect(postCalls(fetchMock)).toHaveLength(1) })
+    expect(sentBody(postCalls(fetchMock)[0]?.[1])).toEqual({ name: 'Nuevo', unitPrice: '2.50', initialStock: 5 })
+  })
+
+  it('el stock inicial descarta letras y signos y se limita a 6 cifras', async () => {
+    const { user } = await openModal()
+
+    await user.click(screen.getByLabelText('Controla stock'))
+    const stock = screen.getByLabelText('Stock inicial')
+    await user.type(stock, '-a1b2.3')
+    expect(stock).toHaveValue('123')
+
+    await user.clear(stock)
+    await user.type(stock, '12345678')
+    expect(stock).toHaveValue('123456')
+  })
+
+  it('nombre hasta 100 caracteres y descripción hasta 200', async () => {
+    const { user } = await openModal()
+
+    expect(screen.getByLabelText('Nombre')).toHaveAttribute('maxlength', '100')
+    expect(screen.getByLabelText('Descripción (opcional)')).toHaveAttribute('maxlength', '200')
+    await user.type(screen.getByLabelText('Nombre'), 'x'.repeat(120))
+    expect(screen.getByLabelText('Nombre')).toHaveValue('x'.repeat(100))
+  })
+
+  it('al guardar invalida la lista, cierra el modal y confirma', async () => {
+    const { fetchMock, user } = await openModal()
+
+    await user.type(screen.getByLabelText('Nombre'), 'Nuevo')
+    await user.type(screen.getByLabelText('Precio (USD)'), '2.50')
+    await user.click(screen.getByRole('button', { name: 'Guardar producto' }))
+
+    expect(await screen.findByText('Producto «Nuevo» creado.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const listCalls = fetchMock.mock.calls.filter(([url, init]) => url.includes('includeInactive=true') && init?.method !== 'POST')
+    expect(listCalls.length).toBeGreaterThanOrEqual(2)
+  })
+})

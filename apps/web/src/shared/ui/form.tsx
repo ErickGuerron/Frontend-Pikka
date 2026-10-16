@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 
 /** Estilo único de los campos de texto. Cambiarlo aquí cambia todos los formularios. */
 export const inputClass =
-  'w-full bg-surface-container-low border border-surface-container-high rounded-lg px-3 py-2 text-[12px] text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-60 aria-[invalid=true]:border-error'
+  'w-full bg-white border border-[#cce7ea] rounded-lg px-3 py-2 text-xs font-sans text-[#061f23] focus:outline-none focus:ring-2 focus:ring-[#004b4e]/30 focus:border-[#004b4e] disabled:opacity-60 aria-[invalid=true]:border-error transition-all'
 
 /** Estilo de la etiqueta de cada campo. */
-export const fieldLabelClass = 'text-[10px] font-bold uppercase tracking-wider text-on-surface-variant'
+export const fieldLabelClass = 'text-[10px] font-mono font-bold uppercase tracking-wider text-[#557b7f]'
 
 export interface FieldProps {
   label: string

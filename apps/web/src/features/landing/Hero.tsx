@@ -1,60 +1,85 @@
-import { Truck } from 'lucide-react'
-import { Link } from 'react-router'
-import { Mascot } from './Mascot'
-
-const STATS = [
-  { value: '4', label: 'Ventanas de entrega al día' },
-  { value: '09–21 h', label: 'Horario de entrega' },
-  { value: 'Mapa', label: 'Seguimiento de tu ruta' },
-]
-
-const cta =
-  'rounded-xl px-6 py-3 text-center font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
+import pikkaNutria from '@/assets/pikka.png'
 
 export function Hero() {
   return (
-    <section id="inicio" className="relative scroll-mt-20 overflow-hidden px-4 pb-24 pt-28 sm:px-6 lg:pt-32">
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
-        <div>
-          <p className="inline-flex flex-wrap items-center gap-2 rounded-full bg-secondary-fixed px-3 py-1 text-xs font-bold tracking-wide text-on-secondary-container">
-            <span>SERVICIO DE ENTREGAS</span>
-            <span aria-hidden="true">·</span>
-            <span className="font-semibold">Directo a tu puerta</span>
-          </p>
-          <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-[40px] sm:leading-[48px]">
-            Pide tu entrega y elige tu ventana de horario.
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-6 text-on-surface-variant">
-            Solicita tu entrega, confirma la ventana y sigue tu pedido en el mapa hasta tu puerta.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link to="/login?modo=registro" className={`${cta} bg-primary text-white hover:bg-primary-container`}>
-              Crear mi cuenta
-            </Link>
-            <a href="#servicios" className={`${cta} border border-outline-variant bg-surface-container-lowest text-primary hover:bg-surface-container`}>
-              Ver servicios
-            </a>
-          </div>
-          <dl className="mt-10 grid grid-cols-3 gap-4 border-t border-outline-variant/60 pt-6">
-            {STATS.map((s) => (
-              <div key={s.label}>
-                <dt className="text-xs text-on-surface-variant sm:text-sm">{s.label}</dt>
-                <dd className="mt-1 text-xl font-bold tabular-nums text-primary sm:text-2xl">{s.value}</dd>
+    <section id="inicio" className="border-b border-[var(--landing-line)] bg-[var(--landing-bg)] py-10 sm:py-14">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="relative overflow-hidden rounded border border-[var(--landing-line)] bg-white p-6 shadow-sm sm:p-10 lg:p-12">
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
+            <div className="space-y-5 lg:col-span-7">
+              <div className="inline-flex items-center gap-2 rounded border border-[var(--landing-line)] bg-[var(--landing-tag-bg)] px-2.5 py-1 font-mono text-[11px] uppercase tracking-widest text-[var(--landing-deep)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--landing-accent)]" />
+                <span className="font-semibold">DOSSIER LOGÍSTICO · RED OFICIAL PIKKA</span>
               </div>
-            ))}
-          </dl>
-        </div>
-        <div className="relative mx-auto aspect-square w-full max-w-md">
-          <div aria-hidden="true" className="absolute inset-0 rounded-full bg-primary-fixed/60" />
-          <Mascot className="absolute inset-[6%] h-[88%] w-[88%] object-contain" />
-          <div className="landing-float absolute left-0 top-6 flex items-center gap-3 rounded-2xl bg-surface-container-lowest p-3 shadow-lg sm:-left-6">
-            <span className="rounded-xl bg-secondary-fixed p-2 text-secondary">
-              <Truck aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <span className="text-sm">
-              <strong className="block">Pedido en camino</strong>
-              <span className="text-on-surface-variant">Sigue la ruta en el mapa</span>
-            </span>
+
+              <h1 className="text-3xl font-normal leading-[1.12] tracking-tight text-[var(--landing-deep)] sm:text-4xl lg:text-5xl">
+                Lo mejor de la ciudad,{' '}
+                <br />
+                <span className="font-light italic text-[var(--landing-secondary)]">en tu puerta en minutos.</span>
+              </h1>
+
+              <p className="max-w-xl text-sm font-normal leading-relaxed text-[var(--landing-text-variant)] sm:text-base">
+                Pastelería de alta repostería, detalles curatoriales, tecnología calibrada y dermocosmética activa.
+                Despacho directo con monitoreo de telemetría y soporte isotérmico de grado clínico.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2 font-mono text-[11px]">
+                <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
+                  COBERTURA: <span className="font-bold text-[var(--landing-deep)]">LOCAL</span>
+                </div>
+                <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
+                  TRANSPORTE: <span className="font-bold text-[var(--landing-deep)]">ISOTÉRMICO</span>
+                </div>
+                <div className="rounded border border-[var(--landing-line)] bg-[var(--landing-bg)] px-2.5 py-1 text-[var(--landing-deep)]">
+                  ENTREGA: <span className="font-bold text-[var(--landing-deep)]">CUIDADA</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-4">
+                <a
+                  href="#catalogo"
+                  className="flex items-center gap-2 rounded-full border border-[var(--landing-deep)] bg-primary px-6 py-2.5 font-mono text-xs uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
+                >
+                  <span>Explorar catálogo</span>
+                  <span aria-hidden="true">→</span>
+                </a>
+                <a
+                  href="#rastreo"
+                  className="rounded-full border border-[var(--landing-deep)] bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-[var(--landing-deep)] transition-colors hover:bg-[var(--landing-tag-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
+                >
+                  <span>Cómo funciona</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Nutria Mensajera Oficial Card */}
+            <div className="relative flex justify-center lg:col-span-5">
+              <div className="relative flex aspect-square w-72 flex-col items-center justify-between rounded border border-[var(--landing-line)] bg-[var(--landing-card)] p-6 shadow-sm sm:w-80 lg:w-96">
+                <div className="flex w-full items-center justify-between border-b border-[var(--landing-line)] pb-2 font-mono text-[10px] uppercase tracking-wider text-[var(--landing-muted)]">
+                  <span className="font-semibold text-[var(--landing-deep)]">FIG. 01 — MASCOTA OFICIAL</span>
+                  <span className="font-bold text-[var(--landing-accent)]">ESTADO: ACTIVO</span>
+                </div>
+
+                <div className="my-auto flex w-full items-center justify-center px-2 py-4">
+                  <img
+                    src={pikkaNutria}
+                    alt="Nutria mensajera con regalo y mochila oficial Pikka"
+                    className="h-52 w-52 object-contain drop-shadow-md transition-transform duration-500 hover:scale-105 sm:h-60 sm:w-60"
+                  />
+                </div>
+
+                <div className="grid w-full grid-cols-2 gap-2 border-t border-[var(--landing-line)] pt-2 font-mono text-[10px] text-[var(--landing-text)]">
+                  <div className="rounded border border-[var(--landing-line)] bg-white p-1.5">
+                    <span className="block text-[9px] text-[var(--landing-muted)]">DESPACHO</span>
+                    <span className="font-bold text-[var(--landing-deep)]">PREPARADO CON CUIDADO</span>
+                  </div>
+                  <div className="rounded border border-[var(--landing-line)] bg-white p-1.5">
+                    <span className="block text-[9px] text-[var(--landing-muted)]">MONITOREO</span>
+                    <span className="font-bold text-[var(--landing-deep)]">CADENA DE FRÍO</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -35,6 +35,13 @@ describe('API de catálogo', () => {
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('includeInactive=true')
   })
 
+  it('acepta stockQuantity null (producto sin control de stock) como ausente', async () => {
+    useSession.getState().setToken('tok')
+    mockApi(() => ({ status: 200, body: { products: [{ ...product, stockQuantity: null }] } }))
+
+    expect((await listProducts(false))[0]?.stockQuantity).toBeUndefined()
+  })
+
   it('crea un producto enviando el precio como texto y el stock como initialStock', async () => {
     useSession.getState().setToken('tok')
     const fetchMock = mockApi(() => ({ status: 201, body: product }))

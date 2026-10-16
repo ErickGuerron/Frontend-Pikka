@@ -1,43 +1,39 @@
-import { BenefitsTelemetry } from './BenefitsTelemetry'
-import { Carousel } from './Carousel'
-import { Faq } from './Faq'
-import { FinalCta } from './FinalCta'
+import { useState } from 'react'
+import { Collections } from './Collections'
+import { Commitments } from './Commitments'
 import { Hero } from './Hero'
-import { HowItWorks } from './HowItWorks'
 import { LandingFooter } from './LandingFooter'
 import { LandingHeader } from './LandingHeader'
 import { ProductCarousel } from './ProductCarousel'
-import { QuickSearch } from './QuickSearch'
-import { Testimonials } from './Testimonials'
-import { Zones } from './Zones'
+import { Tracking } from './Tracking'
 import './landing.css'
 
 /**
- * Landing pública. No depende de la sesión: el único dato remoto es el catálogo
- * público, que se pide sin token.
+ * Landing pública oficial de Pikka (Edición Editorial 2025).
+ * Entrega ultrarrápida y cuidada en minutos.
  */
 export function LandingPage() {
+  const [query, setQuery] = useState('')
+
   return (
-    <div className="landing min-h-screen">
+    <div className="landing min-h-screen bg-[var(--landing-bg)] font-sans text-[var(--landing-text)] antialiased selection:bg-[var(--landing-fixed)] selection:text-[var(--landing-deep)]">
       <a
         href="#contenido"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-[var(--landing-deep)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--landing-accent)]"
       >
         Saltar al contenido
       </a>
-      <LandingHeader />
+
+      <LandingHeader onSearch={setQuery} />
+
       <main id="contenido" tabIndex={-1}>
         <Hero />
-        <QuickSearch />
-        <Carousel />
-        <ProductCarousel />
-        <HowItWorks />
-        <BenefitsTelemetry />
-        <Testimonials />
-        <FinalCta />
-        <Zones />
-        <Faq />
+        <Collections />
+        <ProductCarousel query={query} onClearQuery={() => { setQuery('') }} />
+        <Tracking />
+        <Commitments />
       </main>
+
       <LandingFooter />
     </div>
   )
