@@ -1,4 +1,5 @@
 import { ApiError } from '../../api/errors'
+import type { Product } from './products'
 import { canCancel, localToday, type CustomerOrder, type NewCustomerOrder } from './types'
 
 /**
@@ -54,8 +55,21 @@ export function listDemoOrders(): Promise<CustomerOrder[]> {
   return Promise.resolve(store.map((order) => ({ ...order })))
 }
 
+/** Fixed catalog for demo mode; one product tracks stock and one is sold out. */
+export function listDemoProducts(): Product[] {
+  return [
+    { id: 'p-agua-20l', name: 'Agua 20 L', unitPrice: '3.50', active: true, stockQuantity: undefined },
+    { id: 'p-agua-5l', name: 'Agua 5 L', unitPrice: '1.25', active: true, stockQuantity: 8 },
+    { id: 'p-hielo', name: 'Hielo 5 kg', unitPrice: '2.00', active: true, stockQuantity: 0 },
+    { id: 'p-retirado', name: 'Producto retirado', unitPrice: '9.99', active: false, stockQuantity: undefined },
+  ]
+}
+
 /** New orders start PENDING; uncovered addresses go to PENDING_REVIEW like the real validation would. */
 export function createDemoOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
+  if (input.items.length === 0) {
+    return Promise.reject(new ApiError(400, 'VALIDATION_ERROR', 'order must contain at least one product'))
+  }
   const covered = isCoveredAddress(input.address)
   const order: CustomerOrder = {
     id: nextId(),

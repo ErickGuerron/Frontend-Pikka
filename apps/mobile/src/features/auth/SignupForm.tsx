@@ -6,11 +6,12 @@ import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
 import { colors } from '../../theme/colors'
 import { useSessionStore } from '../../store/session-store'
+import { CITY_MAX, normalizePhone, sanitizePhoneInput } from '../contact/validation'
 import { signup } from './api'
 import { PasswordStrength } from './PasswordStrength'
 import { joinFullName, MAX_NAME_PART, validateSignup, type SignupErrors, type SignupValues } from './signup-validation'
 
-const empty: SignupValues = { nombre: '', apellido: '', email: '', password: '', confirm: '' }
+const empty: SignupValues = { nombre: '', apellido: '', city: '', phone: '', email: '', password: '', confirm: '' }
 
 export function SignupForm() {
   const [values, setValues] = useState<SignupValues>(empty)
@@ -35,6 +36,8 @@ export function SignupForm() {
         email: values.email.trim(),
         password: values.password,
         fullName: joinFullName(values.nombre, values.apellido),
+        phone: normalizePhone(values.phone.trim()),
+        city: values.city.trim(),
       })
       // The (auth) layout redirects to /mis-pedidos as soon as the session exists.
       await setSession(result.accessToken, result.user, result.expiresIn)
@@ -49,6 +52,8 @@ export function SignupForm() {
     <View style={styles.form}>
       <Field label="Nombre" value={values.nombre} onChangeText={set('nombre')} error={errors.nombre} maxLength={MAX_NAME_PART} autoComplete="given-name" textContentType="givenName" editable={!loading} />
       <Field label="Apellido" value={values.apellido} onChangeText={set('apellido')} error={errors.apellido} maxLength={MAX_NAME_PART} autoComplete="family-name" textContentType="familyName" editable={!loading} />
+      <Field label="Ciudad" value={values.city} onChangeText={set('city')} error={errors.city} maxLength={CITY_MAX} autoComplete="postal-address-locality" textContentType="addressCity" editable={!loading} />
+      <Field label="Teléfono" value={values.phone} onChangeText={(text) => { set('phone')(sanitizePhoneInput(text)) }} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" editable={!loading} />
       <Field label="Correo electrónico" value={values.email} onChangeText={set('email')} error={errors.email} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!loading} />
       <Field
         label="Contraseña"

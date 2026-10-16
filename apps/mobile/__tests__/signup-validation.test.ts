@@ -6,11 +6,19 @@ import {
   validateSignup,
 } from '../src/features/auth/signup-validation'
 
-const valid = { nombre: 'María', apellido: 'Núñez', email: 'maria@pikka.com', password: 'Abcdef1!', confirm: 'Abcdef1!' }
+const valid = { nombre: 'María', apellido: 'Núñez', city: 'Quito', phone: '+593 99 123 4567', email: 'maria@pikka.com', password: 'Abcdef1!', confirm: 'Abcdef1!' }
 
 describe('signup validation', () => {
   it('accepts valid values', () => {
     expect(validateSignup(valid)).toEqual({})
+  })
+
+  it.each(['', ' ', 'Q', 'x'.repeat(81)])('rejects invalid city %p', (city) => {
+    expect(validateSignup({ ...valid, city }).city).toBeDefined()
+  })
+
+  it.each(['', '12345', 'abc1234567', '1'.repeat(16)])('rejects invalid phone %p', (phone) => {
+    expect(validateSignup({ ...valid, phone }).phone).toBeDefined()
   })
 
   it.each(['Ana Maria', 'Ana1', 'Ana-', ''])('rejects invalid nombre %p', (nombre) => {

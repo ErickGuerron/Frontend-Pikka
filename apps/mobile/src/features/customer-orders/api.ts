@@ -1,7 +1,8 @@
 import { http } from '../../api/client'
 import { isDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
-import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
+import { cancelDemoOrder, createDemoOrder, listDemoOrders, listDemoProducts } from './demo'
+import { parseProducts, type Product } from './products'
 import { parseMyOrders, parseOrder, type CustomerOrder, type NewCustomerOrder } from './types'
 
 /**
@@ -23,11 +24,30 @@ export function listMyOrders(signal?: AbortSignal): Promise<CustomerOrder[]> {
   return http.get('/api/v1/orders/mine', parseMyOrders, signal ? { signal } : {})
 }
 
-/** `notes` is intentionally not sent: the OpenAPI CreateOrderRequest has no such field. */
+/** Any authenticated role can read the catalog; a CUSTOMER only gets active products, so no filter is sent. */
+export async function listProducts(signal?: AbortSignal): Promise<Product[]> {
+  const products = isDemoMode() ? listDemoProducts() : await http.get('/api/v1/products', parseProducts, signal ? { signal } : {})
+  return products.filter((product) => product.active)
+}
+
+/**
+ * `notes` is intentionally not sent: the OpenAPI CreateOrderRequest has no such field.
+ * `postalCode` is omitted when empty; the phone is sent already normalized.
+ */
 export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
   if (isDemoMode()) return createDemoOrder(input)
-  const { address, deliveryDate, windowStart, windowEnd } = input
-  return http.post('/api/v1/orders', parseOrder, { body: { address, deliveryDate, windowStart, windowEnd } })
+  const { address, addressReference, postalCode, contactPhone, deliveryDate, windowStart, windowEnd, items } = input
+  const body = {
+    address,
+    addressReference,
+    ...(postalCode === undefined || postalCode === '' ? {} : { postalCode }),
+    contactPhone,
+    deliveryDate,
+    windowStart,
+    windowEnd,
+    items,
+  }
+  return http.post('/api/v1/orders', parseOrder, { body })
 }
 
 export function cancelOrder(id: string): Promise<CustomerOrder> {
