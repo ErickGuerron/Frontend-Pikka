@@ -1,6 +1,7 @@
 import { useRef, useState, type SyntheticEvent } from 'react'
-import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from 'lucide-react'
 import { userMessage } from '@/shared/api/errors'
+import { CITY_MAX, normalizePhone, sanitizePhoneInput } from '@/shared/validation/contact'
 import { useSignup } from './hooks'
 import {
   evaluatePasswordRules,
@@ -15,11 +16,11 @@ import {
 
 const labelClasses = 'auth-label'
 
-const FIELD_ORDER = ['nombre', 'apellido', 'email', 'password', 'confirm'] as const
+const FIELD_ORDER = ['nombre', 'apellido', 'city', 'phone', 'email', 'password', 'confirm'] as const
 
 export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
   const signup = useSignup()
-  const [values, setValues] = useState<SignupValues>({ nombre: '', apellido: '', email: '', password: '', confirm: '' })
+  const [values, setValues] = useState<SignupValues>({ nombre: '', apellido: '', city: '', phone: '', email: '', password: '', confirm: '' })
   const [errors, setErrors] = useState<SignupErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
@@ -39,7 +40,13 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
       return
     }
     signup.mutate(
-      { fullName: joinFullName(values.nombre, values.apellido), email: values.email.trim(), password: values.password },
+      {
+        fullName: joinFullName(values.nombre, values.apellido),
+        email: values.email.trim(),
+        password: values.password,
+        phone: normalizePhone(values.phone.trim()),
+        city: values.city.trim(),
+      },
       { onSuccess },
     )
   }
@@ -73,6 +80,33 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="family-name"
           maxLength={MAX_NAME_PART}
           placeholder="Cliente"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          id="signup-city"
+          label="Ciudad"
+          icon={<MapPin className="auth-icon" />}
+          value={values.city}
+          onChange={set('city')}
+          error={errors.city}
+          disabled={isLoading}
+          autoComplete="address-level2"
+          maxLength={CITY_MAX}
+          placeholder="Quito"
+        />
+        <Input
+          id="signup-phone"
+          label="Teléfono"
+          type="tel"
+          icon={<Phone className="auth-icon" />}
+          value={values.phone}
+          onChange={(value) => { set('phone')(sanitizePhoneInput(value)) }}
+          error={errors.phone}
+          disabled={isLoading}
+          autoComplete="tel"
+          maxLength={20}
+          placeholder="0991234567"
         />
       </div>
       <Input

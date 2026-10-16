@@ -32,6 +32,8 @@ function renderForm(onSuccess = vi.fn()) {
 interface FormValues {
   nombre?: string
   apellido?: string
+  city?: string
+  phone?: string
   email?: string
   password?: string
   confirm?: string
@@ -40,6 +42,8 @@ interface FormValues {
 async function fill(user: ReturnType<typeof userEvent.setup>, values: FormValues) {
   if (values.nombre !== undefined) await user.type(screen.getByLabelText('Nombre'), values.nombre)
   if (values.apellido !== undefined) await user.type(screen.getByLabelText('Apellido'), values.apellido)
+  if (values.city !== undefined) await user.type(screen.getByLabelText('Ciudad'), values.city)
+  if (values.phone !== undefined) await user.type(screen.getByLabelText('Teléfono'), values.phone)
   if (values.email !== undefined) await user.type(screen.getByLabelText(/^Correo/), values.email)
   if (values.password !== undefined) await user.type(screen.getByLabelText('Contraseña'), values.password)
   if (values.confirm !== undefined) await user.type(screen.getByLabelText('Confirmar contraseña'), values.confirm)
@@ -48,6 +52,8 @@ async function fill(user: ReturnType<typeof userEvent.setup>, values: FormValues
 const valid: FormValues = {
   nombre: 'Carla',
   apellido: 'Cliente',
+  city: 'Quito',
+  phone: '0991234567',
   email: 'cliente@example.com',
   password: strongPassword,
   confirm: strongPassword,
@@ -89,7 +95,7 @@ describe('SignupForm', () => {
     const fetchMock = mockApi(() => ({ status: 201, body: {} }))
     const { user } = renderForm()
 
-    await fill(user, { nombre: 'Carla', email: 'cliente@example.com', password: strongPassword, confirm: strongPassword })
+    await fill(user, { nombre: 'Carla', city: 'Quito', phone: '0991234567', email: 'cliente@example.com', password: strongPassword, confirm: strongPassword })
     await user.click(submit())
 
     expect(await screen.findByText('Ingresa tu apellido.')).toBeInTheDocument()
@@ -198,6 +204,8 @@ describe('SignupForm', () => {
       email: 'cliente@example.com',
       password: strongPassword,
       fullName: 'Carla Cliente',
+      phone: '0991234567',
+      city: 'Quito',
     })
   })
 

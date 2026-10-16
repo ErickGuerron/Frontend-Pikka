@@ -4,6 +4,8 @@ import { evaluatePasswordRules, missingPasswordRulesMessage, validateSignup, typ
 const valid: SignupValues = {
   nombre: 'Carla',
   apellido: 'Cliente',
+  city: 'Quito',
+  phone: '0991234567',
   email: 'c@x.co',
   password: 'Clave-segura1',
   confirm: 'Clave-segura1',
@@ -14,6 +16,13 @@ const withValues = (patch: Partial<SignupValues>): SignupValues => ({ ...valid, 
 describe('validateSignup', () => {
   it('accepts valid data', () => {
     expect(validateSignup(valid)).toEqual({})
+  })
+
+  it('requires city and a valid phone', () => {
+    expect(validateSignup(withValues({ city: '' })).city).toBe('Ingresa tu ciudad.')
+    expect(validateSignup(withValues({ phone: '' })).phone).toBe('Ingresa tu número de teléfono.')
+    expect(validateSignup(withValues({ phone: '12ab' })).phone).toMatch(/válido/)
+    expect(validateSignup(withValues({ phone: '+593 99 123 4567' })).phone).toBeUndefined()
   })
 
   describe('nombre / apellido', () => {

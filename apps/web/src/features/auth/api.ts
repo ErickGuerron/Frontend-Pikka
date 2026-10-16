@@ -21,12 +21,15 @@ export interface SignupInput {
   email: string
   password: string
   fullName: string
+  /** Normalized phone (digits with optional leading +). */
+  phone: string
+  city: string
 }
 
 /** Public self-registration. The server forces the CUSTOMER role and returns a session like login. */
 export function signup(input: SignupInput): Promise<LoginResult> {
   return http.post('/api/v1/auth/signup', parseLogin, {
-    body: { email: input.email, password: input.password, fullName: input.fullName },
+    body: { email: input.email, password: input.password, fullName: input.fullName, phone: input.phone, city: input.city },
   })
 }
 
