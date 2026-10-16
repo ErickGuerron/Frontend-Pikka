@@ -266,7 +266,7 @@ export function LoginPage() {
               <span>•</span>
               <a href="#" className="auth-link flex items-center gap-1">
                 <Headphones className="w-2.5 h-2.5" />
-                Soporte 24/7
+                Soporte Pikka
               </a>
             </div>
           </footer>
