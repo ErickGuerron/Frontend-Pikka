@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type SyntheticEvent, type InputHTMLAttributes, type ReactNode } from 'react'
-import { missingPasswordRulesMessage, validateEmail } from '@/features/auth/signup-validation'
+import { evaluatePasswordRules, missingPasswordRulesMessage, validateEmail } from '@/features/auth/signup-validation'
 import { assignableRoles, roleLabels, type Role, type User } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
-import { ErrorMessage, Field, inputClass } from '@/shared/ui/form'
+import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { createUser, deactivateUser, updateUser, usersKey, type NewUser, type UserChanges } from './api'
 import { roleIcons } from './roleIcons'
 
@@ -35,6 +35,9 @@ function fullNameError(value: string): string | undefined {
   return undefined
 }
 
+const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2'
+const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
+
 // ─── Piezas compartidas ─────────────────────────────────────────────────────
 
 interface DialogProps {
@@ -45,12 +48,13 @@ interface DialogProps {
   children: ReactNode
 }
 
-/** Diálogo accesible: Escape cierra y el foco vuelve al elemento que lo abrió. */
+/** Diálogo accesible: Escape cierra, Tab no sale del diálogo y el foco vuelve al disparador. */
 function Dialog({ labelId, role = 'dialog', wide = true, onClose, children }: DialogProps) {
   // Se captura al montar, cuando el disparador aún tiene el foco.
   const [opener] = useState<HTMLElement | null>(() =>
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
   )
+  const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose)
   useEffect(() => {
     closeRef.current = onClose
@@ -58,7 +62,24 @@ function Dialog({ labelId, role = 'dialog', wide = true, onClose, children }: Di
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeRef.current()
+      if (e.key === 'Escape') {
+        closeRef.current()
+        return
+      }
+      const panel = panelRef.current
+      if (e.key !== 'Tab' || !panel) return
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector))
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (!first || !last) return
+      const outside = !panel.contains(document.activeElement)
+      if (e.shiftKey && (outside || document.activeElement === first)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (outside || document.activeElement === last)) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKey)
     document.body.classList.add('overflow-hidden')
@@ -74,16 +95,25 @@ function Dialog({ labelId, role = 'dialog', wide = true, onClose, children }: Di
       aria-labelledby={labelId}
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      ref={panelRef}
       role={role}
     >
       <div aria-hidden="true" className="fixed inset-0 bg-inverse-surface/60 backdrop-blur-sm" onClick={() => { closeRef.current() }} />
       <div
-        className={`relative w-full ${wide ? 'max-w-xl' : 'max-w-md'} bg-surface-container-lowest rounded-2xl shadow-[0_20px_50px_rgba(6,31,35,0.25)] border border-surface-container overflow-hidden z-10`}
+        className={`relative w-full ${wide ? 'max-w-xl' : 'max-w-md'} overscroll-contain bg-surface-container-lowest rounded-2xl shadow-[0_20px_50px_rgba(6,31,35,0.25)] border border-surface-container overflow-hidden z-10`}
       >
         {children}
       </div>
     </div>
   )
+}
+
+/** Tras un envío con errores, lleva el foco al primer campo inválido. */
+function useFocusFirstInvalid(formRef: { current: HTMLFormElement | null }, attempts: number) {
+  useEffect(() => {
+    if (attempts === 0) return
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+  }, [attempts, formRef])
 }
 
 interface DialogHeaderProps {
@@ -98,19 +128,19 @@ function DialogHeader({ titleId, icon, title, subtitle, onClose }: DialogHeaderP
   return (
     <>
       <div className="h-1.5 w-full bg-gradient-to-r from-primary via-secondary to-secondary-container" />
-      <div className="px-space-lg pt-space-lg pb-4 flex items-start justify-between border-b border-surface-container-low">
-        <div className="flex items-center gap-space-sm">
-          <div className="w-11 h-11 rounded-xl bg-primary-fixed/50 flex items-center justify-center text-primary shadow-xs">
+      <div className="px-space-lg pt-space-lg pb-4 flex items-start justify-between gap-3 border-b border-surface-container-low">
+        <div className="flex items-center gap-space-sm min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-primary-fixed/50 flex-shrink-0 flex items-center justify-center text-primary shadow-xs">
             <span aria-hidden="true" className="material-symbols-outlined text-2xl">{icon}</span>
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="font-headline-md text-on-surface font-bold leading-tight" id={titleId}>{title}</h2>
             <p className="font-body-sm text-on-surface-variant">{subtitle}</p>
           </div>
         </div>
         <button
           aria-label="Cerrar modal"
-          className="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+          className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer touch-manipulation ${focusRing}`}
           onClick={onClose}
           type="button"
         >
@@ -124,22 +154,58 @@ function DialogHeader({ titleId, icon, title, subtitle, onClose }: DialogHeaderP
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string | undefined
+  /** Control junto al campo, p. ej. el botón de mostrar contraseña. */
+  trailing?: ReactNode
 }
 
-function TextField({ label, error, ...input }: TextFieldProps) {
+function TextField({ label, error, trailing, ...input }: TextFieldProps) {
+  const id = useId()
   const errorId = useId()
   return (
     <div className="flex flex-col gap-1">
-      <Field label={label}>
+      <label className={fieldLabelClass} htmlFor={id}>{label}</label>
+      <div className="relative">
         <input
           aria-describedby={error ? errorId : undefined}
           aria-invalid={error ? true : undefined}
-          className={inputClass}
+          className={`${inputClass} ${trailing ? 'pr-10' : ''}`}
+          id={id}
           {...input}
         />
-      </Field>
+        {trailing}
+      </div>
       {error && <ErrorMessage id={errorId}>{error}</ErrorMessage>}
     </div>
+  )
+}
+
+function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      aria-pressed={visible}
+      className={`absolute inset-y-0 right-0 flex items-center px-3 rounded-r-lg text-outline hover:text-on-surface transition-colors touch-manipulation ${focusRing}`}
+      onClick={onToggle}
+      type="button"
+    >
+      <span aria-hidden="true" className="material-symbols-outlined text-lg">{visible ? 'visibility_off' : 'visibility'}</span>
+    </button>
+  )
+}
+
+/** Requisitos de contraseña que se actualizan mientras se escribe. */
+function PasswordChecklist({ password }: { password: string }) {
+  const rules = evaluatePasswordRules(password).filter((rule) => rule.id !== 'maxBytes')
+  return (
+    <ul aria-label="Requisitos de la contraseña" className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
+      {rules.map((rule) => (
+        <li key={rule.id} className={`flex items-center gap-1 text-[11px] ${rule.met ? 'text-secondary' : 'text-on-surface-variant'}`}>
+          <span aria-hidden="true" className="material-symbols-outlined text-sm">{rule.met ? 'check_circle' : 'radio_button_unchecked'}</span>
+          <span>{rule.label}</span>
+          <span className="sr-only">{rule.met ? '(cumplido)' : '(pendiente)'}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -158,7 +224,7 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
               type="radio"
               value={r}
             />
-            <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary text-on-surface transition-all flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
+            <div className="p-3 rounded-xl bg-surface-container-low border border-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-on-primary peer-focus-visible:ring-2 peer-focus-visible:ring-secondary text-on-surface transition-all flex flex-col items-center text-center gap-1.5 hover:bg-surface-container shadow-xs">
               <span aria-hidden="true" className="material-symbols-outlined text-2xl">{roleIcons[r]}</span>
               <span className="font-label-badge uppercase font-bold">{roleLabels[r]}</span>
             </div>
@@ -177,9 +243,9 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
 }
 
 const footerButtonClass =
-  'px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer'
+  `px-space-md py-2.5 rounded-xl font-body-md font-semibold text-on-surface-variant hover:bg-surface-container transition-all cursor-pointer touch-manipulation ${focusRing}`
 const primaryButtonClass =
-  'flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-body-md font-bold cursor-pointer disabled:opacity-50'
+  `flex items-center gap-2 bg-primary hover:bg-on-primary-fixed-variant text-on-primary px-space-lg py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`
 
 // ─── Crear ──────────────────────────────────────────────────────────────────
 
@@ -187,14 +253,17 @@ const emptyUser: NewUser = { email: '', password: '', fullName: '', role: 'OPERA
 
 export interface CreateUserModalProps {
   onClose: () => void
-  onCreated: () => void
+  onSaved: (message: string) => void
 }
 
-export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
+export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
   const titleId = useId()
   const queryClient = useQueryClient()
+  const formRef = useRef<HTMLFormElement>(null)
   const [form, setForm] = useState<NewUser>(emptyUser)
   const [submitted, setSubmitted] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
 
   const errors = {
     fullName: fullNameError(form.fullName),
@@ -205,12 +274,14 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
 
   const mutation = useMutation({
     mutationFn: createUser,
-    onSuccess: () => {
+    onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: usersKey })
-      onCreated()
+      onSaved(`Usuario ${created.fullName} creado.`)
       onClose()
     },
   })
+
+  useFocusFirstInvalid(formRef, attempts)
 
   const update = <K extends keyof NewUser>(key: K, value: NewUser[K]) => {
     setForm((f) => ({ ...f, [key]: value }))
@@ -219,6 +290,7 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
   const onSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSubmitted(true)
+    setAttempts((n) => n + 1)
     if (hasErrors) return
     mutation.mutate({ ...form, email: form.email.trim(), fullName: form.fullName.trim() })
   }
@@ -232,12 +304,14 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
         title="Crear Nuevo Usuario"
         titleId={titleId}
       />
-      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto" noValidate onSubmit={onSubmit}>
+      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
         <TextField
+          autoComplete="name"
           autoFocus
           error={submitted ? errors.fullName : undefined}
           label="Nombre completo"
           onChange={(e) => { update('fullName', e.target.value) }}
+          placeholder="Ej. Ana Pérez…"
           value={form.fullName}
         />
         <TextField
@@ -245,6 +319,8 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
           error={submitted ? errors.email : undefined}
           label="Correo"
           onChange={(e) => { update('email', e.target.value) }}
+          placeholder="Ej. nombre@dominio.com…"
+          spellCheck={false}
           type="email"
           value={form.email}
         />
@@ -253,9 +329,12 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
           error={submitted ? errors.password : undefined}
           label="Contraseña provisional"
           onChange={(e) => { update('password', e.target.value) }}
-          type="password"
+          placeholder="Mínimo 8 caracteres…"
+          trailing={<PasswordToggle onToggle={() => { setShowPassword((v) => !v) }} visible={showPassword} />}
+          type={showPassword ? 'text' : 'password'}
           value={form.password}
         />
+        <PasswordChecklist password={form.password} />
         <p className="font-body-sm text-on-surface-variant">El usuario deberá renovar su contraseña en el primer inicio de sesión.</p>
         <RoleRadios onChange={(role) => { update('role', role) }} value={form.role} />
 
@@ -277,32 +356,46 @@ export function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
 export interface EditUserModalProps {
   user: User
   onClose: () => void
+  onSaved: (message: string) => void
 }
 
-export function EditUserModal({ user, onClose }: EditUserModalProps) {
+export function EditUserModal({ user, onClose, onSaved }: EditUserModalProps) {
   const titleId = useId()
   const queryClient = useQueryClient()
+  const formRef = useRef<HTMLFormElement>(null)
   const roleLocked = user.role === 'CUSTOMER'
   const [fullName, setFullName] = useState(user.fullName)
   const [role, setRole] = useState<Role>(user.role)
   const [submitted, setSubmitted] = useState(false)
+  const [attempts, setAttempts] = useState(0)
   const nameError = fullNameError(fullName)
 
   const mutation = useMutation({
     mutationFn: (changes: UserChanges) => updateUser(user.id, changes),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: usersKey })
+      onSaved(`Usuario ${saved.fullName} actualizado.`)
       onClose()
     },
   })
 
+  useFocusFirstInvalid(formRef, attempts)
+
   const onSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSubmitted(true)
+    setAttempts((n) => n + 1)
     if (nameError) return
+    const changes: UserChanges = {}
     const name = fullName.trim()
+    if (name !== user.fullName) changes.fullName = name
     // Los clientes no cambian de rol aquí: el backend solo asigna ADMIN, OPERATOR y DRIVER.
-    mutation.mutate(roleLocked ? { fullName: name } : { fullName: name, role })
+    if (!roleLocked && role !== user.role) changes.role = role
+    if (changes.fullName === undefined && changes.role === undefined) {
+      onClose()
+      return
+    }
+    mutation.mutate(changes)
   }
 
   return (
@@ -314,15 +407,16 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
         title="Editar Usuario"
         titleId={titleId}
       />
-      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto" noValidate onSubmit={onSubmit}>
+      <form className="p-space-lg flex flex-col gap-4 max-h-[calc(85vh-140px)] overflow-y-auto overscroll-contain" noValidate onSubmit={onSubmit} ref={formRef}>
         <TextField
+          autoComplete="name"
           autoFocus
           error={submitted ? nameError : undefined}
           label="Nombre completo"
           onChange={(e) => { setFullName(e.target.value) }}
           value={fullName}
         />
-        <TextField label="Correo" readOnly value={user.email} />
+        <TextField autoComplete="off" label="Correo" readOnly spellCheck={false} value={user.email} />
         {roleLocked ? (
           <p className="font-body-sm text-on-surface-variant">
             Rol: <span className="font-bold text-on-surface">{roleLabels[user.role]}</span>. Los clientes no cambian de rol desde esta pantalla.
@@ -349,9 +443,10 @@ export function EditUserModal({ user, onClose }: EditUserModalProps) {
 export interface DeactivateUserDialogProps {
   user: User
   onClose: () => void
+  onSaved: (message: string) => void
 }
 
-export function DeactivateUserDialog({ user, onClose }: DeactivateUserDialogProps) {
+export function DeactivateUserDialog({ user, onClose, onSaved }: DeactivateUserDialogProps) {
   const titleId = useId()
   const queryClient = useQueryClient()
 
@@ -359,6 +454,7 @@ export function DeactivateUserDialog({ user, onClose }: DeactivateUserDialogProp
     mutationFn: () => deactivateUser(user.id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: usersKey })
+      onSaved(`Usuario ${user.fullName} desactivado.`)
       onClose()
     },
   })
@@ -376,9 +472,9 @@ export function DeactivateUserDialog({ user, onClose }: DeactivateUserDialogProp
         {mutation.isError && <ErrorMessage>{userMessage(mutation.error)}</ErrorMessage>}
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
+          <button autoFocus className={footerButtonClass} onClick={onClose} type="button">Cancelar</button>
           <button
-            className="px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer disabled:opacity-50"
+            className={`px-space-lg py-2.5 rounded-xl bg-error-container text-on-error-container font-body-md font-bold cursor-pointer touch-manipulation disabled:opacity-50 ${focusRing}`}
             disabled={mutation.isPending}
             onClick={() => { mutation.mutate() }}
             type="button"
