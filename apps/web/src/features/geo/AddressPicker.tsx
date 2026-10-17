@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Field, fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { reversePlace } from './api'
+import { ExpandedMapDialog } from './ExpandedMapDialog'
 import { LazyMapCanvas } from './LazyMapCanvas'
 import type { MapZone } from './MapCanvas'
 import { PlaceSearch } from './PlaceSearch'
@@ -29,6 +30,8 @@ export interface AddressPickerProps {
   className?: string
   /** Clases del mapa. Por defecto, 420 px de alto. */
   mapClassName?: string
+  /** Ofrece "Ampliar mapa": abre el mismo mapa en un diálogo grande para ubicar el punto con precisión. */
+  expandable?: boolean
 }
 
 /**
@@ -48,8 +51,10 @@ export function AddressPicker({
   depotDistanceLabel = null,
   className = '',
   mapClassName = 'h-[420px] w-full rounded-xl z-0',
+  expandable = false,
 }: AddressPickerProps) {
   const [focus, setFocus] = useState<Coordinate | null>(null)
+  const [expanded, setExpanded] = useState(false)
   const [addressPending, setAddressPending] = useState(false)
   const lookup = useRef<AbortController | null>(null)
 
@@ -94,19 +99,47 @@ export function AddressPicker({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <PlaceSearch onSelect={pickFromSearch} variant="inline" />
-      <LazyMapCanvas
-        className={mapClassName}
-        zones={zones}
-        picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
-        highlight={highlight}
-        highlightHoles={highlightHoles}
-        focus={focus}
-        fitBounds={fitBounds}
-        depot={depot}
-        depotName={depotName}
-        depotDistanceLabel={depotDistanceLabel}
-        onMapClick={pickPoint}
-      />
+      <div className="relative">
+        <LazyMapCanvas
+          className={mapClassName}
+          zones={zones}
+          picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
+          highlight={highlight}
+          highlightHoles={highlightHoles}
+          focus={focus}
+          fitBounds={fitBounds}
+          depot={depot}
+          depotName={depotName}
+          depotDistanceLabel={depotDistanceLabel}
+          onMapClick={pickPoint}
+        />
+        {expandable ? (
+          <button
+            className="absolute right-3 top-3 z-10 flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/25 bg-surface-container-lowest px-3 py-1.5 text-[12px] font-semibold text-primary shadow-md hover:bg-surface-container"
+            onClick={() => { setExpanded(true); }}
+            type="button"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">open_in_full</span>
+            Ampliar mapa
+          </button>
+        ) : null}
+      </div>
+      {expanded ? (
+        <ExpandedMapDialog
+          value={value}
+          zones={zones}
+          highlight={highlight}
+          highlightHoles={highlightHoles}
+          fitBounds={fitBounds}
+          depot={depot}
+          depotName={depotName}
+          depotDistanceLabel={depotDistanceLabel}
+          addressPending={addressPending}
+          onPick={pickPoint}
+          onSearchPick={pickFromSearch}
+          onClose={() => { setExpanded(false); }}
+        />
+      ) : null}
 
       {value !== null && (
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-[12px]">
