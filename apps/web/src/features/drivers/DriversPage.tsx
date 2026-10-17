@@ -1,15 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
+import { canAccess } from '@/features/auth/permissions'
+import { useCurrentUser } from '@/features/auth/hooks'
 import { userMessage } from '@/shared/api/errors'
 import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { isDriversDemoMode, listDrivers } from './api'
-import { driverStatusLabels, driverStatuses, filterDrivers, type DriverStatus } from './types'
+import { driverStatusLabels, driverStatuses, filterDrivers, vehicleTypeLabels, type DriverStatus } from './types'
 
 /** Repartidores, su estado y si están activos (Sprint 2). Solo lectura. */
 export function DriversPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<DriverStatus | 'ALL'>('ALL')
+  const { data: currentUser } = useCurrentUser()
 
   const { data: drivers = [], isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['drivers'],
@@ -42,6 +46,14 @@ export function DriversPage() {
               Disponibilidad, estado en ruta y control operativo de la flota activa.
             </p>
           </div>
+          {canAccess(currentUser?.role, 'newDriver') ? (
+            <Link
+              className="self-start px-4 py-2 rounded-lg bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors border border-[#004b4e] shadow-sm"
+              to="/drivers/new"
+            >
+              Nuevo repartidor
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -61,7 +73,7 @@ export function DriversPage() {
           <input
             className="px-3 py-1.5 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             onChange={(event) => { setQuery(event.target.value); }}
-            placeholder="Nombre o teléfono"
+            placeholder="Nombre, teléfono, ciudad o placa"
             type="search"
             value={query}
           />
@@ -115,11 +127,14 @@ export function DriversPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <caption className="sr-only">Repartidores con su teléfono, estado y si están activos</caption>
+              <caption className="sr-only">Repartidores con su teléfono, ciudad, vehículo, placa, estado y si están activos</caption>
               <thead className="bg-[#f0fafb] text-[#557b7f] font-mono uppercase tracking-wider text-[10px] border-b border-[#cce7ea]">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-bold">Nombre</th>
                   <th scope="col" className="px-4 py-3 font-bold">Teléfono</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Ciudad</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Vehículo</th>
+                  <th scope="col" className="px-4 py-3 font-bold">Placa</th>
                   <th scope="col" className="px-4 py-3 font-bold">Estado</th>
                   <th scope="col" className="px-4 py-3 font-bold">Activo</th>
                 </tr>
@@ -145,6 +160,9 @@ export function DriversPage() {
                         <span>{driver.fullName}</span>
                       </td>
                       <td className="px-4 py-3 font-mono text-[#557b7f]">{driver.phone}</td>
+                      <td className="px-4 py-3 text-[#061f23]">{driver.city}</td>
+                      <td className="px-4 py-3 text-[#061f23]">{vehicleTypeLabels[driver.vehicleType]}</td>
+                      <td className="px-4 py-3 font-mono text-[#061f23]">{driver.plate}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2.5 py-0.5 rounded font-mono text-[10px] font-bold border ${statusColor}`}>
                           {driverStatusLabels[driver.status]}
