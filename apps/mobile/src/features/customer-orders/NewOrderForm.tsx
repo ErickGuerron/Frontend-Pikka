@@ -39,6 +39,7 @@ const fieldLabels: Record<keyof OrderErrors, string> = {
   contactPhone: 'Teléfono de contacto',
   deliveryDate: 'Fecha de entrega',
   window: 'Ventana de entrega',
+  location: 'Punto en el mapa',
 }
 
 /** Two steps: the form, then a summary the customer confirms; nothing is sent before that. */
@@ -155,6 +156,7 @@ export function NewOrderForm({ initialProductId, onCreated }: Props) {
       <OrderItemsPicker catalog={catalog} value={items} onChange={setItems} error={errors.items} />
       <AddressMapPicker
         location={location}
+        error={errors.location}
         address={address}
         onChangeLocation={setLocation}
         onChangeAddress={(newAddress) => {

@@ -175,6 +175,7 @@ export interface OrderErrors {
   items?: string
   deliveryDate?: string
   window?: string
+  location?: string
 }
 
 const MIN_ADDRESS_LENGTH = 5
@@ -214,6 +215,7 @@ export function validateNewOrder(input: NewCustomerOrder, today: string): OrderE
   ) {
     errors.items = `Cada producto va una sola vez, de 1 a ${String(MAX_LINE_QUANTITY)} unidades.`
   }
+  if (input.location === undefined) errors.location = 'Marca el punto de entrega en el mapa.'
   if (!isRealDate(input.deliveryDate)) errors.deliveryDate = 'Usa el formato AAAA-MM-DD, por ejemplo 2026-12-31.'
   else if (input.deliveryDate < today) errors.deliveryDate = 'La fecha de entrega no puede ser anterior a hoy.'
   if (!deliveryWindows.some((w) => w.start === input.windowStart && w.end === input.windowEnd)) {

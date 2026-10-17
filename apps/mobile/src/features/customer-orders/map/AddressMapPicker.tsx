@@ -12,6 +12,8 @@ import { reversePlace } from './photon'
 interface Props {
   /** Punto elegido (coordenadas reales), o null. El formulario es el dueño del valor. */
   location: Coordinate | null
+  /** Mensaje cuando falta el punto: es obligatorio para hacer el pedido. */
+  error?: string | undefined
   /** Dirección escrita en el formulario: solo se rellena sola si está vacía o es la que puso el mapa. */
   address: string
   onChangeLocation: (location: Coordinate | null) => void
@@ -23,7 +25,7 @@ interface Props {
  * cobertura reales). El punto es una latitud y una longitud de verdad, la dirección llega de Photon y el mapa se
  * puede ampliar a pantalla completa con "Ampliar mapa".
  */
-export function AddressMapPicker({ location, address, onChangeLocation, onChangeAddress }: Props) {
+export function AddressMapPicker({ location, error, address, onChangeLocation, onChangeAddress }: Props) {
   const coverage = useCoverageZones()
   const [expanded, setExpanded] = useState(false)
   const [openFocus, setOpenFocus] = useState<Coordinate | null>(null)
@@ -103,7 +105,7 @@ export function AddressMapPicker({ location, address, onChangeLocation, onChange
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="map-outline" size={16} color={colors.primary} />
-        <Text style={styles.title}>Punto en el mapa (opcional)</Text>
+        <Text style={styles.title}>Punto en el mapa</Text>
       </View>
       <Text style={styles.hint}>
         Las zonas en verde son las que cubrimos: si tu punto cae dentro, tu pedido no será rechazado por la zona.
@@ -116,6 +118,10 @@ export function AddressMapPicker({ location, address, onChangeLocation, onChange
           <Text style={styles.expandText}>Ampliar mapa</Text>
         </Pressable>
       </View>
+
+      {error !== undefined && location === null ? (
+        <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+      ) : null}
 
       {details}
 
@@ -169,6 +175,7 @@ const styles = StyleSheet.create({
   container: { gap: 8 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { fontSize: 12, fontWeight: '700', color: colors.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
+  error: { fontSize: 12, color: colors.error },
   hint: { fontSize: 12, color: colors.onSurfaceVariant },
   mapBox: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.outlineVariant },
   map: { height: 240 },

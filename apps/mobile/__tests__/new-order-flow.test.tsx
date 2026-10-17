@@ -116,6 +116,7 @@ describe('NewOrderForm', () => {
     await fireEvent.changeText(screen.getByLabelText('Teléfono de contacto'), '099-123-4567')
     await fireEvent.changeText(screen.getByLabelText('Fecha de entrega (AAAA-MM-DD)'), '2999-12-31')
     await fireEvent.press(screen.getByLabelText('Ventana 09–12'))
+    await fireEvent.press(screen.getByLabelText('Elegir punto en mapa'))
   }
 
   it('shows inline errors and sends nothing when the form is invalid', async () => {
@@ -136,7 +137,7 @@ describe('NewOrderForm', () => {
     await fireEvent.press(screen.getByLabelText('Revisar pedido'))
 
     expect(await screen.findByText('Falta un paso')).toBeTruthy()
-    for (const field of ['Productos', 'Dirección de entrega', 'Referencia del lugar', 'Teléfono de contacto', 'Ventana de entrega']) {
+    for (const field of ['Productos', 'Dirección de entrega', 'Referencia del lugar', 'Teléfono de contacto', 'Ventana de entrega', 'Punto en el mapa']) {
       expect(screen.getAllByText(field).length).toBeGreaterThan(0)
     }
 
@@ -202,6 +203,7 @@ describe('NewOrderForm', () => {
     expect(JSON.parse(init.body)).toEqual({
       address: 'Av. Amazonas 123', addressReference: 'Casa azul', contactPhone: '0991234567',
       deliveryDate: '2999-12-31', windowStart: '09:00', windowEnd: '12:00', items: [{ productId: 'p1', quantity: 2 }],
+      latitude: -0.2, longitude: -78.5,
     })
   })
 })

@@ -11,6 +11,7 @@ import {
 } from '../src/features/customer-orders/types'
 
 const contact = {
+  location: { latitude: -0.2, longitude: -78.5 },
   addressReference: 'Casa azul',
   contactPhone: '0991234567',
   items: [{ productId: 'p-agua-20l', quantity: 2 }],
@@ -39,6 +40,7 @@ describe('order rules', () => {
   it('validates a new order', () => {
     const ok = { ...contact, address: 'Av. Amazonas 123', deliveryDate: '2026-10-12', windowStart: '09:00', windowEnd: '12:00' }
     expect(validateNewOrder(ok, '2026-10-11')).toEqual({})
+    expect(validateNewOrder({ ...ok, location: undefined }, '2026-10-11').location).toMatch(/mapa/)
     expect(validateNewOrder({ ...ok, addressReference: 'ab' }, '2026-10-11').addressReference).toBeDefined()
     expect(validateNewOrder({ ...ok, postalCode: '12' }, '2026-10-11').postalCode).toBeDefined()
     expect(validateNewOrder({ ...ok, postalCode: '' }, '2026-10-11').postalCode).toBeUndefined()
