@@ -50,8 +50,8 @@ export default function CustomerMainScreen() {
     if (user?.city) setCity(user.city)
   }, [user?.phone, user?.city])
 
-  const handleOrderProduct = (_product: CatalogProduct) => {
-    router.push('/mis-pedidos/nuevo')
+  const handleOrderProduct = (product: CatalogProduct) => {
+    router.push({ pathname: '/mis-pedidos/nuevo', params: { productId: product.id } })
   }
 
   const handleExploreCatalog = () => {

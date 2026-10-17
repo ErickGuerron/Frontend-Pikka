@@ -13,7 +13,7 @@ import { listProducts } from '../customer-orders/api'
 import type { CustomerOrder } from '../customer-orders/types'
 import type { Product } from '../customer-orders/products'
 import { CATALOG_PRODUCTS, CATEGORY_FILTERS, getProductImage } from './catalog-data'
-import { ProductTrackingModal } from './ProductTrackingModal'
+import { ProductDetailModal } from './ProductDetailModal'
 import type { CatalogCategory, CatalogProduct } from './types'
 
 interface Props {
@@ -177,8 +177,8 @@ export function CustomerCatalogView({
             key={product.id}
             style={({ pressed }) => [styles.productCard, pressed && styles.btnPressed]}
             onPress={() => setSelectedProduct(product)}
-            accessibilityRole="button"
-            accessibilityLabel={`Ver detalle y mapa de ${product.title}`}
+            // No role="button": react-native-web would render <button>, and the "Pedir" button nests inside.
+            accessibilityLabel={`Ver detalle de ${product.title}`}
           >
             {product.accentColor ? (
               <View
@@ -197,10 +197,6 @@ export function CustomerCatalogView({
             <View style={styles.productDetails}>
               <View style={styles.productMetaRow}>
                 <Text style={styles.productRef}>{product.ref}</Text>
-                <View style={styles.mapHintBadge}>
-                  <Ionicons name="map-outline" size={11} color="#006b5f" />
-                  <Text style={styles.mapHintText}>Ver ruta</Text>
-                </View>
               </View>
 
               <Text style={styles.productTitle} numberOfLines={1}>
@@ -249,8 +245,8 @@ export function CustomerCatalogView({
         </View>
       </View>
 
-      {/* 5. Product Order Details & Live Tracking Map Modal */}
-      <ProductTrackingModal
+      {/* 5. Product details modal */}
+      <ProductDetailModal
         visible={selectedProduct !== null}
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}

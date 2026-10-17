@@ -20,7 +20,7 @@ export function LoginForm() {
   const setSession = useSessionStore((s) => s.setSession)
 
   const submit = async () => {
-    if (email.trim() === '' || password === '') {
+    if (email.trim() === '' || password.trim() === '') {
       setError('Ingresa tu correo y contraseña.')
       return
     }

@@ -6,7 +6,7 @@ import {
   validateSignup,
 } from '../src/features/auth/signup-validation'
 
-const valid = { nombre: 'María', apellido: 'Núñez', city: 'Quito', phone: '+593 99 123 4567', email: 'maria@pikka.com', password: 'Abcdef1!', confirm: 'Abcdef1!' }
+const valid = { nombre: 'María', apellido: 'Núñez', city: 'Quito', phone: '099 123 4567', email: 'maria@pikka.com', password: 'Abcdef1!', confirm: 'Abcdef1!' }
 
 describe('signup validation', () => {
   it('accepts valid values', () => {

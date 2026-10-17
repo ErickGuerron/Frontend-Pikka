@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
+import { stripEmoji } from '../features/contact/validation'
 import { colors } from '../theme/colors'
 
 interface Props extends Omit<TextInputProps, 'style'> {
@@ -9,7 +10,7 @@ interface Props extends Omit<TextInputProps, 'style'> {
   leftIcon?: ReactNode
 }
 
-export function Field({ label, error, right, leftIcon, ...input }: Props) {
+export function Field({ label, error, right, leftIcon, onChangeText, ...input }: Props) {
   return (
     <View style={styles.group}>
       <Text style={styles.label}>{label}</Text>
@@ -20,6 +21,7 @@ export function Field({ label, error, right, leftIcon, ...input }: Props) {
           placeholderTextColor="#94a3b8"
           style={styles.input}
           {...input}
+          onChangeText={onChangeText ? (text) => { onChangeText(stripEmoji(text)) } : undefined}
         />
         {right}
       </View>

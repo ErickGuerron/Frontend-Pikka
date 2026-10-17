@@ -69,7 +69,7 @@ describe('products', () => {
 
 describe('createOrder request body', () => {
   const base = {
-    address: 'Av. Amazonas 123', addressReference: 'Casa azul', contactPhone: '+593991234567',
+    address: 'Av. Amazonas 123', addressReference: 'Casa azul', contactPhone: '0991234567',
     deliveryDate: '2026-12-31', windowStart: '09:00', windowEnd: '12:00', items: [{ productId: 'p1', quantity: 2 }], notes: 'ignored',
   }
 
@@ -78,7 +78,7 @@ describe('createOrder request body', () => {
     await createOrder({ ...base, postalCode: '' })
     const [, init] = posts(fn)[0] as [string, { body: string }]
     expect(JSON.parse(init.body)).toEqual({
-      address: base.address, addressReference: 'Casa azul', contactPhone: '+593991234567',
+      address: base.address, addressReference: 'Casa azul', contactPhone: '0991234567',
       deliveryDate: '2026-12-31', windowStart: '09:00', windowEnd: '12:00', items: base.items,
     })
   })
@@ -113,7 +113,7 @@ describe('NewOrderForm', () => {
     await fireEvent.press(screen.getByLabelText('Agregar una unidad de Agua 20 L'))
     await fireEvent.changeText(screen.getByLabelText('Dirección de entrega'), 'Av. Amazonas 123')
     await fireEvent.changeText(screen.getByLabelText('Referencia del lugar'), ' Casa azul ')
-    await fireEvent.changeText(screen.getByLabelText('Teléfono de contacto'), '+593 99-123-4567')
+    await fireEvent.changeText(screen.getByLabelText('Teléfono de contacto'), '099-123-4567')
     await fireEvent.changeText(screen.getByLabelText('Fecha de entrega (AAAA-MM-DD)'), '2999-12-31')
     await fireEvent.press(screen.getByLabelText('Ventana 09–12'))
   }
@@ -127,6 +127,21 @@ describe('NewOrderForm', () => {
     expect(screen.getByText(/Indica una referencia del lugar/)).toBeTruthy()
     expect(screen.getByText('Ingresa un teléfono de contacto.')).toBeTruthy()
     expect(posts(fn)).toHaveLength(0)
+  })
+
+  it('names every failing field in a "Falta un paso" alert and closes with Entendido', async () => {
+    mockGateway()
+    await render(<NewOrderForm onCreated={jest.fn()} />)
+    await screen.findByText('Agua 20 L')
+    await fireEvent.press(screen.getByLabelText('Revisar pedido'))
+
+    expect(await screen.findByText('Falta un paso')).toBeTruthy()
+    for (const field of ['Productos', 'Dirección de entrega', 'Referencia del lugar', 'Teléfono de contacto', 'Ventana de entrega']) {
+      expect(screen.getAllByText(field).length).toBeGreaterThan(0)
+    }
+
+    await fireEvent.press(screen.getByLabelText('Entendido'))
+    expect(screen.queryByText('Falta un paso')).toBeNull()
   })
 
   it('disables sold-out products and caps quantity by stock', async () => {
@@ -170,7 +185,7 @@ describe('NewOrderForm', () => {
     expect(screen.getByText('Av. Amazonas 123')).toBeTruthy()
     expect(screen.getByText('Casa azul')).toBeTruthy()
     expect(screen.getByText('No indicado')).toBeTruthy()
-    expect(screen.getByText('+593991234567')).toBeTruthy()
+    expect(screen.getByText('0991234567')).toBeTruthy()
     expect(screen.getByText('2 × Agua 20 L')).toBeTruthy()
     expect(screen.getByText('Total estimado')).toBeTruthy()
     expect(screen.getAllByText('$7.00')).toHaveLength(2)
@@ -185,8 +200,29 @@ describe('NewOrderForm', () => {
     expect(posts(fn)).toHaveLength(1)
     const [, init] = posts(fn)[0] as [string, { body: string }]
     expect(JSON.parse(init.body)).toEqual({
-      address: 'Av. Amazonas 123', addressReference: 'Casa azul', contactPhone: '+593991234567',
+      address: 'Av. Amazonas 123', addressReference: 'Casa azul', contactPhone: '0991234567',
       deliveryDate: '2999-12-31', windowStart: '09:00', windowEnd: '12:00', items: [{ productId: 'p1', quantity: 2 }],
     })
+  })
+})
+
+describe('NewOrderForm with a product chosen in the catalog', () => {
+  beforeEach(() => {
+    useOrdersStore.getState().reset()
+  })
+
+  it('starts with that product selected, one unit', async () => {
+    mockGateway()
+    await render(<NewOrderForm initialProductId="p1" onCreated={jest.fn()} />)
+    await screen.findByText('Agua 20 L')
+    expect(screen.getByLabelText('Quitar una unidad de Agua 20 L')).toBeTruthy()
+    expect(screen.queryByText('Sin productos elegidos')).toBeNull()
+  })
+
+  it('ignores an id that is not in the catalog', async () => {
+    mockGateway()
+    await render(<NewOrderForm initialProductId="nope" onCreated={jest.fn()} />)
+    await screen.findByText('Agua 20 L')
+    expect(screen.getByText('Sin productos elegidos')).toBeTruthy()
   })
 })

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
+import { ValidationAlert } from '../../components/ValidationAlert'
 import { colors } from '../../theme/colors'
-import { normalizePhone, POSTAL_MAX, REFERENCE_MAX, sanitizePhoneInput } from '../contact/validation'
+import { normalizePhone, POSTAL_MAX, REFERENCE_MAX, sanitizeDateInput, sanitizePhoneInput } from '../contact/validation'
 import { useCatalog } from './hooks'
 import { AddressMapPicker } from './map/AddressMapPicker'
 import type { Coordinate } from './map/geo'
@@ -23,13 +24,25 @@ import {
 } from './types'
 
 interface Props {
+  /** Product the customer chose in the catalog: it starts selected, one unit. */
+  initialProductId?: string | undefined
   onCreated: (order: CustomerOrder) => void
 }
 
 type Step = 'form' | 'confirm'
 
+const fieldLabels: Record<keyof OrderErrors, string> = {
+  items: 'Productos',
+  address: 'Dirección de entrega',
+  addressReference: 'Referencia del lugar',
+  postalCode: 'Código postal',
+  contactPhone: 'Teléfono de contacto',
+  deliveryDate: 'Fecha de entrega',
+  window: 'Ventana de entrega',
+}
+
 /** Two steps: the form, then a summary the customer confirms; nothing is sent before that. */
-export function NewOrderForm({ onCreated }: Props) {
+export function NewOrderForm({ initialProductId, onCreated }: Props) {
   const create = useOrdersStore((s) => s.create)
   const catalog = useCatalog()
   const [step, setStep] = useState<Step>('form')
@@ -45,6 +58,13 @@ export function NewOrderForm({ onCreated }: Props) {
   const [errors, setErrors] = useState<OrderErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [missing, setMissing] = useState<string[]>([])
+
+  // Once the catalog is loaded, the product picked in the catalog comes selected (only if it exists and nothing is chosen yet).
+  useEffect(() => {
+    if (initialProductId === undefined || !catalog.products.some((p) => p.id === initialProductId)) return
+    setItems((current) => (current.length === 0 ? [{ productId: initialProductId, quantity: 1 }] : current))
+  }, [initialProductId, catalog.products])
 
   const chosen = deliveryWindows.find((w) => w.start === windowStart)
   const buildInput = (): NewCustomerOrder => ({
@@ -65,6 +85,7 @@ export function NewOrderForm({ onCreated }: Props) {
     const found = validateNewOrder(buildInput(), localToday())
     setErrors(found)
     if (Object.keys(found).length === 0) setStep('confirm')
+    else setMissing((Object.keys(fieldLabels) as (keyof OrderErrors)[]).filter((key) => found[key] !== undefined).map((key) => fieldLabels[key]))
   }
 
   const confirm = async () => {
@@ -130,6 +151,7 @@ export function NewOrderForm({ onCreated }: Props) {
 
   return (
     <View style={styles.form}>
+      <ValidationAlert fields={missing} onClose={() => { setMissing([]) }} />
       <OrderItemsPicker catalog={catalog} value={items} onChange={setItems} error={errors.items} />
       <AddressMapPicker
         location={location}
@@ -146,7 +168,7 @@ export function NewOrderForm({ onCreated }: Props) {
       <Field label="Referencia del lugar" value={addressReference} onChangeText={setAddressReference} error={errors.addressReference} placeholder="Casa azul, junto a la tienda" maxLength={REFERENCE_MAX} />
       <Field label="Código postal (opcional)" value={postalCode} onChangeText={setPostalCode} error={errors.postalCode} autoCapitalize="characters" maxLength={POSTAL_MAX} />
       <Field label="Teléfono de contacto" value={contactPhone} onChangeText={(text) => { setContactPhone(sanitizePhoneInput(text)) }} error={errors.contactPhone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
-      <Field label="Fecha de entrega (AAAA-MM-DD)" value={deliveryDate} onChangeText={setDeliveryDate} error={errors.deliveryDate} keyboardType="numbers-and-punctuation" maxLength={10} />
+      <Field label="Fecha de entrega (AAAA-MM-DD)" value={deliveryDate} onChangeText={(text) => { setDeliveryDate(sanitizeDateInput(text)) }} error={errors.deliveryDate} keyboardType="numbers-and-punctuation" maxLength={10} />
       <View style={styles.group}>
         <Text style={styles.label}>Ventana de entrega</Text>
         <View style={styles.chips}>

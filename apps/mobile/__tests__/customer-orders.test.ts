@@ -12,7 +12,7 @@ import {
 
 const contact = {
   addressReference: 'Casa azul',
-  contactPhone: '+593991234567',
+  contactPhone: '0991234567',
   items: [{ productId: 'p-agua-20l', quantity: 2 }],
 }
 

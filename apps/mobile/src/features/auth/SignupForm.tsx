@@ -5,12 +5,23 @@ import { Ionicons } from '@expo/vector-icons'
 import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
+import { ValidationAlert } from '../../components/ValidationAlert'
 import { colors } from '../../theme/colors'
 import { useSessionStore } from '../../store/session-store'
 import { CITY_MAX, normalizePhone, sanitizePhoneInput } from '../contact/validation'
 import { signup } from './api'
 import { PasswordStrength } from './PasswordStrength'
 import { joinFullName, MAX_NAME_PART, validateSignup, type SignupErrors, type SignupValues } from './signup-validation'
+
+const fieldLabels: Record<keyof SignupValues, string> = {
+  nombre: 'Nombre',
+  apellido: 'Apellido',
+  city: 'Ciudad',
+  phone: 'Teléfono',
+  email: 'Correo electrónico',
+  password: 'Contraseña',
+  confirm: 'Confirmar contraseña',
+}
 
 const empty: SignupValues = { nombre: '', apellido: '', city: '', phone: '', email: '', password: '', confirm: '' }
 
@@ -20,6 +31,7 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [missing, setMissing] = useState<string[]>([])
   const setSession = useSessionStore((s) => s.setSession)
 
   const set = (key: keyof SignupValues) => (text: string) => {
@@ -30,7 +42,10 @@ export function SignupForm() {
     setServerError(null)
     const found = validateSignup(values)
     setErrors(found)
-    if (Object.keys(found).length > 0) return
+    if (Object.keys(found).length > 0) {
+      setMissing((Object.keys(fieldLabels) as (keyof SignupValues)[]).filter((key) => found[key] !== undefined).map((key) => fieldLabels[key]))
+      return
+    }
     setLoading(true)
     try {
       const result = await signup({
@@ -51,6 +66,7 @@ export function SignupForm() {
 
   return (
     <View style={styles.form}>
+      <ValidationAlert fields={missing} onClose={() => { setMissing([]) }} />
       <Field
         label="Nombre"
         placeholder="Tu nombre"

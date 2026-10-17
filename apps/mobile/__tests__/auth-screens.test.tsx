@@ -21,7 +21,7 @@ async function fillSignup(password: string) {
   await fireEvent.changeText(screen.getByLabelText('Nombre'), 'Ana')
   await fireEvent.changeText(screen.getByLabelText('Apellido'), 'Lopez')
   await fireEvent.changeText(screen.getByLabelText('Ciudad'), ' Quito ')
-  await fireEvent.changeText(screen.getByLabelText('Teléfono'), '+593 99-123-4567')
+  await fireEvent.changeText(screen.getByLabelText('Teléfono'), '099-123-4567')
   await fireEvent.changeText(screen.getByLabelText('Correo electrónico'), 'ana@pikka.com')
   await fireEvent.changeText(screen.getByLabelText('Contraseña'), password)
   await fireEvent.changeText(screen.getByLabelText('Confirmar contraseña'), password)
@@ -66,7 +66,7 @@ describe('SignupForm', () => {
     })
     const [url, init] = fetchMock.mock.calls[0] as [string, { body: string }]
     expect(url).toMatch(/\/api\/v1\/auth\/signup$/)
-    expect(JSON.parse(init.body)).toEqual({ email: 'ana@pikka.com', password: 'Abcdef1!', fullName: 'Ana Lopez', phone: '+593991234567', city: 'Quito' })
+    expect(JSON.parse(init.body)).toEqual({ email: 'ana@pikka.com', password: 'Abcdef1!', fullName: 'Ana Lopez', phone: '0991234567', city: 'Quito' })
   })
 
   it('maps 409 to the duplicate-record message', async () => {
