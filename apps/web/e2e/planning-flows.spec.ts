@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test'
 import { loginAsAdmin, mockAuth } from './support'
 
 const drivers = [
-  { id: 'd-1', fullName: 'Luis Andrade', phone: '0991112233', active: true, status: 'AVAILABLE' },
-  { id: 'd-2', fullName: 'María Paredes', phone: '0992223344', active: true, status: 'ON_ROUTE' },
+  { id: 'd-1', fullName: 'Luis Andrade', phone: '0991112233', city: 'Quito', vehicleType: 'MOTORIZADO', plate: 'PBA1234', active: true, status: 'AVAILABLE' },
+  { id: 'd-2', fullName: 'María Paredes', phone: '0992223344', city: 'Cuenca', vehicleType: 'SUV', plate: 'CAB5678', active: true, status: 'ON_ROUTE' },
 ]
 
 const plan = {
@@ -39,6 +39,7 @@ test('el operador ve los repartidores con su estado y filtra por nombre', async 
   await page.getByRole('link', { name: 'Repartidores', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Repartidores', exact: true })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Luis Andrade' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'PBA1234' })).toBeVisible()
 
   await page.getByLabel('Buscar').fill('paredes')
   await expect(page.getByRole('cell', { name: 'Luis Andrade' })).toHaveCount(0)
