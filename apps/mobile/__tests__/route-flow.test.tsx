@@ -7,6 +7,15 @@ import { RouteStopCard } from '../src/features/driver-route/RouteStopCard'
 import { LOCATION_DENIED_MESSAGE } from '../src/features/driver-route/location'
 import type { RouteStop } from '../src/features/driver-route/types'
 
+// El mapa real es un WebView/iframe con Leaflet; aquí un doble muestra el estado que recibe.
+jest.mock('../src/features/customer-orders/map/LeafletMap', () => {
+  const React = require('react')
+  const { Text } = require('react-native')
+  return {
+    LeafletMap: ({ state }: { state: unknown }) => React.createElement(Text, { testID: 'map-state' }, JSON.stringify(state)),
+  }
+})
+
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
@@ -116,6 +125,15 @@ describe('driver route screen in demo mode', () => {
 
     expect(await screen.findByText(/0 de 4 completadas · 4 pendientes/)).toBeTruthy()
     expect(screen.getByText('Av. Amazonas N24-03, Quito')).toBeTruthy()
+  })
+
+  it('draws the pending stops on the real map, numbered in route order', async () => {
+    await render(<DriverRouteScreen />)
+    await screen.findByText(/0 de 4 completadas/)
+
+    const state = JSON.parse(screen.getByTestId('map-state').props.children as string)
+    expect(state.stops).toHaveLength(4)
+    expect(state.stops[0]).toEqual({ latitude: -0.2012, longitude: -78.4965 })
   })
 
   it('moves a stop through recogido, en camino and delivered, and updates progress', async () => {

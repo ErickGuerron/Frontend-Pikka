@@ -60,6 +60,9 @@ export interface RouteStop {
   windowEnd: string
   status: StopStatus
   reason: NotDeliveredReason | null
+  /** Delivery point, when the backend sends it; otherwise the map looks the address up. */
+  latitude?: number
+  longitude?: number
 }
 
 export interface DriverRoute {
@@ -87,6 +90,7 @@ export function parseRouteStop(data: unknown): RouteStop {
     windowEnd: string(o, 'windowEnd'),
     status: oneOf(o, 'status', stopStatuses),
     reason: rawReason === null || rawReason === undefined ? null : enumValue(rawReason, notDeliveredReasons, 'reason'),
+    ...(typeof o.latitude === 'number' && typeof o.longitude === 'number' ? { latitude: o.latitude, longitude: o.longitude } : {}),
   }
 }
 

@@ -84,3 +84,21 @@ export async function reversePlace(latitude: number, longitude: number, signal?:
     signal?.removeEventListener('abort', cancel)
   }
 }
+
+/** Primer lugar que devuelve Photon para una dirección escrita, sesgado a Quito; null si no hay ninguno. */
+export async function searchPlace(query: string, signal?: AbortSignal): Promise<Place | null> {
+  const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(query)}&limit=1&lat=-0.18&lon=-78.47`
+  const controller = new AbortController()
+  const cancel = () => { controller.abort() }
+  const timer = setTimeout(cancel, PHOTON_TIMEOUT_MS)
+  signal?.addEventListener('abort', cancel)
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
+    if (!response.ok) throw new Error(`geocoder HTTP ${String(response.status)}`)
+    const body: unknown = await response.json()
+    return parsePhotonFeatures(body)[0] ?? null
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', cancel)
+  }
+}

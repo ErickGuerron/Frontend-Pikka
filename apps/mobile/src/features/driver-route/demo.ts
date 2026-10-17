@@ -9,10 +9,10 @@ import { isFinal, nextProgressStatus, validateStopResult } from './types'
 const initialRoute: DriverRoute = {
   id: 'route-demo-1',
   stops: [
-    { id: 'stop-1', sequence: 1, address: 'Av. Amazonas N24-03, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null },
-    { id: 'stop-2', sequence: 2, address: 'Calle Juan León Mera 1224, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null },
-    { id: 'stop-3', sequence: 3, address: 'Av. 6 de Diciembre 2540, Quito', windowStart: '12:00', windowEnd: '15:00', status: 'PENDING', reason: null },
-    { id: 'stop-4', sequence: 4, address: 'Av. Eloy Alfaro N35-20, Quito', windowStart: '15:00', windowEnd: '18:00', status: 'PENDING', reason: null },
+    { id: 'stop-1', sequence: 1, address: 'Av. Amazonas N24-03, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null, latitude: -0.2012, longitude: -78.4965 },
+    { id: 'stop-2', sequence: 2, address: 'Calle Juan León Mera 1224, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null, latitude: -0.2074, longitude: -78.4953 },
+    { id: 'stop-3', sequence: 3, address: 'Av. 6 de Diciembre 2540, Quito', windowStart: '12:00', windowEnd: '15:00', status: 'PENDING', reason: null, latitude: -0.1789, longitude: -78.4849 },
+    { id: 'stop-4', sequence: 4, address: 'Av. Eloy Alfaro N35-20, Quito', windowStart: '15:00', windowEnd: '18:00', status: 'PENDING', reason: null, latitude: -0.1881, longitude: -78.4771 },
   ],
 }
 

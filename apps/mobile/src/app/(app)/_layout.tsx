@@ -16,7 +16,7 @@ export default function AppLayout() {
       <Stack.Screen name="mis-pedidos/index" options={{ headerShown: false }} />
       <Stack.Screen name="mis-pedidos/nuevo" options={{ title: 'Hacer nuevo pedido', presentation: 'modal' }} />
       <Stack.Screen name="mis-pedidos/[id]" options={{ title: 'Detalle del pedido' }} />
-      <Stack.Screen name="ruta/index" options={{ title: 'Mi ruta' }} />
+      <Stack.Screen name="ruta/index" options={{ headerShown: false }} />
     </Stack>
   )
 }

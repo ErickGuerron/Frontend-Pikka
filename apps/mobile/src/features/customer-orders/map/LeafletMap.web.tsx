@@ -35,6 +35,8 @@ export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
         srcDoc: html,
         sandbox: 'allow-scripts',
         title: 'Mapa de entrega',
+        // El documento ya corrió sus scripts al cargar: no depende de haber visto el mensaje "ready".
+        onLoad: () => { setReady(true) },
         style: { border: 0, width: '100%', height: '100%' },
       })}
     </View>

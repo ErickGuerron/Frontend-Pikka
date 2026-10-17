@@ -137,3 +137,15 @@ describe('demo driver route', () => {
     await expect(registerDemoResult('otra', 'stop-1', { location: here, outcome: 'DELIVERED' })).rejects.toMatchObject({ status: 404 })
   })
 })
+
+describe('stop coordinates', () => {
+  const base = { id: 's', sequence: 1, address: 'a', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null }
+
+  it('keeps latitude and longitude when the backend sends both', () => {
+    expect(parseDriverRoute({ id: 'r', stops: [{ ...base, latitude: -0.2, longitude: -78.5 }] }).stops[0]).toMatchObject({ latitude: -0.2, longitude: -78.5 })
+  })
+
+  it('leaves them out otherwise', () => {
+    expect(parseDriverRoute({ id: 'r', stops: [{ ...base, latitude: -0.2 }] }).stops[0]).not.toHaveProperty('latitude')
+  })
+})

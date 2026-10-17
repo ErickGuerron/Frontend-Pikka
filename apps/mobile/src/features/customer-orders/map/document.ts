@@ -17,6 +17,8 @@ export interface MapState {
   focus: Coordinate | null
   /** Zona que contiene el punto, resaltada. */
   highlightId: string | null
+  /** Paradas de una ruta, en orden: se dibujan numeradas y unidas por una línea. */
+  stops?: Coordinate[]
 }
 
 /** Lo que el mapa le avisa al anfitrión. */
@@ -67,7 +69,7 @@ export function buildMapDocument(): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<style>html,body,#map{height:100%;margin:0;padding:0}.leaflet-container{font-family:system-ui,sans-serif}</style>
+<style>html,body,#map{height:100%;margin:0;padding:0}.leaflet-container{font-family:system-ui,sans-serif}.stop-n{background:none;border:0;box-shadow:none;color:#fff;font-weight:700;padding:0}.stop-n:before{display:none}</style>
 </head>
 <body>
 <div id="map"></div>
@@ -90,11 +92,16 @@ export function buildMapDocument(): string {
   var zonesLayer = L.layerGroup().addTo(map);
   var highlightLayer = L.layerGroup().addTo(map);
   var pickedLayer = L.layerGroup().addTo(map);
+  var stopsLayer = L.layerGroup().addTo(map);
+  var lastStops = null;
   var lastFocus = null;
   var fitted = false;
   function toLatLng(c) { return [c.latitude, c.longitude]; }
   function polygonRings(zone) {
     return [zone.ring.map(toLatLng)].concat(zone.holes.map(function (hole) { return hole.map(toLatLng); }));
+  }
+  function drawPicked(point) {
+    L.circleMarker(toLatLng(point), { radius: 9, weight: 3, color: '#ffffff', fillColor: '#b42318', fillOpacity: 1 }).addTo(pickedLayer);
   }
   function label(text) {
     var el = document.createElement('span');
@@ -102,9 +109,11 @@ export function buildMapDocument(): string {
     return el;
   }
   window.__setState = function (state) {
+    map.invalidateSize();
     zonesLayer.clearLayers();
     highlightLayer.clearLayers();
     pickedLayer.clearLayers();
+    stopsLayer.clearLayers();
     var all = [];
     (state.zones || []).forEach(function (zone) {
       var rings = polygonRings(zone);
@@ -117,7 +126,23 @@ export function buildMapDocument(): string {
       }
     });
     if (state.picked) {
-      L.circleMarker(toLatLng(state.picked), { radius: 7, color: '#b42318' }).addTo(pickedLayer);
+      drawPicked(state.picked);
+    }
+    var stops = state.stops || [];
+    if (stops.length > 0) {
+      var points = stops.map(toLatLng);
+      L.polyline(points, { color: '#006b5f', weight: 4, dashArray: '6 6' }).addTo(stopsLayer);
+      stops.forEach(function (stop, index) {
+        L.circleMarker(toLatLng(stop), { radius: 12, color: '#ffffff', weight: 2, fillColor: index === 0 ? '#006b5f' : '#004b4e', fillOpacity: 1 })
+          .bindTooltip(label(String(index + 1)), { permanent: true, direction: 'center', className: 'stop-n' })
+          .addTo(stopsLayer);
+      });
+      var stopsKey = JSON.stringify(points);
+      if (stopsKey !== lastStops) {
+        lastStops = stopsKey;
+        fitted = true;
+        map.fitBounds(points, { padding: [32, 32], maxZoom: 16 });
+      }
     }
     if (!fitted && !state.picked && !state.focus && all.length > 0) {
       fitted = true;
@@ -133,6 +158,9 @@ export function buildMapDocument(): string {
     setTimeout(function () { map.invalidateSize(); }, 50);
   };
   map.on('click', function (event) {
+    // El punto se ve al instante; el anfitrión lo confirma después con el estado.
+    pickedLayer.clearLayers();
+    drawPicked({ latitude: event.latlng.lat, longitude: event.latlng.lng });
     send({ type: 'pick', latitude: event.latlng.lat, longitude: event.latlng.lng });
   });
   function onMessage(event) {
