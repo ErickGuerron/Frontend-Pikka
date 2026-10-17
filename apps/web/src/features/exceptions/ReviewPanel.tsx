@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type SyntheticEvent } from 'react'
+import { useEffect, useState, type SyntheticEvent } from 'react'
 import { reviewOrder } from '@/features/orders/api'
 import { formatDate, formatWindow } from '@/features/orders/format'
 import { OrderDetailsFields } from '@/features/orders/OrderDetailsFields'
@@ -35,13 +35,17 @@ export interface ReviewPanelProps {
   order: Order
   onDecided: (action: ReviewAction) => void
   onCancel: () => void
+  /** Sin tarjeta propia: el contenedor (por ejemplo un modal) pone el marco. */
+  embedded?: boolean
+  /** Avisa si hay una decisión en curso, para que el contenedor no se cierre a mitad de envío. */
+  onBusyChange?: (busy: boolean) => void
 }
 
 /**
  * Decisión del operador sobre un pedido en revisión (ADR 0007, sección 3):
  * confirmar, corregir o rechazar, siempre con motivo.
  */
-export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
+export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBusyChange }: ReviewPanelProps) {
   const queryClient = useQueryClient()
   const spatial = isSpatialReview(order)
   const [action, setAction] = useState<ReviewAction>(spatial ? 'CORRECT' : 'CONFIRM')
@@ -61,6 +65,11 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
       onDecided(input.action)
     },
   })
+
+  const busy = mutation.isPending
+  useEffect(() => {
+    onBusyChange?.(busy)
+  }, [busy, onBusyChange])
 
   const update = (key: keyof OrderFields, value: string) => {
     setFields((current) => ({ ...current, [key]: value }))
@@ -100,10 +109,12 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
 
   const isPending = mutation.isPending
 
+  const Wrapper = embedded ? 'div' : 'section'
+
   return (
-    <section
-      aria-labelledby="review-title"
-      className="bg-white rounded-xl shadow-sm border border-[#cce7ea] p-5"
+    <Wrapper
+      aria-labelledby={embedded ? undefined : 'review-title'}
+      className={embedded ? '' : 'bg-white rounded-xl shadow-sm border border-[#cce7ea] p-5'}
     >
       <div className="pb-3.5 border-b border-[#cce7ea]">
         <div className="flex items-center gap-2">
@@ -117,6 +128,16 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
         <p className="mt-1 text-xs font-mono text-[#557b7f]">
           {order.address} · {formatDate(order.deliveryDate)} · {formatWindow(order.windowStart, order.windowEnd)}
         </p>
+        {order.addressReference || order.contactPhone ? (
+          <p className="mt-0.5 text-xs font-mono text-[#557b7f]">
+            {[
+              order.addressReference ? `Referencia: ${order.addressReference}` : null,
+              order.contactPhone ? `Contacto: ${order.contactPhone}` : null,
+            ]
+              .filter((part) => part !== null)
+              .join(' · ')}
+          </p>
+        ) : null}
         <ul className="flex flex-wrap gap-1.5 pt-2">
           {order.reviewReasons.map((reviewReason) => (
             <li
@@ -215,6 +236,6 @@ export function ReviewPanel({ order, onDecided, onCancel }: ReviewPanelProps) {
           </button>
         </div>
       </form>
-    </section>
+    </Wrapper>
   )
 }

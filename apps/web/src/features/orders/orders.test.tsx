@@ -1,22 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { adminUser, apiError, mockApi, renderApp, sentBody } from '@/test/utils'
 import type { Order } from './types'
 
-// El mapa real necesita un navegador (lo cubre el e2e). Aquí un botón emite un punto fijo.
-vi.mock('@/features/geo/LazyMapCanvas', async () => {
-  const { createElement } = await import('react')
-  return {
-    LazyMapCanvas: ({ onMapClick }: { onMapClick: (point: { latitude: number; longitude: number }) => void }) =>
-      createElement(
-        'button',
-        { type: 'button', onClick: () => { onMapClick({ latitude: -0.2, longitude: -78.5 }); } },
-        'Elegir punto en mapa',
-      ),
-  }
-})
+const operatorUser = { ...adminUser, id: '44444444-4444-4444-4444-444444444444', fullName: 'Olga Operadora', role: 'OPERATOR' }
 
 const pendingOrder: Order = {
   id: 'o-1',
@@ -33,23 +22,21 @@ const pendingOrder: Order = {
 
 const deliveredOrder: Order = { ...pendingOrder, id: 'o-2', address: 'Calle Norte 45', status: 'DELIVERED' }
 
-const water = {
-  id: '44444444-4444-4444-4444-444444444444',
-  name: 'Agua 1L',
-  description: 'Botella',
-  unitPrice: '2.50',
-  active: true,
-  stockQuantity: 10,
-  createdAt: '2026-10-01T00:00:00Z',
-  updatedAt: '2026-10-01T00:00:00Z',
+const inReviewOrder: Order = {
+  ...pendingOrder,
+  id: 'o-7',
+  address: 'Plaza Foch, Quito',
+  status: 'PENDING_REVIEW',
+  reviewReasons: ['CUSTOMER_BLOCKED'],
+  addressReference: 'Edificio azul, piso 3',
+  contactPhone: '0991112233',
 }
-const soldOut = { ...water, id: '55555555-5555-5555-5555-555555555555', name: 'Jugo', stockQuantity: 0 }
 
-/** Responde al perfil autenticado, al catálogo y a /ready; el resto lo decide cada prueba. */
-function baseHandler(url: string) {
-  if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
-  if (url.includes('/api/v1/products')) return { status: 200, body: { products: [water, soldOut] } }
-  if (url.endsWith('/api/v1/coverage/zones')) return { status: 200, body: { zones: [] } }
+const outOfZoneOrder: Order = { ...inReviewOrder, id: 'o-8', address: 'Fuera de zona 9', reviewReasons: ['ZONE_NOT_COVERED'] }
+
+/** Responde al perfil autenticado y a /ready; el resto lo decide cada prueba. */
+function baseHandler(url: string, me: unknown = adminUser) {
+  if (url.endsWith('/auth/me')) return { status: 200, body: me }
   return { status: 200, body: { status: 'ready' } }
 }
 
@@ -71,12 +58,13 @@ describe('listado de pedidos', () => {
     expect(screen.getByText('Entregado', { selector: 'span' })).toBeInTheDocument()
   })
 
-  it('muestra un estado vacío con acción para registrar el primero', async () => {
+  it('con el listado vacío no ofrece registrar pedidos: los crea el cliente', async () => {
     mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [] } : baseHandler(url)))
     renderApp('/orders')
 
     expect(await screen.findByText('Aún no hay pedidos registrados')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Registrar primer pedido' })).toBeInTheDocument()
+    expect(screen.getByText(/Los registran los clientes/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pedido/i })).not.toBeInTheDocument()
   })
 
   it('muestra el error con reintento y recupera los datos al reintentar', async () => {
@@ -111,107 +99,174 @@ describe('listado de pedidos', () => {
   })
 })
 
-describe('registro de pedido', () => {
-  it('no envía el formulario vacío y muestra los errores por campo, incluida la ubicación', async () => {
-    const fetchMock = mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [] } : baseHandler(url)))
+describe('el personal no registra pedidos', () => {
+  it.each([
+    ['ADMIN', adminUser],
+    ['OPERATOR', operatorUser],
+  ])('%s no ve el botón para crear un pedido', async (_role, me) => {
+    mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [pendingOrder] } : baseHandler(url, me)))
     renderApp('/orders')
-    const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
-    await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
-
-    expect(screen.getByText('Elige al menos un producto.')).toBeInTheDocument()
-    expect(screen.getByText(/Indica una referencia del lugar/)).toBeInTheDocument()
-    expect(screen.getByText('Ingresa un teléfono de contacto.')).toBeInTheDocument()
-    expect(screen.getByLabelText(/Referencia del lugar/)).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByText('Elige la ubicación de entrega en el mapa.')).toBeInTheDocument()
-    expect(screen.getByText('Escribe la dirección completa (mínimo 5 caracteres).')).toBeInTheDocument()
-    expect(screen.getByText('Elige la fecha de entrega.')).toBeInTheDocument()
-    expect(screen.getByLabelText(/Dirección de entrega/)).toHaveAttribute('aria-invalid', 'true')
-    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+    expect(await screen.findByText('Av. Central 123, Col. Centro')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo pedido' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar primer pedido' })).not.toBeInTheDocument()
   })
+})
 
-  it('registra el pedido con la ubicación del mapa y confirma el resultado', async () => {
-    let created = false
-    const fetchMock = mockApi((url, init) => {
-      if (url.endsWith('/api/v1/orders') && init.method === 'POST') {
-        created = true
-        return { status: 201, body: pendingOrder }
+describe('revisión de pedidos desde el listado', () => {
+  /** El listado devuelve `orders`; una decisión saca el pedido de revisión. Registra las peticiones. */
+  function mockOrders(fixtures: Order[], me: unknown = adminUser, reviewResponse: { status: number; body: unknown } | null = null) {
+    // Copias: la decisión cambia el estado del pedido y no debe filtrarse a otras pruebas.
+    const orders = fixtures.map((order) => ({ ...order }))
+    return mockApi((url, init) => {
+      if (url.endsWith('/review') && init.method === 'POST') {
+        if (reviewResponse) return reviewResponse
+        const id = /orders\/([^/]+)\/review/.exec(url)?.[1]
+        const target = orders.find((o) => o.id === id)
+        if (target) target.status = 'PENDING'
+        return { status: 200, body: { ...inReviewOrder, status: 'PENDING', reviewReasons: [] } }
       }
-      if (url.endsWith('/api/v1/orders')) return { status: 200, body: created ? [pendingOrder] : [] }
-      return baseHandler(url)
+      if (url.endsWith('/api/v1/orders') && (init.method ?? 'GET') === 'GET') return { status: 200, body: orders }
+      return baseHandler(url, me)
     })
+  }
+
+  const reviewCall = (fetchMock: ReturnType<typeof mockOrders>) =>
+    fetchMock.mock.calls.find(([url, init]) => url.endsWith('/review') && init?.method === 'POST')
+
+  it('solo los pedidos en revisión tienen el botón Revisar', async () => {
+    mockOrders([pendingOrder, deliveredOrder, inReviewOrder])
     renderApp('/orders')
-    const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
-    const add = await screen.findByRole('button', { name: 'Agregar una unidad de Agua 1L' })
-    await user.click(add)
-    await user.click(add)
-    expect(screen.getByText('Total estimado $5.00')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
-    await user.type(screen.getByLabelText(/Dirección de entrega/), '  Av. Central 123, Col. Centro  ')
-    await user.type(screen.getByLabelText(/Referencia del lugar/), 'Casa azul junto a la farmacia')
-    await user.type(screen.getByLabelText(/Teléfono de contacto/), '099 123-4567')
-    await user.type(screen.getByLabelText(/Código postal/), '170150')
-    fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
-    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })
-    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '11:00' } })
-    await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
-
-    expect(await screen.findByRole('status')).toHaveTextContent('Pedido registrado para el')
-    const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
-    expect(sentBody(call?.[1])).toEqual({
-      address: 'Av. Central 123, Col. Centro',
-      addressReference: 'Casa azul junto a la farmacia',
-      postalCode: '170150',
-      contactPhone: '0991234567',
-      items: [{ productId: water.id, quantity: 2 }],
-      latitude: -0.2,
-      longitude: -78.5,
-      deliveryDate: '2099-12-31',
-      windowStart: '09:00',
-      windowEnd: '11:00',
-    })
-    expect(screen.queryByRole('button', { name: 'Registrar pedido' })).not.toBeInTheDocument()
+    await screen.findByText('Plaza Foch, Quito')
+    expect(screen.getAllByRole('button', { name: 'Revisar' })).toHaveLength(1)
+    const row = screen.getByText('Plaza Foch, Quito').closest('tr')
+    expect(row).not.toBeNull()
+    expect(within(row as HTMLElement).getByRole('button', { name: 'Revisar' })).toBeInTheDocument()
   })
 
-  it('no deja pedir un producto agotado ni pasar del stock disponible', async () => {
-    mockApi((url) => (url.endsWith('/api/v1/orders') ? { status: 200, body: [] } : baseHandler(url)))
+  it('abre un modal con la dirección, los motivos y los datos de contacto', async () => {
+    mockOrders([inReviewOrder])
     renderApp('/orders')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
 
-    expect(await screen.findByRole('button', { name: 'Agregar una unidad de Jugo' })).toBeDisabled()
-    expect(screen.getByText('Agotado')).toBeInTheDocument()
-    const add = screen.getByRole('button', { name: 'Agregar una unidad de Agua 1L' })
-    for (let i = 0; i < 12; i += 1) await user.click(add)
-    expect(screen.getByLabelText('Cantidad de Agua 1L')).toHaveTextContent('10')
-    expect(add).toBeDisabled()
+    const dialog = await screen.findByRole('dialog', { name: 'Revisar pedido' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(within(dialog).getByText(/Plaza Foch, Quito/)).toBeInTheDocument()
+    expect(within(dialog).getByText('Cliente bloqueado')).toBeInTheDocument()
+    expect(within(dialog).getByText(/Edificio azul, piso 3/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/0991112233/)).toBeInTheDocument()
   })
 
-  it('conserva los datos y muestra el error si el registro falla', async () => {
-    mockApi((url, init) => {
-      if (url.endsWith('/api/v1/orders') && init.method === 'POST') return apiError(500, 'INTERNAL')
-      if (url.endsWith('/api/v1/orders')) return { status: 200, body: [] }
-      return baseHandler(url)
-    })
+  it('se cierra con Cancelar y con Escape sin enviar nada', async () => {
+    const fetchMock = mockOrders([inReviewOrder])
     renderApp('/orders')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Nuevo pedido' }))
-    await user.click(await screen.findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
-    await user.click(screen.getByRole('button', { name: 'Elegir punto en mapa' }))
-    await user.type(screen.getByLabelText(/Dirección de entrega/), 'Av. Central 123')
-    await user.type(screen.getByLabelText(/Referencia del lugar/), 'Casa azul junto a la farmacia')
-    await user.type(screen.getByLabelText(/Teléfono de contacto/), '099 123-4567')
-    fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2099-12-31' } })
-    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '09:00' } })
-    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '11:00' } })
-    await user.click(screen.getByRole('button', { name: 'Registrar pedido' }))
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo registrar el pedido.')
-    expect(screen.getByLabelText(/Dirección de entrega/)).toHaveValue('Av. Central 123')
+    await user.click(screen.getByRole('button', { name: 'Revisar' }))
+    await screen.findByRole('dialog')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(reviewCall(fetchMock)).toBeUndefined()
+  })
+
+  it('aprueba el pedido: envía CONFIRM con el motivo, cierra el modal y actualiza el listado', async () => {
+    const fetchMock = mockOrders([inReviewOrder])
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.type(await screen.findByLabelText('Motivo *'), '  Cliente conocido, se acepta  ')
+    await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido confirmado.')
+    expect(sentBody(reviewCall(fetchMock)?.[1])).toEqual({ action: 'CONFIRM', reason: 'Cliente conocido, se acepta' })
+    expect(reviewCall(fetchMock)?.[0]).toMatch(/\/api\/v1\/orders\/o-7\/review$/)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => { expect(screen.queryByRole('button', { name: 'Revisar' })).not.toBeInTheDocument() })
+  })
+
+  it('rechaza el pedido con motivo', async () => {
+    const fetchMock = mockOrders([inReviewOrder])
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.click(await screen.findByLabelText(/^Rechazar/))
+    await user.type(screen.getByLabelText('Motivo *'), 'Dirección inexistente')
+    await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido rechazado.')
+    expect(sentBody(reviewCall(fetchMock)?.[1])).toEqual({ action: 'REJECT', reason: 'Dirección inexistente' })
+  })
+
+  it('corrige la ventana y envía la corrección', async () => {
+    const fetchMock = mockOrders([inReviewOrder])
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.click(await screen.findByLabelText(/^Corregir/))
+    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '12:00' } })
+    await user.type(screen.getByLabelText('Motivo *'), 'Se ajusta la ventana')
+    await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido corregido y guardado.')
+    expect(sentBody(reviewCall(fetchMock)?.[1])).toEqual({
+      action: 'CORRECT',
+      reason: 'Se ajusta la ventana',
+      correction: { address: 'Plaza Foch, Quito', deliveryDate: '2099-12-31', windowStart: '09:00', windowEnd: '12:00' },
+    })
+  })
+
+  it('exige el motivo y no envía la decisión sin él', async () => {
+    const fetchMock = mockOrders([inReviewOrder])
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.click(await screen.findByRole('button', { name: 'Guardar decisión' }))
+
+    expect(screen.getByText('Escribe el motivo de la decisión (mínimo 5 caracteres).')).toBeInTheDocument()
+    expect(screen.getByLabelText('Motivo *')).toHaveAttribute('aria-invalid', 'true')
+    expect(reviewCall(fetchMock)).toBeUndefined()
+  })
+
+  it('un pedido fuera de zona no se puede confirmar: queda seleccionada la corrección', async () => {
+    mockOrders([outOfZoneOrder])
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+
+    expect(await screen.findByLabelText(/^Confirmar/)).toBeDisabled()
+    expect(screen.getByLabelText(/^Corregir/)).toBeChecked()
+  })
+
+  it('si el servidor rechaza la decisión muestra el error dentro del modal y lo conserva abierto', async () => {
+    mockOrders([inReviewOrder], adminUser, apiError(409, 'CONFLICT', 'order is not in review'))
+    renderApp('/orders')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await user.type(await screen.findByLabelText('Motivo *'), 'Cliente conocido, se acepta')
+    await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No se pudo registrar la decisión.')
+    expect(screen.getByLabelText('Motivo *')).toHaveValue('Cliente conocido, se acepta')
+  })
+
+  it('el operador también revisa pedidos', async () => {
+    mockOrders([inReviewOrder], operatorUser)
+    renderApp('/orders')
+
+    expect(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 })).toBeInTheDocument()
   })
 })

@@ -1,102 +1,71 @@
 import { expect, test, type Page } from '@playwright/test'
-import { blockTiles, clickMap, loginAsAdmin, mockAuth, mockPhoton } from './support'
+import { loginAsAdmin, mockAuth } from './support'
 
-/** Gateway simulado para pedidos: guarda lo que llega por POST y lo devuelve en el listado. */
-async function mockOrdersApi(page: Page) {
-  const orders: unknown[] = []
-  const received: unknown[] = []
-  await page.route('**/api/v1/orders', async (route) => {
-    if (route.request().method() === 'POST') {
-      const body: unknown = route.request().postDataJSON()
-      received.push(body)
-      const fields = typeof body === 'object' && body !== null ? body : {}
-      const created = {
-        ...fields,
-        id: `o-${String(orders.length + 1)}`,
-        status: 'PENDING',
-        reviewReasons: [],
-        createdAt: '2026-10-10T12:00:00Z',
-      }
-      orders.push(created)
-      await route.fulfill({ status: 201, json: created })
-      return
-    }
-    await route.fulfill({ json: orders })
-  })
-  return received
+const inReview = {
+  id: 'o-1',
+  address: 'Plaza Foch, Quito',
+  latitude: -0.2,
+  longitude: -78.5,
+  deliveryDate: '2099-12-31',
+  windowStart: '09:00',
+  windowEnd: '11:00',
+  status: 'PENDING_REVIEW',
+  reviewReasons: ['CUSTOMER_BLOCKED'],
+  createdAt: '2026-10-10T12:00:00Z',
+  addressReference: 'Edificio azul, piso 3',
+  contactPhone: '0991112233',
 }
 
-const water = {
-  id: '44444444-4444-4444-4444-444444444444',
-  name: 'Agua 1L',
-  description: 'Botella',
-  unitPrice: '2.50',
-  active: true,
-  stockQuantity: 10,
-  createdAt: '2026-10-01T00:00:00Z',
-  updatedAt: '2026-10-01T00:00:00Z',
-}
-
-async function setUpOrdersPage(page: Page) {
+/** Gateway simulado: devuelve `orders` y, al decidir sobre uno, lo pasa a PENDING. Guarda las decisiones. */
+async function setUpOrdersPage(page: Page, orders: unknown[]) {
   await mockAuth(page)
-  await page.route('**/api/v1/products**', (route) => route.fulfill({ json: { products: [water] } }))
-  await page.route('**/api/v1/coverage/zones', (route) => route.fulfill({ json: { zones: [] } }))
-  await mockPhoton(page)
-  await blockTiles(page)
-  const received = await mockOrdersApi(page)
+  let current = orders
+  const decisions: unknown[] = []
+  await page.route('**/api/v1/orders', (route) => route.fulfill({ json: current }))
+  await page.route('**/api/v1/orders/*/review', async (route) => {
+    decisions.push(route.request().postDataJSON())
+    current = current.map((order) => ({ ...(order as object), status: 'PENDING', reviewReasons: [] }))
+    await route.fulfill({ json: current[0] })
+  })
   await loginAsAdmin(page)
   await page.getByRole('link', { name: 'Pedidos' }).click()
   await expect(page.getByRole('heading', { name: 'Pedidos', exact: true })).toBeVisible()
-  return received
+  return decisions
 }
 
-test('registra un pedido con su ubicación del mapa y lo ve en el listado', async ({ page }) => {
-  const received = await setUpOrdersPage(page)
+test('el personal no registra pedidos: no hay botón para crearlos', async ({ page }) => {
+  await setUpOrdersPage(page, [])
+
   await expect(page.getByText('Aún no hay pedidos registrados')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Nuevo pedido' }).click()
-  await page.getByRole('button', { name: 'Agregar una unidad de Agua 1L' }).click()
-  await clickMap(page, 200, 150)
-
-  // La coordenada que se muestra en pantalla es la que debe viajar al backend.
-  const shown = page.getByText(/^-?\d+\.\d{5}, -?\d+\.\d{5}$/)
-  await expect(shown).toBeVisible()
-  const [latText, lngText] = (await shown.textContent() ?? '').split(', ')
-
-  await page.getByLabel(/Dirección de entrega/).fill('Av. Central 123, Col. Centro')
-  await page.getByLabel(/Referencia del lugar/).fill('Casa azul junto a la farmacia')
-  await page.getByLabel(/Teléfono de contacto/).fill('0991234567')
-  await page.getByLabel(/Fecha de entrega/).fill('2099-12-31')
-  await page.getByLabel('Desde').fill('09:00')
-  await page.getByLabel('Hasta').fill('11:00')
-  await page.getByRole('button', { name: 'Registrar pedido' }).click()
-
-  await expect(page.getByRole('status')).toContainText('Pedido registrado para el')
-  await expect(page.getByRole('cell', { name: 'Av. Central 123, Col. Centro' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: '09:00–11:00' })).toBeVisible()
-
-  expect(received).toHaveLength(1)
-  const body = received[0] as { latitude: number; longitude: number; address: string; items: unknown }
-  expect(body.address).toBe('Av. Central 123, Col. Centro')
-  expect(body.items).toEqual([{ productId: water.id, quantity: 1 }])
-  expect(body).toMatchObject({ addressReference: 'Casa azul junto a la farmacia', contactPhone: '0991234567' })
-  expect(body.latitude.toFixed(5)).toBe(latText)
-  expect(body.longitude.toFixed(5)).toBe(lngText)
+  await expect(page.getByRole('button', { name: /nuevo pedido|registrar/i })).toHaveCount(0)
 })
 
-test('no permite registrar un pedido sin elegir la ubicación en el mapa', async ({ page }) => {
-  const received = await setUpOrdersPage(page)
+test('aprueba un pedido en revisión desde el modal y el listado se actualiza', async ({ page }) => {
+  const decisions = await setUpOrdersPage(page, [inReview])
+  await expect(page.getByRole('cell', { name: 'Plaza Foch, Quito' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Nuevo pedido' }).click()
-  await page.getByRole('button', { name: 'Agregar una unidad de Agua 1L' }).click()
-  await page.getByLabel(/Dirección de entrega/).fill('Av. Central 123, Col. Centro')
-  await page.getByLabel(/Referencia del lugar/).fill('Casa azul junto a la farmacia')
-  await page.getByLabel(/Teléfono de contacto/).fill('0991234567')
-  await page.getByLabel(/Fecha de entrega/).fill('2099-12-31')
-  await page.getByLabel('Desde').fill('09:00')
-  await page.getByLabel('Hasta').fill('11:00')
-  await page.getByRole('button', { name: 'Registrar pedido' }).click()
+  await page.getByRole('button', { name: 'Revisar' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Revisar pedido' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Cliente bloqueado')).toBeVisible()
+  await expect(dialog.getByText(/Edificio azul, piso 3/)).toBeVisible()
 
-  await expect(page.getByText('Elige la ubicación de entrega en el mapa.')).toBeVisible()
-  expect(received).toHaveLength(0)
+  await dialog.getByLabel('Motivo *').fill('Cliente conocido, se acepta')
+  await dialog.getByRole('button', { name: 'Guardar decisión' }).click()
+
+  await expect(page.getByRole('status')).toContainText('Pedido confirmado.')
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Revisar' })).toHaveCount(0)
+  expect(decisions).toEqual([{ action: 'CONFIRM', reason: 'Cliente conocido, se acepta' }])
+})
+
+test('el modal de revisión se cierra con Escape sin enviar nada', async ({ page }) => {
+  const decisions = await setUpOrdersPage(page, [inReview])
+
+  await page.getByRole('button', { name: 'Revisar' }).click()
+  await expect(page.getByRole('dialog', { name: 'Revisar pedido' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(decisions).toHaveLength(0)
 })
