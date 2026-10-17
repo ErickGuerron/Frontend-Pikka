@@ -6,13 +6,8 @@ import { reviewReasonLabels, type Order, type ReviewAction } from '@/features/or
 import { userMessage } from '@/shared/api/errors'
 import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
-import { ReviewPanel } from './ReviewPanel'
-
-const decisionMessages: Record<ReviewAction, string> = {
-  CONFIRM: 'Pedido confirmado.',
-  CORRECT: 'Pedido corregido y guardado.',
-  REJECT: 'Pedido rechazado.',
-}
+import { decisionMessages } from './review'
+import { ReviewDialog } from './ReviewDialog'
 
 /** Cola de excepciones: pedidos cuya validación automática no se cumplió (ADR 0007, sección 3). */
 export function ExceptionsPage() {
@@ -68,7 +63,7 @@ export function ExceptionsPage() {
       ) : null}
 
       {selected !== null ? (
-        <ReviewPanel key={selected.id} order={selected} onDecided={handleDecided} onCancel={() => { setSelectedId(null); }} />
+        <ReviewDialog key={selected.id} order={selected} onDecided={handleDecided} onClose={() => { setSelectedId(null); }} />
       ) : null}
 
       <section className="bg-white rounded border border-[#cce7ea] shadow-sm overflow-hidden">
