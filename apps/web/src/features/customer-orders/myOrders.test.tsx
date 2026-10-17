@@ -233,6 +233,20 @@ describe('Mis Pedidos: crear pedido', () => {
     expect(within(dialog).getByText('La fecha de entrega no puede ser anterior a hoy.')).toBeInTheDocument()
   })
 
+  it('permite ampliar el mapa del formulario y elegir el punto desde ahí sin perder el formulario', async () => {
+    const { user, dialog } = await openForm()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Ampliar mapa' }))
+    const big = await screen.findByRole('dialog', { name: 'Mapa ampliado' })
+    await user.click(within(big).getByRole('button', { name: 'Elegir punto en mapa' }))
+    await user.click(within(big).getByRole('button', { name: 'Listo' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Mapa ampliado' })).not.toBeInTheDocument()
+    const form = screen.getByRole('dialog', { name: 'Hacer nuevo pedido' })
+    expect(within(form).getByLabelText('Nombre del lugar')).toBeInTheDocument()
+    expect(within(form).getByText(/Dentro de la zona/i)).toBeInTheDocument()
+  })
+
   it('crea el pedido, cierra el diálogo y lo muestra en la lista', async () => {
     const { user, dialog } = await openForm()
     await fillForm(user, dialog, 'Elegir punto en mapa')

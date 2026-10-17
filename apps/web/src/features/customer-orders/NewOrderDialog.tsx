@@ -153,7 +153,7 @@ export function NewOrderDialog({ onClose, onCreated, initialProductId }: NewOrde
           <p className="text-[11px] text-on-surface-variant">
             Las zonas en verde son las que cubrimos: si tu punto cae dentro, tu pedido no será rechazado por la zona.
           </p>
-          <AddressPicker value={place} onChange={onPlace} zones={zones} />
+          <AddressPicker value={place} onChange={onPlace} zones={zones} expandable />
           {errors.location ? <ErrorMessage>{errors.location}</ErrorMessage> : null}
           <CoverageNotice zones={zones} loading={coverage.isPending} failed={coverage.isError} located={location !== null} zone={covering} />
         </div>
