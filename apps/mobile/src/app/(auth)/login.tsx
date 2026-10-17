@@ -3,7 +3,7 @@ import { LoginForm } from '../../features/auth/LoginForm'
 
 export default function LoginRoute() {
   return (
-    <AuthShell title="Inicia sesión" subtitle="Ingresa para seguir tus pedidos.">
+    <AuthShell mode="login">
       <LoginForm />
     </AuthShell>
   )

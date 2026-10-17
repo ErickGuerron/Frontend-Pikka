@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Link } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
@@ -50,13 +51,76 @@ export function SignupForm() {
 
   return (
     <View style={styles.form}>
-      <Field label="Nombre" value={values.nombre} onChangeText={set('nombre')} error={errors.nombre} maxLength={MAX_NAME_PART} autoComplete="given-name" textContentType="givenName" editable={!loading} />
-      <Field label="Apellido" value={values.apellido} onChangeText={set('apellido')} error={errors.apellido} maxLength={MAX_NAME_PART} autoComplete="family-name" textContentType="familyName" editable={!loading} />
-      <Field label="Ciudad" value={values.city} onChangeText={set('city')} error={errors.city} maxLength={CITY_MAX} autoComplete="postal-address-locality" textContentType="addressCity" editable={!loading} />
-      <Field label="Teléfono" value={values.phone} onChangeText={(text) => { set('phone')(sanitizePhoneInput(text)) }} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" editable={!loading} />
-      <Field label="Correo electrónico" value={values.email} onChangeText={set('email')} error={errors.email} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!loading} />
+      <Field
+        label="Nombre"
+        placeholder="Tu nombre"
+        value={values.nombre}
+        onChangeText={set('nombre')}
+        error={errors.nombre}
+        maxLength={MAX_NAME_PART}
+        autoComplete="given-name"
+        textContentType="givenName"
+        editable={!loading}
+        leftIcon={<Ionicons name="person-outline" size={18} color="#0f766e" />}
+      />
+
+      <Field
+        label="Apellido"
+        placeholder="Tu apellido"
+        value={values.apellido}
+        onChangeText={set('apellido')}
+        error={errors.apellido}
+        maxLength={MAX_NAME_PART}
+        autoComplete="family-name"
+        textContentType="familyName"
+        editable={!loading}
+        leftIcon={<Ionicons name="person-outline" size={18} color="#0f766e" />}
+      />
+
+      <Field
+        label="Ciudad"
+        placeholder="Ej. Quito, Guayaquil..."
+        value={values.city}
+        onChangeText={set('city')}
+        error={errors.city}
+        maxLength={CITY_MAX}
+        autoComplete="postal-address-locality"
+        textContentType="addressCity"
+        editable={!loading}
+        leftIcon={<Ionicons name="location-outline" size={18} color="#0f766e" />}
+      />
+
+      <Field
+        label="Teléfono"
+        placeholder="+593 99-123-4567"
+        value={values.phone}
+        onChangeText={(text) => { set('phone')(sanitizePhoneInput(text)) }}
+        error={errors.phone}
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        editable={!loading}
+        leftIcon={<Ionicons name="call-outline" size={18} color="#0f766e" />}
+      />
+
+      <Field
+        label="Correo electrónico"
+        placeholder="ejemplo@pikka.io"
+        value={values.email}
+        onChangeText={set('email')}
+        error={errors.email}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        autoComplete="email"
+        textContentType="emailAddress"
+        editable={!loading}
+        leftIcon={<Ionicons name="at-outline" size={18} color="#0f766e" />}
+      />
+
       <Field
         label="Contraseña"
+        placeholder="••••••••••••"
         value={values.password}
         onChangeText={set('password')}
         error={errors.password}
@@ -65,16 +129,39 @@ export function SignupForm() {
         autoComplete="new-password"
         textContentType="newPassword"
         editable={!loading}
+        leftIcon={<Ionicons name="lock-closed-outline" size={18} color="#0f766e" />}
         right={<ToggleVisibility visible={showPassword} onToggle={() => { setShowPassword((v) => !v) }} />}
       />
+
       <PasswordStrength password={values.password} />
-      <Field label="Confirmar contraseña" value={values.confirm} onChangeText={set('confirm')} error={errors.confirm} secureTextEntry={!showPassword} autoCapitalize="none" autoComplete="new-password" editable={!loading} />
+
+      <Field
+        label="Confirmar contraseña"
+        placeholder="••••••••••••"
+        value={values.confirm}
+        onChangeText={set('confirm')}
+        error={errors.confirm}
+        secureTextEntry={!showPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        editable={!loading}
+        leftIcon={<Ionicons name="lock-closed-outline" size={18} color="#0f766e" />}
+      />
+
       {serverError ? (
         <Text accessibilityRole="alert" style={styles.serverError}>
           {serverError}
         </Text>
       ) : null}
-      <Button label="Crear cuenta" onPress={() => { void submit() }} loading={loading} />
+
+      <Button
+        label="Crear cuenta"
+        onPress={() => { void submit() }}
+        loading={loading}
+        rightIcon={<Ionicons name="arrow-forward" size={16} color="#ffffff" />}
+      />
+
+
       <View style={styles.footer}>
         <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
         <Link href="/login" style={styles.link}>
@@ -87,17 +174,46 @@ export function SignupForm() {
 
 export function ToggleVisibility({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'} onPress={onToggle} hitSlop={8}>
-      <Text style={styles.toggle}>{visible ? 'Ocultar' : 'Mostrar'}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+      onPress={onToggle}
+      hitSlop={8}
+      style={styles.eyeBtn}
+    >
+      <Ionicons
+        name={visible ? 'eye-off-outline' : 'eye-outline'}
+        size={18}
+        color="#0f766e"
+      />
     </Pressable>
   )
 }
 
+
 const styles = StyleSheet.create({
-  form: { gap: 12 },
-  serverError: { color: colors.error, backgroundColor: colors.errorContainer, borderRadius: 8, padding: 10, fontSize: 13 },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { color: colors.onSurfaceVariant },
-  link: { color: colors.primary, fontWeight: '700' },
-  toggle: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  form: { gap: 14 },
+  eyeBtn: { padding: 4 },
+  serverError: {
+    color: colors.error,
+    backgroundColor: colors.errorContainer,
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 13,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  footerText: {
+    color: '#475569',
+    fontSize: 12,
+  },
+  link: {
+    color: '#004b4e',
+    fontWeight: '700',
+    fontSize: 12,
+  },
 })

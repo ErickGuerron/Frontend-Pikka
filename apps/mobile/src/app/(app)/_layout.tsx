@@ -13,7 +13,7 @@ export default function AppLayout() {
   if (sectionHome !== null) return <Redirect href={sectionHome} />
   return (
     <Stack screenOptions={{ headerStyle: { backgroundColor: colors.primary }, headerTintColor: colors.onPrimary, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="mis-pedidos/index" options={{ title: 'Mis pedidos' }} />
+      <Stack.Screen name="mis-pedidos/index" options={{ headerShown: false }} />
       <Stack.Screen name="mis-pedidos/nuevo" options={{ title: 'Hacer nuevo pedido', presentation: 'modal' }} />
       <Stack.Screen name="mis-pedidos/[id]" options={{ title: 'Detalle del pedido' }} />
       <Stack.Screen name="ruta/index" options={{ title: 'Mi ruta' }} />

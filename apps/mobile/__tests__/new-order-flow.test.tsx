@@ -4,6 +4,20 @@ import { NewOrderForm } from '../src/features/customer-orders/NewOrderForm'
 import { useOrdersStore } from '../src/features/customer-orders/orders-store'
 import { formatCents, maxQuantity, parseProducts, priceLines, totalCents } from '../src/features/customer-orders/products'
 
+// El mapa real es un WebView/iframe con Leaflet (lo cubren sus propias pruebas): aquí un botón emite un punto.
+jest.mock('../src/features/customer-orders/map/LeafletMap', () => {
+  const React = require('react')
+  const { Pressable, Text } = require('react-native')
+  return {
+    LeafletMap: ({ onPick }: { onPick: (c: { latitude: number; longitude: number }) => void }) =>
+      React.createElement(
+        Pressable,
+        { accessibilityRole: 'button', accessibilityLabel: 'Elegir punto en mapa', onPress: () => { onPick({ latitude: -0.2, longitude: -78.5 }) } },
+        React.createElement(Text, null, 'Elegir punto'),
+      ),
+  }
+})
+
 const products = [
   { id: 'p1', name: 'Agua 20 L', unitPrice: '3.50', active: true, stockQuantity: null },
   { id: 'p2', name: 'Agua 5 L', unitPrice: '1.25', active: true, stockQuantity: 2 },
@@ -69,6 +83,17 @@ describe('createOrder request body', () => {
     })
   })
 
+  it('sends the real coordinates of the map point when there is one, and nothing when there is not', async () => {
+    const fn = mockGateway()
+    await createOrder({ ...base, location: { latitude: -0.2, longitude: -78.5 } })
+    await createOrder({ ...base })
+    const [withPoint, withoutPoint] = posts(fn).map((call) => JSON.parse((call[1] as { body: string }).body) as Record<string, unknown>)
+    expect(withPoint).toMatchObject({ latitude: -0.2, longitude: -78.5 })
+    expect(withoutPoint).not.toHaveProperty('latitude')
+    expect(withoutPoint).not.toHaveProperty('longitude')
+    expect(withoutPoint).not.toHaveProperty('location')
+  })
+
   it('sends the postal code when given', async () => {
     const fn = mockGateway()
     await createOrder({ ...base, postalCode: '170150' })
@@ -114,6 +139,24 @@ describe('NewOrderForm', () => {
     await fireEvent.press(screen.getByLabelText('Agregar una unidad de Agua 5 L'))
     await fireEvent.press(screen.getByLabelText('Agregar una unidad de Agua 5 L'))
     expect(screen.getByLabelText('Cantidad de Agua 5 L').props.children).toBe(2)
+  })
+
+  it('sends the point chosen on the map as real coordinates and shows it in the summary', async () => {
+    const fn = mockGateway()
+    const onCreated = jest.fn()
+    await render(<NewOrderForm onCreated={onCreated} />)
+    await fillValid()
+    await fireEvent.press(screen.getByLabelText('Elegir punto en mapa'))
+    await fireEvent.press(screen.getByLabelText('Revisar pedido'))
+
+    expect(await screen.findByText('Confirma tu pedido')).toBeTruthy()
+    expect(screen.getByText('Punto en el mapa')).toBeTruthy()
+    expect(screen.getByText('-0.20000, -78.50000')).toBeTruthy()
+    await fireEvent.press(screen.getByLabelText('Confirmar pedido'))
+
+    await waitFor(() => { expect(onCreated).toHaveBeenCalledTimes(1) })
+    const [, init] = posts(fn)[0] as [string, { body: string }]
+    expect(JSON.parse(init.body)).toMatchObject({ address: 'Av. Amazonas 123', latitude: -0.2, longitude: -78.5 })
   })
 
   it('shows the summary, can go back to edit, and only sends after confirming', async () => {
