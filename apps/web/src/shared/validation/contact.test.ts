@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizePhone, sanitizePhoneInput, validateCity, validatePhone, validatePostalCode, validateReference } from './contact'
+import { normalizePhone, sanitizeNameInput, sanitizePhoneInput, stripEmoji, validateCity, validatePhone, validatePostalCode, validateReference } from './contact'
 
 describe('teléfono', () => {
   it('normaliza espacios, guiones, puntos y paréntesis', () => {
@@ -7,21 +7,27 @@ describe('teléfono', () => {
     expect(normalizePhone('(02) 255 1234')).toBe('022551234')
   })
 
-  it('acepta 7 a 15 dígitos con "+" opcional', () => {
+  it('acepta exactamente 10 dígitos', () => {
     expect(validatePhone('0991234567')).toBeUndefined()
-    expect(validatePhone('+593 99 123 4567')).toBeUndefined()
+    expect(validatePhone('099 123-4567')).toBeUndefined()
   })
 
   it('rechaza vacío, letras y largos fuera de rango', () => {
     expect(validatePhone('')).toMatch(/teléfono de contacto/)
     expect(validatePhone('12345')).toMatch(/válido/)
     expect(validatePhone('abc1234567')).toMatch(/válido/)
-    expect(validatePhone('1234567890123456')).toMatch(/válido/)
+    expect(validatePhone('12345678901')).toMatch(/válido/)
+    expect(validatePhone('+593991234567')).toMatch(/válido/)
   })
 
-  it('al escribir descarta letras y símbolos y limita a 20 caracteres', () => {
-    expect(sanitizePhoneInput('+59a3 9b9-1')).toBe('+593 99-1')
-    expect(sanitizePhoneInput('1'.repeat(30))).toHaveLength(20)
+  it('al escribir descarta todo salvo dígitos y limita a 10', () => {
+    expect(sanitizePhoneInput('+59a3 9b9-1')).toBe('59399 1'.replace(' ', ''))
+    expect(sanitizePhoneInput('1'.repeat(30))).toHaveLength(10)
+  })
+
+  it('quita emojis y deja solo letras en los nombres', () => {
+    expect(stripEmoji('Hola 😀 👨‍👩‍👧 5️⃣ 12')).toBe('Hola   5 12')
+    expect(sanitizeNameInput('Ana María 2_😀')).toBe('AnaMaría')
   })
 })
 

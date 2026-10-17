@@ -1,22 +1,38 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type SyntheticEvent } from 'react'
+import { joinFullName, missingPasswordRulesMessage, validateEmail, validateNamePart } from '@/features/auth/signup-validation'
 import { assignableRoles, roleLabels, type Role } from '@/features/auth/types'
 import { userMessage } from '@/shared/api/errors'
+import { ErrorMessage } from '@/shared/ui/form'
+import { sanitizeNameInput } from '@/shared/validation/contact'
 import { createUser, type NewUser } from './api'
 
-const empty: NewUser = { email: '', password: '', fullName: '', role: 'OPERATOR' }
+const empty = { nombre: '', apellido: '', email: '', password: '', role: 'OPERATOR' as Role }
+type Form = typeof empty
 
 export function CreateUserPage() {
-  const [form, setForm] = useState<NewUser>(empty)
-  const mutation = useMutation({ mutationFn: createUser, onSuccess: () => { setForm(empty) } })
+  const [form, setForm] = useState<Form>(empty)
+  const [submitted, setSubmitted] = useState(false)
+  const mutation = useMutation({ mutationFn: createUser, onSuccess: () => { setForm(empty); setSubmitted(false) } })
 
-  const update = <K extends keyof NewUser>(key: K, value: NewUser[K]) => {
+  const update = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
+  const errors = {
+    nombre: validateNamePart(form.nombre, 'Ingresa el nombre.'),
+    apellido: validateNamePart(form.apellido, 'Ingresa el apellido.'),
+    email: validateEmail(form.email),
+    password: form.password === '' ? 'Ingresa la contraseña inicial.' : missingPasswordRulesMessage(form.password),
+  }
+  const shown = (key: keyof typeof errors) => (submitted ? errors[key] : undefined)
+
   const onSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
-    mutation.mutate({ ...form, email: form.email.trim(), fullName: form.fullName.trim() })
+    setSubmitted(true)
+    if (Object.values(errors).some((message) => message !== undefined)) return
+    const user: NewUser = { email: form.email.trim(), password: form.password, role: form.role, fullName: joinFullName(form.nombre, form.apellido) }
+    mutation.mutate(user)
   }
 
   return (
@@ -33,18 +49,32 @@ export function CreateUserPage() {
           </p>
         </div>
 
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
           <label className="flex flex-col gap-1.5">
             <span className="font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
-              Nombre completo
+              Nombre
             </span>
             <input
-              required
-              maxLength={120}
-              value={form.fullName}
-              onChange={(e) => { update('fullName', e.target.value) }}
+              maxLength={59}
+              value={form.nombre}
+              aria-invalid={shown('nombre') ? true : undefined}
+              onChange={(e) => { update('nombre', sanitizeNameInput(e.target.value)) }}
               className="px-3.5 py-2 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             />
+            {shown('nombre') && <ErrorMessage>{shown('nombre')}</ErrorMessage>}
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
+              Apellido
+            </span>
+            <input
+              maxLength={59}
+              value={form.apellido}
+              aria-invalid={shown('apellido') ? true : undefined}
+              onChange={(e) => { update('apellido', sanitizeNameInput(e.target.value)) }}
+              className="px-3.5 py-2 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
+            />
+            {shown('apellido') && <ErrorMessage>{shown('apellido')}</ErrorMessage>}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
@@ -52,11 +82,13 @@ export function CreateUserPage() {
             </span>
             <input
               type="email"
-              required
+              maxLength={254}
+              aria-invalid={shown('email') ? true : undefined}
               value={form.email}
               onChange={(e) => { update('email', e.target.value) }}
               className="px-3.5 py-2 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             />
+            {shown('email') && <ErrorMessage>{shown('email')}</ErrorMessage>}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">
@@ -65,13 +97,13 @@ export function CreateUserPage() {
             <input
               type="password"
               autoComplete="new-password"
-              required
-              minLength={8}
               maxLength={72}
+              aria-invalid={shown('password') ? true : undefined}
               value={form.password}
               onChange={(e) => { update('password', e.target.value) }}
               className="px-3.5 py-2 rounded-lg border border-[#cce7ea] text-xs font-sans text-[#061f23] bg-white focus:outline-none focus:border-[#004b4e] focus:ring-1 focus:ring-[#004b4e] transition-all"
             />
+            {shown('password') && <ErrorMessage>{shown('password')}</ErrorMessage>}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="font-mono text-xs uppercase tracking-wider text-[#557b7f] font-semibold">

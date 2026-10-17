@@ -75,20 +75,14 @@ describe('SignupForm', () => {
   })
 
   it.each([
-    ['Ana María', 'con espacio'],
-    ['Ana2', 'con número'],
-    ['Ana_', 'con símbolo'],
-  ])('muestra error en línea para el nombre %j (%s) y no envía', async (nombre) => {
-    const fetchMock = mockApi(() => ({ status: 201, body: {} }))
-    const { user, onSuccess } = renderForm()
-
-    await fill(user, { ...valid, nombre })
-    await user.click(submit())
-
-    expect(screen.getByLabelText('Nombre')).toHaveAttribute('aria-invalid', 'true')
-    expect(await screen.findByText('Solo letras, sin espacios ni números.')).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalled()
-    expect(onSuccess).not.toHaveBeenCalled()
+    ['Ana María', 'AnaMaría'],
+    ['Ana2', 'Ana'],
+    ['Ana_', 'Ana'],
+  ])('al escribir el nombre %j solo quedan letras: %j', async (typed, expected) => {
+    mockApi(() => ({ status: 201, body: {} }))
+    const { user } = renderForm()
+    await user.type(screen.getByLabelText('Nombre'), typed)
+    expect(screen.getByLabelText('Nombre')).toHaveValue(expected)
   })
 
   it('exige apellido y muestra el error en línea', async () => {

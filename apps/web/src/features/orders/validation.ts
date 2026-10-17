@@ -66,8 +66,10 @@ export function validateNewOrder(input: OrderDraft, today: string): OrderErrors 
     errors.location = 'La ubicación elegida no es válida. Vuelve a seleccionarla en el mapa.'
   }
 
-  if (input.deliveryDate === '') {
+  if (input.deliveryDate.trim() === '') {
     errors.deliveryDate = 'Elige la fecha de entrega.'
+  } else if (!isRealDate(input.deliveryDate)) {
+    errors.deliveryDate = 'Usa el formato AAAA-MM-DD, por ejemplo 2026-12-31.'
   } else if (input.deliveryDate < today) {
     errors.deliveryDate = 'La fecha de entrega no puede ser anterior a hoy.'
   }
@@ -85,6 +87,13 @@ export function validateNewOrder(input: OrderDraft, today: string): OrderErrors 
   }
 
   return errors
+}
+
+function isRealDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [y, m, d] = value.split('-').map(Number)
+  const date = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1)
+  return date.getFullYear() === y && date.getMonth() === (m ?? 1) - 1 && date.getDate() === d
 }
 
 /** Latitud y longitud dentro de los rangos WGS 84 que exige el contrato. */

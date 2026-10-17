@@ -10,9 +10,10 @@ beforeEach(() => {
 
 async function fillForm(email: string) {
   const user = userEvent.setup()
-  await user.type(await screen.findByLabelText('Nombre completo'), 'Diego Driver')
+  await user.type(await screen.findByLabelText('Nombre'), 'Diego')
+  await user.type(screen.getByLabelText('Apellido'), 'Driver')
   await user.type(screen.getByLabelText('Correo'), email)
-  await user.type(screen.getByLabelText('Contraseña inicial'), 'password123')
+  await user.type(screen.getByLabelText('Contraseña inicial'), 'Password123!')
   await user.selectOptions(screen.getByLabelText('Rol'), 'DRIVER')
   await user.click(screen.getByRole('button', { name: 'Crear usuario' }))
 }
@@ -29,7 +30,7 @@ it('crea un repartidor', async () => {
 
   expect(await screen.findByRole('status')).toHaveTextContent('Usuario diego@example.com creado como Repartidor.')
   const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/users') && i?.method === 'POST')
-  expect(sentBody(call?.[1])).toEqual({ email: 'diego@example.com', password: 'password123', fullName: 'Diego Driver', role: 'DRIVER' })
+  expect(sentBody(call?.[1])).toEqual({ email: 'diego@example.com', password: 'Password123!', fullName: 'Diego Driver', role: 'DRIVER' })
 })
 
 it('muestra el conflicto de correo duplicado', async () => {

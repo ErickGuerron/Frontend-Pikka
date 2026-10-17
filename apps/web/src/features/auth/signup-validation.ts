@@ -27,7 +27,7 @@ export function joinFullName(nombre: string, apellido: string): string {
 
 const lettersOnly = /^\p{L}+$/u
 
-function validateNamePart(value: string, requiredMessage: string): string | undefined {
+export function validateNamePart(value: string, requiredMessage: string): string | undefined {
   if (value.length === 0) return requiredMessage
   if (!lettersOnly.test(value)) return 'Solo letras, sin espacios ni números.'
   if (Array.from(value).length > MAX_NAME_PART) {

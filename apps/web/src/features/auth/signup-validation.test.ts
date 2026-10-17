@@ -22,7 +22,7 @@ describe('validateSignup', () => {
     expect(validateSignup(withValues({ city: '' })).city).toBe('Ingresa tu ciudad.')
     expect(validateSignup(withValues({ phone: '' })).phone).toBe('Ingresa tu número de teléfono.')
     expect(validateSignup(withValues({ phone: '12ab' })).phone).toMatch(/válido/)
-    expect(validateSignup(withValues({ phone: '+593 99 123 4567' })).phone).toBeUndefined()
+    expect(validateSignup(withValues({ phone: '099 123 4567' })).phone).toBeUndefined()
   })
 
   describe('nombre / apellido', () => {

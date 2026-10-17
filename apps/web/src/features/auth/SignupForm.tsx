@@ -1,7 +1,7 @@
 import { useRef, useState, type SyntheticEvent } from 'react'
 import { ArrowRight, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from 'lucide-react'
 import { userMessage } from '@/shared/api/errors'
-import { CITY_MAX, normalizePhone, sanitizePhoneInput } from '@/shared/validation/contact'
+import { CITY_MAX, normalizePhone, sanitizeNameInput, sanitizePhoneInput } from '@/shared/validation/contact'
 import { useSignup } from './hooks'
 import {
   evaluatePasswordRules,
@@ -62,7 +62,7 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
           label="Nombre"
           icon={<User className="auth-icon" />}
           value={values.nombre}
-          onChange={set('nombre')}
+          onChange={(value) => { set('nombre')(sanitizeNameInput(value)) }}
           error={errors.nombre}
           disabled={isLoading}
           autoComplete="given-name"
@@ -74,7 +74,7 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
           label="Apellido"
           icon={<User className="auth-icon" />}
           value={values.apellido}
-          onChange={set('apellido')}
+          onChange={(value) => { set('apellido')(sanitizeNameInput(value)) }}
           error={errors.apellido}
           disabled={isLoading}
           autoComplete="family-name"
@@ -105,7 +105,7 @@ export function SignupForm({ onSuccess }: { onSuccess: () => void }) {
           error={errors.phone}
           disabled={isLoading}
           autoComplete="tel"
-          maxLength={20}
+          maxLength={10}
           placeholder="0991234567"
         />
       </div>

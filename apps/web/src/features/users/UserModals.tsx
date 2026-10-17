@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type SyntheticEvent, type InputHTMLAttributes, type ReactNode } from 'react'
-import { evaluatePasswordRules, joinFullName, missingPasswordRulesMessage, validateEmail, type PasswordRuleId } from '@/features/auth/signup-validation'
+import { evaluatePasswordRules, joinFullName, missingPasswordRulesMessage, validateEmail, validateNamePart, type PasswordRuleId } from '@/features/auth/signup-validation'
 import { assignableRoles, roleLabels, type Role, type User } from '@/features/auth/types'
+import { sanitizeNameInput } from '@/shared/validation/contact'
 import { userMessage } from '@/shared/api/errors'
 import { ErrorMessage, fieldLabelClass, inputClass } from '@/shared/ui/form'
 import { createUser, deactivateUser, updateUser, usersKey, type NewUser, type UserChanges } from './api'
@@ -321,8 +322,8 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
 
   const nameErr = nameErrors(nombre, apellido)
   const errors = {
-    nombre: nameErr.nombre,
-    apellido: nameErr.apellido,
+    nombre: validateNamePart(nombre, 'Ingresa el nombre.'),
+    apellido: validateNamePart(apellido, 'Ingresa el apellido.') ?? nameErr.apellido,
     email: form.email.trim() === '' ? 'Ingresa el correo del usuario.' : validateEmail(form.email),
     password: missingPasswordRulesMessage(form.password),
   }
@@ -368,7 +369,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
             error={submitted ? errors.nombre : undefined}
             label="Nombre"
             name="givenName"
-            onChange={(e) => { setNombre(e.target.value) }}
+            onChange={(e) => { setNombre(sanitizeNameInput(e.target.value)) }}
             placeholder="Ej. Ana…"
             value={nombre}
           />
@@ -377,7 +378,7 @@ export function CreateUserModal({ onClose, onSaved }: CreateUserModalProps) {
             error={submitted ? errors.apellido : undefined}
             label="Apellido"
             name="familyName"
-            onChange={(e) => { setApellido(e.target.value) }}
+            onChange={(e) => { setApellido(sanitizeNameInput(e.target.value)) }}
             placeholder="Ej. Pérez…"
             value={apellido}
           />

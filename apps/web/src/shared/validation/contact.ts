@@ -7,7 +7,8 @@ export const REFERENCE_MAX = 200
 export const POSTAL_MIN = 4
 export const POSTAL_MAX = 10
 
-const phonePattern = /^\+?[0-9]{7,15}$/
+export const PHONE_DIGITS = 10
+const phonePattern = /^[0-9]{10}$/
 const postalPattern = /^[A-Za-z0-9-]+$/
 
 /** Quita espacios, guiones, puntos y paréntesis: la forma que se envía al backend. */
@@ -15,16 +16,25 @@ export function normalizePhone(raw: string): string {
   return raw.replace(/[\s\-.()]/g, '')
 }
 
-/** Deja escribir solo dígitos, espacios, guiones y un "+" inicial, hasta 20 caracteres. */
+/** Deja escribir solo dígitos, hasta 10. */
 export function sanitizePhoneInput(raw: string): string {
-  const plus = raw.trimStart().startsWith('+') ? '+' : ''
-  return (plus + raw.replace(/[^0-9\s-]/g, '')).slice(0, 20)
+  return raw.replace(/\D/g, '').slice(0, PHONE_DIGITS)
+}
+
+/** Quita emojis y sus marcas de unión: ningún campo de texto los admite. */
+export function stripEmoji(raw: string): string {
+  return raw.replace(/\p{Extended_Pictographic}|\p{Emoji_Presentation}|\u200d|\ufe0f|\u20e3/gu, '')
+}
+
+/** Nombre y apellido: solo letras, sin espacios. */
+export function sanitizeNameInput(raw: string): string {
+  return raw.replace(/[^\p{L}]/gu, '')
 }
 
 export function validatePhone(raw: string, requiredMessage = 'Ingresa un teléfono de contacto.'): string | undefined {
   const value = normalizePhone(raw.trim())
   if (value === '') return requiredMessage
-  if (!phonePattern.test(value)) return 'Ingresa un teléfono válido: de 7 a 15 dígitos, con "+" opcional al inicio.'
+  if (!phonePattern.test(value)) return 'Ingresa un teléfono válido de 10 dígitos.'
   return undefined
 }
 

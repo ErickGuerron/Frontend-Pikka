@@ -76,6 +76,7 @@ function validateNamePart(raw: string, label: string): string | undefined {
 }
 
 function validatePassword(raw: string): string | undefined {
+  if (raw.trim() === '') return 'Ingresa la contraseña inicial.'
   if (raw.length < PASSWORD_MIN) return `La contraseña necesita al menos ${String(PASSWORD_MIN)} caracteres.`
   if (new TextEncoder().encode(raw).length > PASSWORD_MAX_BYTES) return `La contraseña admite hasta ${String(PASSWORD_MAX_BYTES)} bytes.`
   return undefined
