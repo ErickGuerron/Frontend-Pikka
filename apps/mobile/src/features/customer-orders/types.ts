@@ -74,6 +74,8 @@ export interface NewCustomerOrder {
   windowEnd: string
   items: OrderLine[]
   notes?: string
+  /** Punto elegido en el mapa (coordenadas reales). Sin él, el servicio localiza la dirección por su cuenta. */
+  location?: { latitude: number; longitude: number }
 }
 
 /** Delivery windows offered to customers (ADR 0007). */

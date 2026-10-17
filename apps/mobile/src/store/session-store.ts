@@ -12,6 +12,7 @@ interface SessionState {
   hydrated: boolean
   /** `expiresInSeconds` comes from the login response; without it the session has no client-side expiry. */
   setSession: (token: string, user: User, expiresInSeconds?: number) => Promise<void>
+  updateUser: (partial: Partial<User>) => Promise<void>
   clear: () => Promise<void>
   hydrate: () => Promise<void>
 }
@@ -51,6 +52,19 @@ export const useSessionStore = create<SessionState>((set) => ({
     const expiresAt = expiresInSeconds === undefined ? undefined : Date.now() + expiresInSeconds * 1000
     set({ token, user, role: user.role, hydrated: true })
     await storage.set(SESSION_KEY, JSON.stringify({ token, user, expiresAt }))
+  },
+  updateUser: async (partial) => {
+    const current = useSessionStore.getState()
+    if (!current.user) return
+    const updatedUser: User = { ...current.user, ...partial }
+    set({ user: updatedUser })
+    const stored = parseStoredSession(await storage.get(SESSION_KEY))
+    if (stored) {
+      await storage.set(
+        SESSION_KEY,
+        JSON.stringify({ token: stored.token, user: updatedUser, expiresAt: stored.expiresAt })
+      )
+    }
   },
   clear: async () => {
     set({ token: null, user: null, role: null })

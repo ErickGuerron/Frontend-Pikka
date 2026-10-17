@@ -32,15 +32,17 @@ export async function listProducts(signal?: AbortSignal): Promise<Product[]> {
 
 /**
  * `notes` is intentionally not sent: the OpenAPI CreateOrderRequest has no such field.
- * `postalCode` is omitted when empty; the phone is sent already normalized.
+ * `postalCode` is omitted when empty; the phone is sent already normalized. The map point travels as
+ * `latitude`/`longitude` (real coordinates) and is omitted when the customer did not pick one.
  */
 export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
   if (isDemoMode()) return createDemoOrder(input)
-  const { address, addressReference, postalCode, contactPhone, deliveryDate, windowStart, windowEnd, items } = input
+  const { address, addressReference, postalCode, contactPhone, deliveryDate, windowStart, windowEnd, items, location } = input
   const body = {
     address,
     addressReference,
     ...(postalCode === undefined || postalCode === '' ? {} : { postalCode }),
+    ...(location === undefined ? {} : { latitude: location.latitude, longitude: location.longitude }),
     contactPhone,
     deliveryDate,
     windowStart,

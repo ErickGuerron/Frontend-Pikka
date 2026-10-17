@@ -10,6 +10,8 @@ export interface User {
   role: Role
   active: boolean
   createdAt: string
+  phone?: string
+  city?: string
 }
 
 export function parseUser(data: unknown): User {
@@ -21,6 +23,8 @@ export function parseUser(data: unknown): User {
     role: oneOf(o, 'role', roles),
     active: boolean(o, 'active'),
     createdAt: string(o, 'createdAt'),
+    phone: typeof o.phone === 'string' ? o.phone : undefined,
+    city: typeof o.city === 'string' ? o.city : undefined,
   }
 }
 

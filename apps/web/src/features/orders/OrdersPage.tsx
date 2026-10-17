@@ -1,25 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { decisionMessages } from '@/features/exceptions/review'
+import { ReviewDialog } from '@/features/exceptions/ReviewDialog'
 import { userMessage } from '@/shared/api/errors'
 import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { getOrders } from './api'
 import { formatDate, formatWindow } from './format'
-import { OrderForm } from './OrderForm'
-import { type Order, type OrderStatus, orderStatusLabels, orderStatuses } from './types'
+import { OrderDetailDialog } from './OrderDetailDialog'
+import { statusStyles } from './statusStyles'
+import { type Order, type OrderStatus, type ReviewAction, orderStatusLabels, orderStatuses } from './types'
 
 type StatusFilter = OrderStatus | 'ALL'
-
-const statusStyles: Record<OrderStatus, string> = {
-  PENDING: 'bg-[#e8f7f9] text-[#004b4e] border border-[#cce7ea]',
-  PENDING_REVIEW: 'bg-[#fff3e0] text-[#693600] border border-[#ffdcc3]',
-  ROUTE_ASSIGNED: 'bg-[#004b4e] text-white border border-[#004b4e]',
-  PICKED_UP: 'bg-[#0a6568] text-white border border-[#0a6568]',
-  IN_TRANSIT: 'bg-[#002628] text-[#2dd4bf] border border-[#14b8a6]/40',
-  DELIVERED: 'bg-[#e8f7f9] text-[#006b5f] border border-[#cce7ea]',
-  NOT_DELIVERED: 'bg-[#ffdad6]/60 text-[#ba1a1a] border border-[#ffdad6]',
-  CANCELLED: 'bg-[#ffdad6]/60 text-[#ba1a1a] border border-[#ffdad6]',
-}
 
 const IN_ROUTE: readonly OrderStatus[] = ['ROUTE_ASSIGNED', 'PICKED_UP', 'IN_TRANSIT']
 
@@ -29,8 +21,13 @@ function toStatusFilter(value: string): StatusFilter {
   return orderStatuses.find((status) => status === value) ?? 'ALL'
 }
 
+/**
+ * Pedidos de todos los clientes, para el personal. El personal no los registra (los crea el cliente,
+ * ADR 0007): aquí los consulta y revisa los que la validación automática dejó en excepción.
+ */
 export function OrdersPage() {
-  const [showForm, setShowForm] = useState(false)
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -45,9 +42,12 @@ export function OrdersPage() {
   const inRouteCount = orders.filter((o) => IN_ROUTE.includes(o.status)).length
   const deliveredCount = orders.filter((o) => o.status === 'DELIVERED').length
 
-  const handleCreated = (order: Order) => {
-    setShowForm(false)
-    setFeedback(`Pedido registrado para el ${formatDate(order.deliveryDate)}, ventana ${formatWindow(order.windowStart, order.windowEnd)}.`)
+  const reviewing: Order | null = orders.find((order) => order.id === reviewingId) ?? null
+  const detail: Order | null = orders.find((order) => order.id === detailId) ?? null
+
+  const handleDecided = (action: ReviewAction) => {
+    setReviewingId(null)
+    setFeedback(decisionMessages[action])
   }
 
   return (
@@ -63,21 +63,9 @@ export function OrdersPage() {
             Pedidos
           </h1>
           <p className="text-xs sm:text-sm text-[#557b7f] font-normal leading-relaxed max-w-2xl">
-            Registra pedidos con dirección, fecha y ventana de entrega, y consulta su estado logístico en tiempo real.
+            Consulta los pedidos de los clientes y su estado logístico en tiempo real. Los que quedaron en excepción se aprueban, corrigen o rechazan desde aquí.
           </p>
         </div>
-        {showForm ? null : (
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              className="px-4 py-2 bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs uppercase tracking-wider rounded transition-colors border border-[#004b4e] flex items-center gap-2 shadow-sm cursor-pointer"
-              onClick={() => { setFeedback(null); setShowForm(true); }}
-              type="button"
-            >
-              <span className="material-symbols-outlined text-base" aria-hidden="true">add_box</span>
-              <span>Nuevo pedido</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Confirmación de acción completada */}
@@ -90,8 +78,17 @@ export function OrdersPage() {
         </div>
       ) : null}
 
-      {showForm ? (
-        <OrderForm onCancel={() => { setShowForm(false); }} onCreated={handleCreated} />
+      {detail !== null ? (
+        <OrderDetailDialog
+          key={detail.id}
+          order={detail}
+          onClose={() => { setDetailId(null); }}
+          onReview={(order) => { setDetailId(null); setFeedback(null); setReviewingId(order.id); }}
+        />
+      ) : null}
+
+      {reviewing !== null ? (
+        <ReviewDialog key={reviewing.id} order={reviewing} onDecided={handleDecided} onClose={() => { setReviewingId(null); }} />
       ) : null}
 
       {/* Indicadores estilo Dossier */}
@@ -149,37 +146,48 @@ export function OrdersPage() {
           <div className="px-4 py-10 flex flex-col items-center gap-2 text-center">
             <span className="material-symbols-outlined text-3xl text-[#8ba7ab]" aria-hidden="true">inbox</span>
             <p className="text-sm font-bold text-[#004b4e] font-sans">Aún no hay pedidos registrados</p>
-            <p className="text-xs text-[#557b7f] font-sans">Registra el primero para empezar a planificar entregas.</p>
-            {showForm ? null : (
-              <button className="mt-2 px-4 py-2 rounded bg-[#004b4e] text-white text-xs font-mono uppercase tracking-wider font-semibold cursor-pointer" onClick={() => { setShowForm(true); }} type="button">
-                Registrar primer pedido
-              </button>
-            )}
+            <p className="text-xs text-[#557b7f] font-sans">Los registran los clientes desde la app; aparecerán aquí para planificar las entregas.</p>
           </div>
         ) : visibleOrders.length === 0 ? (
           <p className="px-4 py-8 text-center text-xs font-mono text-[#557b7f]">No hay pedidos con ese estado.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left font-sans text-xs">
-              <caption className="sr-only">Pedidos registrados con fecha, ventana, dirección y estado</caption>
+              <caption className="sr-only">Pedidos registrados con fecha, ventana, dirección y estado, y la acción de revisar los que están en excepción</caption>
               <thead className="bg-[#f7fcfc] text-[#557b7f] font-mono text-[10px] uppercase tracking-widest border-b border-[#cce7ea]">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-semibold">Fecha</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Ventana</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Dirección</th>
                   <th scope="col" className="px-4 py-3 font-semibold">Estado</th>
+                  <th scope="col" className="px-4 py-3 font-semibold"><span className="sr-only">Acción</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#cce7ea]">
                 {pager.pageItems.map((order) => (
-                  <tr key={order.id} className="hover:bg-[#f7fcfc] transition-colors">
+                  <tr key={order.id} className="cursor-pointer hover:bg-[#f7fcfc] transition-colors" onClick={() => { setDetailId(order.id); }}>
                     <td className="px-4 py-3 font-semibold font-mono text-[#004b4e] whitespace-nowrap">{formatDate(order.deliveryDate)}</td>
                     <td className="px-4 py-3 font-mono text-[#557b7f] whitespace-nowrap">{formatWindow(order.windowStart, order.windowEnd)}</td>
-                    <td className="px-4 py-3 text-[#061f23]">{order.address}</td>
+                    <td className="px-4 py-3 text-[#061f23]">
+                      <button className="cursor-pointer text-left underline-offset-2 hover:underline focus-visible:underline" type="button">
+                        {order.address}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${statusStyles[order.status]}`}>
                         {orderStatusLabels[order.status]}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {order.status === 'PENDING_REVIEW' ? (
+                        <button
+                          className="px-3.5 py-1.5 rounded bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors"
+                          onClick={(event) => { event.stopPropagation(); setFeedback(null); setReviewingId(order.id); }}
+                          type="button"
+                        >
+                          Revisar
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

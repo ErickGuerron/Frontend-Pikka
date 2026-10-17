@@ -63,6 +63,37 @@ describe('catálogo del cliente', () => {
 
     await waitFor(() => { expect(router.state.location.pathname).toBe('/mis-pedidos') })
   })
+
+  it('el botón Realizar pedido abre el modal de nuevo pedido con el producto auto-seleccionado', async () => {
+    serve(customerUser)
+    renderApp('/catalogo')
+    const user = userEvent.setup()
+
+    const orderButton = await screen.findByRole('button', { name: 'Realizar pedido de Agua 1L' })
+    expect(orderButton).toBeInTheDocument()
+
+    await user.click(orderButton)
+
+    expect(await screen.findByRole('heading', { name: 'Hacer nuevo pedido' })).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+  })
+
+  it('el buscador filtra productos por texto y permite limpiar el filtro', async () => {
+    serve(customerUser)
+    renderApp('/catalogo')
+    const user = userEvent.setup()
+
+    expect(await screen.findByText('Agua 1L')).toBeInTheDocument()
+
+    const searchInput = screen.getByLabelText('Buscar productos')
+    await user.type(searchInput, 'Inexistente')
+
+    expect(screen.getByText(/Ningún producto coincide con/)).toBeInTheDocument()
+    expect(screen.queryByText('Agua 1L')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro' }))
+    expect(await screen.findByText('Agua 1L')).toBeInTheDocument()
+  })
 })
 
 describe('administración de productos (personal)', () => {

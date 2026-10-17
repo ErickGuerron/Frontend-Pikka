@@ -3,7 +3,7 @@ import { SignupForm } from '../../features/auth/SignupForm'
 
 export default function SignupRoute() {
   return (
-    <AuthShell title="Crea tu cuenta" subtitle="Regístrate para hacer y seguir tus pedidos.">
+    <AuthShell mode="signup">
       <SignupForm />
     </AuthShell>
   )

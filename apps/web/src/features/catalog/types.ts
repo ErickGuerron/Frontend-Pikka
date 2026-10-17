@@ -7,6 +7,7 @@ export interface Product {
   name: string
   description: string | undefined
   unitPrice: string
+  imageUrl?: string | undefined
   active: boolean
   stockQuantity: number | undefined
   createdAt: string
@@ -53,11 +54,13 @@ export function parseProduct(data: unknown): Product {
   // El gateway envía null (no omite el campo) cuando el producto no controla stock.
   const stock = obj.stockQuantity ?? undefined
   if (stock !== undefined && typeof stock !== 'number') throw new ParseError('stockQuantity: expected number')
+  const imageUrl = typeof obj.imageUrl === 'string' && /^(https?:\/\/|\/)/.test(obj.imageUrl) ? obj.imageUrl : undefined
   return {
     id: string(obj, 'id'),
     name: string(obj, 'name'),
     description: optionalString(obj, 'description'),
     unitPrice: string(obj, 'unitPrice'),
+    imageUrl,
     active: boolean(obj, 'active'),
     stockQuantity: stock,
     createdAt: string(obj, 'createdAt'),

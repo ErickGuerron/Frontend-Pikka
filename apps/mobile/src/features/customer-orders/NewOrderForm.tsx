@@ -6,6 +6,8 @@ import { Field } from '../../components/Field'
 import { colors } from '../../theme/colors'
 import { normalizePhone, POSTAL_MAX, REFERENCE_MAX, sanitizePhoneInput } from '../contact/validation'
 import { useCatalog } from './hooks'
+import { AddressMapPicker } from './map/AddressMapPicker'
+import type { Coordinate } from './map/geo'
 import { OrderItemsPicker } from './OrderItemsPicker'
 import { useOrdersStore } from './orders-store'
 import { formatCents, priceLines, totalCents } from './products'
@@ -32,6 +34,7 @@ export function NewOrderForm({ onCreated }: Props) {
   const catalog = useCatalog()
   const [step, setStep] = useState<Step>('form')
   const [address, setAddress] = useState('')
+  const [location, setLocation] = useState<Coordinate | null>(null)
   const [addressReference, setAddressReference] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [contactPhone, setContactPhone] = useState('')
@@ -54,6 +57,7 @@ export function NewOrderForm({ onCreated }: Props) {
     windowEnd: chosen?.end ?? '',
     items,
     notes: notes.trim(),
+    ...(location === null ? {} : { location }),
   })
 
   const review = () => {
@@ -85,6 +89,9 @@ export function NewOrderForm({ onCreated }: Props) {
       ['Teléfono de contacto', input.contactPhone],
       ['Fecha de entrega', input.deliveryDate],
       ['Ventana', formatWindow(input.windowStart, input.windowEnd)],
+      ...(input.location === undefined
+        ? []
+        : [['Punto en el mapa', `${input.location.latitude.toFixed(5)}, ${input.location.longitude.toFixed(5)}`] as [string, string]]),
     ]
     return (
       <View style={styles.form}>
@@ -124,6 +131,17 @@ export function NewOrderForm({ onCreated }: Props) {
   return (
     <View style={styles.form}>
       <OrderItemsPicker catalog={catalog} value={items} onChange={setItems} error={errors.items} />
+      <AddressMapPicker
+        location={location}
+        address={address}
+        onChangeLocation={setLocation}
+        onChangeAddress={(newAddress) => {
+          setAddress(newAddress)
+          if (errors.address) {
+            setErrors((prev) => ({ ...prev, address: undefined }))
+          }
+        }}
+      />
       <Field label="Dirección de entrega" value={address} onChangeText={setAddress} error={errors.address} placeholder="Calle y número" />
       <Field label="Referencia del lugar" value={addressReference} onChangeText={setAddressReference} error={errors.addressReference} placeholder="Casa azul, junto a la tienda" maxLength={REFERENCE_MAX} />
       <Field label="Código postal (opcional)" value={postalCode} onChangeText={setPostalCode} error={errors.postalCode} autoCapitalize="characters" maxLength={POSTAL_MAX} />
