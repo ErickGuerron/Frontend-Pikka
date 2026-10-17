@@ -23,6 +23,9 @@ export interface Driver {
   id: string
   fullName: string
   phone: string
+  city: string
+  vehicleType: VehicleType
+  plate: string
   active: boolean
   status: DriverStatus
 }
@@ -43,10 +46,15 @@ export function parseDriver(data: unknown): Driver {
   const status = text(o, 'status')
   if (!(driverStatuses as readonly string[]).includes(status)) throw new RangeError(`status: valor desconocido ${status}`)
   if (typeof o.active !== 'boolean') throw new RangeError('active: se esperaba booleano')
+  const vehicleType = text(o, 'vehicleType')
+  if (!(vehicleTypes as readonly string[]).includes(vehicleType)) throw new RangeError(`vehicleType: valor desconocido ${vehicleType}`)
   return {
     id: text(o, 'id'),
     fullName: text(o, 'fullName'),
     phone: text(o, 'phone'),
+    city: text(o, 'city'),
+    vehicleType: vehicleType as VehicleType,
+    plate: text(o, 'plate'),
     active: o.active,
     status: status as DriverStatus,
   }
@@ -57,12 +65,17 @@ export function parseDrivers(data: unknown): Driver[] {
   return data.map((item) => parseDriver(item))
 }
 
-/** Filtra por texto (nombre o teléfono) y por estado. `status` 'ALL' no filtra. */
+/** Filtra por texto (nombre, teléfono, ciudad o placa) y por estado. `status` 'ALL' no filtra. */
 export function filterDrivers(drivers: readonly Driver[], query: string, status: DriverStatus | 'ALL'): Driver[] {
   const q = query.trim().toLowerCase()
   return drivers.filter((driver) => {
     if (status !== 'ALL' && driver.status !== status) return false
     if (q === '') return true
-    return driver.fullName.toLowerCase().includes(q) || driver.phone.includes(q)
+    return (
+      driver.fullName.toLowerCase().includes(q) ||
+      driver.phone.includes(q) ||
+      driver.city.toLowerCase().includes(q) ||
+      driver.plate.toLowerCase().includes(q)
+    )
   })
 }

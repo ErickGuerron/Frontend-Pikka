@@ -65,12 +65,7 @@ Estados:
 
 ## 4. Listado de repartidores
 
-`DriversPage` hoy llama a `GET /api/v1/drivers` y ese endpoint **no existe** en el backend. Hay que decidir una de dos:
-
-- (a) El backend añade `GET /api/v1/drivers` (ADMIN y OPERATOR) con los campos no sensibles: nombre, ciudad, tipo de vehículo, placa, estado, activo. **Recomendado.**
-- (b) La página sigue usando datos de demo (`VITE_MOCK_DRIVERS`), lo cual debe quedar visible en pantalla.
-
-Columnas sugeridas: nombre completo, ciudad, vehículo, placa, estado, activo. La fecha de nacimiento y el documento no van en el listado; solo se ven en el detalle para ADMIN.
+Implementado. `GET /api/v1/drivers` (ADMIN y OPERATOR) llega con Backend-Pikka#57 y devuelve nombre, teléfono, ciudad, tipo de vehículo, placa, estado y si está activo. No trae fecha de nacimiento ni documento. La tabla de `DriversPage` muestra esas columnas y busca por nombre, teléfono, ciudad o placa. `VITE_MOCK_DRIVERS=true` mantiene una lista de muestra para desarrollar sin backend.
 
 ## 5. Limitaciones del backend que el front debe respetar
 
@@ -93,7 +88,7 @@ Playwright (`apps/web/e2e`): flujo ADMIN crea repartidor y aparece en el listado
 
 ## 7. Orden de trabajo sugerido
 
-1. Backend: mergear `feat/driver-profile` y decidir el listado (sección 4).
+1. Backend: mergear Backend-Pikka#57.
 2. Web: tipos y `api.ts` del alta (`createDriver`), validadores y sus tests.
 3. Web: página del formulario y ruta, con permisos.
 4. Web: listado con los campos nuevos y e2e.

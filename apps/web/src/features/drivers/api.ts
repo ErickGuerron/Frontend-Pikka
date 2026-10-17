@@ -4,8 +4,8 @@ import { listDemoDrivers } from './demo'
 import { parseDrivers, type Driver, type VehicleType } from './types'
 
 /**
- * PLANNED, NOT IMPLEMENTED: GET /api/v1/drivers is not in the OpenAPI yet. Until the Gateway
- * serves it, VITE_MOCK_DRIVERS=true swaps in a demo list.
+ * GET /api/v1/drivers (ADMIN y OPERATOR) lo sirve el Gateway desde Backend-Pikka#57.
+ * VITE_MOCK_DRIVERS=true sigue sustituyéndolo por una lista de muestra para desarrollar sin backend.
  */
 export function isDriversDemoMode(): boolean {
   return import.meta.env.VITE_MOCK_DRIVERS === 'true'

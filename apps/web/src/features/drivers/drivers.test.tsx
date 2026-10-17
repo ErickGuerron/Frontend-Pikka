@@ -6,9 +6,9 @@ import { adminUser, mockApi, renderApp } from '@/test/utils'
 import { filterDrivers, parseDriver, type Driver } from './types'
 
 const drivers: Driver[] = [
-  { id: 'd-1', fullName: 'Luis Andrade', phone: '0991112233', active: true, status: 'AVAILABLE' },
-  { id: 'd-2', fullName: 'María Paredes', phone: '0992223344', active: true, status: 'ON_ROUTE' },
-  { id: 'd-3', fullName: 'Ana Salazar', phone: '0994445566', active: false, status: 'OFFLINE' },
+  { id: 'd-1', fullName: 'Luis Andrade', phone: '0991112233', city: 'Quito', vehicleType: 'MOTORIZADO', plate: 'PBA1234', active: true, status: 'AVAILABLE' },
+  { id: 'd-2', fullName: 'María Paredes', phone: '0992223344', city: 'Cuenca', vehicleType: 'SUV', plate: 'CAB5678', active: true, status: 'ON_ROUTE' },
+  { id: 'd-3', fullName: 'Ana Salazar', phone: '0994445566', city: 'Guayaquil', vehicleType: 'AUTOMOVIL', plate: 'GAA0001', active: false, status: 'OFFLINE' },
 ]
 
 function mockDrivers(response: { status: number; body: unknown }) {
@@ -33,6 +33,33 @@ describe('repartidores', () => {
     expect(within(table).getByText('Luis Andrade')).toBeTruthy()
     expect(within(table).getByText('En ruta')).toBeTruthy()
     expect(within(table).getByText('Fuera de línea')).toBeTruthy()
+  })
+
+  it('muestra ciudad, vehículo y placa de cada repartidor', async () => {
+    mockDrivers({ status: 200, body: drivers })
+    renderApp('/drivers')
+
+    const table = await screen.findByRole('table')
+    expect(within(table).getByText('Cuenca')).toBeTruthy()
+    expect(within(table).getByText('SUV')).toBeTruthy()
+    expect(within(table).getByText('Motorizado')).toBeTruthy()
+    expect(within(table).getByText('PBA1234')).toBeTruthy()
+  })
+
+  it('busca por placa y por ciudad', async () => {
+    mockDrivers({ status: 200, body: drivers })
+    const user = userEvent.setup()
+    renderApp('/drivers')
+    await screen.findByRole('table')
+
+    await user.type(screen.getByLabelText('Buscar'), 'cab5678')
+    expect(screen.getByText('María Paredes')).toBeTruthy()
+    expect(screen.queryByText('Luis Andrade')).toBeNull()
+
+    await user.clear(screen.getByLabelText('Buscar'))
+    await user.type(screen.getByLabelText('Buscar'), 'guayaquil')
+    expect(screen.getByText('Ana Salazar')).toBeTruthy()
+    expect(screen.queryByText('María Paredes')).toBeNull()
   })
 
   it('filtra por estado y por nombre', async () => {
@@ -71,12 +98,23 @@ describe('repartidores', () => {
 
 describe('reglas de repartidores', () => {
   it('rechaza un estado que no existe', () => {
-    expect(() => parseDriver({ id: 'x', fullName: 'X', phone: '1', active: true, status: 'LOST' })).toThrow(RangeError)
+    expect(() => parseDriver({ ...drivers[0], status: 'LOST' })).toThrow(RangeError)
+  })
+
+  it('rechaza un tipo de vehículo que no existe', () => {
+    expect(() => parseDriver({ ...drivers[0], vehicleType: 'BICICLETA' })).toThrow(RangeError)
+  })
+
+  it('acepta la respuesta del gateway con campos de más', () => {
+    const parsed = parseDriver({ ...drivers[0], userId: 'u-1', firstName: 'Luis', lastName: 'Andrade' })
+    expect(parsed.plate).toBe('PBA1234')
   })
 
   it('filtra por texto y estado sin distinguir mayúsculas', () => {
     expect(filterDrivers(drivers, 'LUIS', 'ALL').map((d) => d.id)).toEqual(['d-1'])
     expect(filterDrivers(drivers, '', 'OFFLINE').map((d) => d.id)).toEqual(['d-3'])
     expect(filterDrivers(drivers, '0992', 'ALL').map((d) => d.id)).toEqual(['d-2'])
+    expect(filterDrivers(drivers, 'gaa', 'ALL').map((d) => d.id)).toEqual(['d-3'])
+    expect(filterDrivers(drivers, 'QUITO', 'ALL').map((d) => d.id)).toEqual(['d-1'])
   })
 })
