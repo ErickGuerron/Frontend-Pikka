@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { PublicIndexOrAuth, RequireSection } from '@/features/auth/guards'
 import { MyOrdersPage } from '@/features/customer-orders/MyOrdersPage'
+import { CreateDriverPage } from '@/features/drivers/CreateDriverPage'
 import { DriversPage } from '@/features/drivers/DriversPage'
 import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
 import { LandingPage } from '@/features/landing/LandingPage'
@@ -34,6 +35,7 @@ export const routes: RouteObject[] = [
       { path: 'zones', element: <RequireSection section="zones"><ZonesPage /></RequireSection> },
       { path: 'routes', element: <RequireSection section="routes"><RoutesPage /></RequireSection> },
       { path: 'drivers', element: <RequireSection section="drivers"><DriversPage /></RequireSection> },
+      { path: 'drivers/new', element: <RequireSection section="newDriver"><CreateDriverPage /></RequireSection> },
       { path: 'tracking', element: <RequireSection section="tracking"><TrackingPage /></RequireSection> },
       { path: 'users', element: <RequireSection section="users"><UsersPage /></RequireSection> },
       { path: 'users/new', element: <RequireSection section="users"><CreateUserPage /></RequireSection> },

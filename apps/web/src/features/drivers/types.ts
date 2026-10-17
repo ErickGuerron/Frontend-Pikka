@@ -8,6 +8,16 @@ export const driverStatusLabels: Record<DriverStatus, string> = {
   OFFLINE: 'Fuera de línea',
 }
 
+/** Tipos de vehículo que acepta el backend; el texto mostrado va aparte. */
+export const vehicleTypes = ['MOTORIZADO', 'AUTOMOVIL', 'SUV'] as const
+export type VehicleType = (typeof vehicleTypes)[number]
+
+export const vehicleTypeLabels: Record<VehicleType, string> = {
+  MOTORIZADO: 'Motorizado',
+  AUTOMOVIL: 'Automóvil',
+  SUV: 'SUV',
+}
+
 /** Vista del repartidor para el operador. Sin datos de acceso ni de pagos. */
 export interface Driver {
   id: string

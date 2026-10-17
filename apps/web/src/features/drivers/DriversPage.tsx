@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
+import { canAccess } from '@/features/auth/permissions'
+import { useCurrentUser } from '@/features/auth/hooks'
 import { userMessage } from '@/shared/api/errors'
 import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
@@ -10,6 +13,7 @@ import { driverStatusLabels, driverStatuses, filterDrivers, type DriverStatus } 
 export function DriversPage() {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<DriverStatus | 'ALL'>('ALL')
+  const { data: currentUser } = useCurrentUser()
 
   const { data: drivers = [], isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['drivers'],
@@ -42,6 +46,14 @@ export function DriversPage() {
               Disponibilidad, estado en ruta y control operativo de la flota activa.
             </p>
           </div>
+          {canAccess(currentUser?.role, 'newDriver') ? (
+            <Link
+              className="self-start px-4 py-2 rounded-lg bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors border border-[#004b4e] shadow-sm"
+              to="/drivers/new"
+            >
+              Nuevo repartidor
+            </Link>
+          ) : null}
         </div>
       </div>
 

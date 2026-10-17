@@ -3,7 +3,7 @@ import { canAccess, hasWebAccess, homePathFor, sections, type Section } from './
 import type { Role } from './types'
 
 const expectedAccess: Record<Role, Section[]> = {
-  ADMIN: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users', 'products'],
+  ADMIN: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'users', 'products', 'newDriver'],
   OPERATOR: ['home', 'orders', 'exceptions', 'zones', 'routes', 'drivers', 'tracking', 'products'],
   DRIVER: [],
   CUSTOMER: ['myOrders', 'catalog'],
