@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import { useCurrentUser, useLogout } from '@/features/auth/hooks'
+import logoIsotipo from '@/assets/landing/logo-isotipo.png'
 import { Brand } from '@/features/landing/Brand'
 import { initialOf } from './initial'
 
@@ -16,18 +17,18 @@ export function CustomerNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#cce7ea] shadow-xs">
       <div className="h-20 w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Brand & Client Chip */}
+        {/* Brand */}
         <div className="flex items-center gap-3">
-          <Link to="/mis-pedidos" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-[#004b4e] flex items-center justify-center text-[#2dd4bf] shadow-sm group-hover:bg-[#0a6568] transition-colors">
-              <span className="material-symbols-outlined text-[24px]">local_shipping</span>
+          <Link to="/mis-pedidos" className="flex items-center gap-2.5 group">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#14b8a6]/40 bg-[#001d1f] p-2 shadow-sm transition-colors group-hover:border-[#14b8a6]">
+              <img
+                alt="Pikka Nutria Isotipo"
+                src={logoIsotipo}
+                className="h-full w-full object-contain brightness-0 invert"
+              />
             </div>
             <Brand variant="deep" showIsotipo={false} textSize="text-2xl" />
           </Link>
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e8f7f9] border border-[#cce7ea] text-[#004b4e] font-mono text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#14b8a6]" />
-            <span>PORTAL <span className="font-bold text-[#004b4e]">Cliente</span> // V2.4</span>
-          </div>
         </div>
 
         {/* Central Top Navigation Bar */}
@@ -63,17 +64,11 @@ export function CustomerNavbar() {
           </NavLink>
         </nav>
 
-        {/* Right: Quick Action & User Profile */}
+        {/* Right: User Profile */}
         <div className="flex items-center gap-3">
-          <NavLink
-            to="/catalogo"
-            className="hidden lg:inline-flex items-center gap-1.5 px-4 py-2 bg-[#004b4e] hover:bg-[#0a6568] text-white rounded-xl font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            <span>Nuevo Pedido +</span>
-          </NavLink>
 
           <div className="flex items-center gap-2 pl-2 sm:pl-3 py-1 pr-2 rounded-full bg-[#e8f7f9] border border-[#cce7ea]">
+            <span className="sr-only">Cliente</span>
             <span
               aria-hidden="true"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#004b4e] font-mono text-xs font-bold text-[#2dd4bf] border border-[#14b8a6]/40 shadow-xs"

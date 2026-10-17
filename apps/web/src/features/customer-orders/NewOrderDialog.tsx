@@ -17,6 +17,7 @@ import { deliveryWindows, type CustomerOrder } from './types'
 interface NewOrderDialogProps {
   onClose: () => void
   onCreated: (order: CustomerOrder) => void
+  initialProductId?: string | null
 }
 
 const MAX_NOTES = 280
@@ -30,7 +31,7 @@ type Step = 'form' | 'confirm'
  * Create-order flow in two steps: the form (products, map with covered zones, editable address,
  * contact data, date and window) and a summary the customer confirms before anything is sent.
  */
-export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
+export function NewOrderDialog({ onClose, onCreated, initialProductId }: NewOrderDialogProps) {
   const create = useCreateOrder()
   const coverage = useCoverageZones()
   const products = useProducts(false)
@@ -41,7 +42,9 @@ export function NewOrderDialog({ onClose, onCreated }: NewOrderDialogProps) {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [windowStart, setWindowStart] = useState('')
   const [notes, setNotes] = useState('')
-  const [items, setItems] = useState<OrderLine[]>([])
+  const [items, setItems] = useState<OrderLine[]>(() =>
+    initialProductId ? [{ productId: initialProductId, quantity: 1 }] : []
+  )
   const [contact, setContact] = useState<OrderContactValues>({ addressReference: '', postalCode: '', contactPhone: '' })
   const [errors, setErrors] = useState<OrderErrors>({})
 

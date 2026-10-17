@@ -8,6 +8,10 @@
   --primary-hover: #0a6568;
   --danger: #ba1a1a;
   --ok: #006b5f;
+  --landing-deep: #004b4e;
+  --landing-accent: #14b8a6;
+  --landing-accent-light: #2dd4bf;
+  --landing-primary-panel: #001d1f;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--text);
 }
