@@ -7,20 +7,11 @@ import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { getOrders } from './api'
 import { formatDate, formatWindow } from './format'
+import { OrderDetailDialog } from './OrderDetailDialog'
+import { statusStyles } from './statusStyles'
 import { type Order, type OrderStatus, type ReviewAction, orderStatusLabels, orderStatuses } from './types'
 
 type StatusFilter = OrderStatus | 'ALL'
-
-const statusStyles: Record<OrderStatus, string> = {
-  PENDING: 'bg-[#e8f7f9] text-[#004b4e] border border-[#cce7ea]',
-  PENDING_REVIEW: 'bg-[#fff3e0] text-[#693600] border border-[#ffdcc3]',
-  ROUTE_ASSIGNED: 'bg-[#004b4e] text-white border border-[#004b4e]',
-  PICKED_UP: 'bg-[#0a6568] text-white border border-[#0a6568]',
-  IN_TRANSIT: 'bg-[#002628] text-[#2dd4bf] border border-[#14b8a6]/40',
-  DELIVERED: 'bg-[#e8f7f9] text-[#006b5f] border border-[#cce7ea]',
-  NOT_DELIVERED: 'bg-[#ffdad6]/60 text-[#ba1a1a] border border-[#ffdad6]',
-  CANCELLED: 'bg-[#ffdad6]/60 text-[#ba1a1a] border border-[#ffdad6]',
-}
 
 const IN_ROUTE: readonly OrderStatus[] = ['ROUTE_ASSIGNED', 'PICKED_UP', 'IN_TRANSIT']
 
@@ -36,6 +27,7 @@ function toStatusFilter(value: string): StatusFilter {
  */
 export function OrdersPage() {
   const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -51,6 +43,7 @@ export function OrdersPage() {
   const deliveredCount = orders.filter((o) => o.status === 'DELIVERED').length
 
   const reviewing: Order | null = orders.find((order) => order.id === reviewingId) ?? null
+  const detail: Order | null = orders.find((order) => order.id === detailId) ?? null
 
   const handleDecided = (action: ReviewAction) => {
     setReviewingId(null)
@@ -83,6 +76,15 @@ export function OrdersPage() {
             Cerrar
           </button>
         </div>
+      ) : null}
+
+      {detail !== null ? (
+        <OrderDetailDialog
+          key={detail.id}
+          order={detail}
+          onClose={() => { setDetailId(null); }}
+          onReview={(order) => { setDetailId(null); setFeedback(null); setReviewingId(order.id); }}
+        />
       ) : null}
 
       {reviewing !== null ? (
@@ -163,10 +165,14 @@ export function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-[#cce7ea]">
                 {pager.pageItems.map((order) => (
-                  <tr key={order.id} className="hover:bg-[#f7fcfc] transition-colors">
+                  <tr key={order.id} className="cursor-pointer hover:bg-[#f7fcfc] transition-colors" onClick={() => { setDetailId(order.id); }}>
                     <td className="px-4 py-3 font-semibold font-mono text-[#004b4e] whitespace-nowrap">{formatDate(order.deliveryDate)}</td>
                     <td className="px-4 py-3 font-mono text-[#557b7f] whitespace-nowrap">{formatWindow(order.windowStart, order.windowEnd)}</td>
-                    <td className="px-4 py-3 text-[#061f23]">{order.address}</td>
+                    <td className="px-4 py-3 text-[#061f23]">
+                      <button className="cursor-pointer text-left underline-offset-2 hover:underline focus-visible:underline" type="button">
+                        {order.address}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${statusStyles[order.status]}`}>
                         {orderStatusLabels[order.status]}
@@ -176,7 +182,7 @@ export function OrdersPage() {
                       {order.status === 'PENDING_REVIEW' ? (
                         <button
                           className="px-3.5 py-1.5 rounded bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs uppercase tracking-wider font-semibold cursor-pointer transition-colors"
-                          onClick={() => { setFeedback(null); setReviewingId(order.id); }}
+                          onClick={(event) => { event.stopPropagation(); setFeedback(null); setReviewingId(order.id); }}
                           type="button"
                         >
                           Revisar
