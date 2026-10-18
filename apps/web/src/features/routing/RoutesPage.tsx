@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
+import { localToday } from '@/features/orders/validation'
 import { generateRoutePlan, insertLastMinuteOrder, isRoutingDemoMode, moveRouteStop, routingErrorMessage } from './api'
 import type { RoutePlan } from './types'
 
@@ -63,7 +64,7 @@ export function RoutesPage() {
             <button
               className="px-4 py-2 rounded-lg bg-[#004b4e] hover:bg-[#0a6568] text-white font-mono text-xs font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 transition-colors border border-[#004b4e] shadow-sm flex items-center gap-2"
               disabled={generate.isPending}
-              onClick={() => { generate.mutate(); }}
+              onClick={() => { generate.mutate(localToday()); }}
               type="button"
             >
               <span className="material-symbols-outlined text-base" aria-hidden="true">

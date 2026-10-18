@@ -2,22 +2,22 @@ import { http } from '@/shared/api/client'
 import { ApiError, userMessage } from '@/shared/api/errors'
 import { insertUnassignedOrder, moveStop } from './adjust'
 import { generateDemoRoutePlan } from './demo'
-import { parseRoutePlan, type RoutePlan } from './types'
+import { parseGeneratedRoutePlan, parseRoutePlan, type RoutePlan } from './types'
 
 /**
- * PLANNED, NOT IMPLEMENTED: the Gateway does not serve these routes yet. VITE_MOCK_ROUTING=true
- * swaps in demo versions that work on the plan in memory.
- *   POST  /api/v1/route-plans/generate              generate the day's routes
- *   POST  /api/v1/route-plans/{planId}/stops        insert a last-minute order
+ * Generate is served by POST /api/v1/routes/plan (ADMIN and OPERATOR). Insert and move are NOT served yet:
+ * they are PLANNED and keep their demo versions when VITE_MOCK_ROUTING=true.
+ *   POST  /api/v1/route-plans/{planId}/stops        insert a last-minute order (planned)
  *   PATCH /api/v1/route-plans/{planId}/stops/{orderId}  move a stop to another route
  */
 export function isRoutingDemoMode(): boolean {
   return import.meta.env.VITE_MOCK_ROUTING === 'true'
 }
 
-export function generateRoutePlan(): Promise<RoutePlan> {
+/** Generates the routes of one delivery date (YYYY-MM-DD). The Gateway requires deliveryDate in the body. */
+export function generateRoutePlan(deliveryDate: string): Promise<RoutePlan> {
   if (isRoutingDemoMode()) return generateDemoRoutePlan()
-  return http.post('/api/v1/route-plans/generate', parseRoutePlan)
+  return http.post('/api/v1/routes/plan', parseGeneratedRoutePlan, { body: { deliveryDate } })
 }
 
 /** Pedido de último momento: se inserta en la ruta indicada, sujeto a validación del servidor. */
