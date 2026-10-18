@@ -8,10 +8,8 @@ import { parseMyOrders, parseOrder, type CustomerOrder, type NewCustomerOrder } 
 /**
  * Customer order endpoints.
  *
- * PLANNED, NOT IMPLEMENTED: the API Gateway does not serve these routes yet
- * (GET /api/v1/orders/mine, POST /api/v1/orders, POST /api/v1/orders/{id}/cancel).
- * This layer targets the future customer contract; until then EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS=true
- * swaps in an in-memory demo.
+ * The API Gateway serves GET /api/v1/orders/mine, POST /api/v1/orders and POST /api/v1/orders/{id}/cancel
+ * (CUSTOMER role). EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS=true still swaps in an in-memory demo.
  */
 
 /** The endpoint is missing or unreachable: show "service not available", not a crash. */
