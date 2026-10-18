@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Alert, StyleSheet, Text, View } from 'react-native'
+import { isDemoMode } from '../../api/config'
 import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
 import { OrderStepper, StatusPill } from './OrderParts'
+import { OrderTrackingSection } from './OrderTrackingSection'
 import { useOrdersStore } from './orders-store'
 import { canCancel, formatWindow, isInProgress, orderCode, reviewReasonLabels, type CustomerOrder } from './types'
 
@@ -63,6 +65,7 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
         <Text style={styles.label}>Dirección de entrega</Text>
         <Text style={styles.text}>{order.address}</Text>
       </View>
+      {isInProgress(order.status) && !isDemoMode() ? <OrderTrackingSection orderId={order.id} /> : null}
       {canCancel(order.status) ? <Button label="Cancelar pedido" variant="danger" onPress={confirmCancel} loading={busy} /> : null}
     </View>
   )
