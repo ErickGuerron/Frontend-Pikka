@@ -1,6 +1,8 @@
 import { http } from '../../api/client'
 import { isDriverDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
+import type { DriverLocation } from './location'
+import { parseRoutePlan, type RoutePlan } from './plan'
 import { advanceDemoStatus, getDemoRoute, registerDemoResult } from './demo'
 import {
   parseDriverRoute,
@@ -27,6 +29,27 @@ import {
 /** The endpoint is missing or unreachable: show "service not available", not a crash. */
 export function isRouteUnavailable(error: unknown): boolean {
   return error instanceof ApiError && [0, 404, 501, 502, 503, 504].includes(error.status)
+}
+
+/**
+ * Sends the driver's position to the backend (PUT /drivers/me/location). The gateway answers with the
+ * stored position; the app ignores the body. Demo mode has no backend, so it sends nothing.
+ */
+export function reportDriverLocation(position: DriverLocation, recordedAt: Date): Promise<void> {
+  if (isDriverDemoMode()) return Promise.resolve()
+  return http.put('/api/v1/drivers/me/location', () => undefined, {
+    body: { latitude: position.latitude, longitude: position.longitude, recordedAt: recordedAt.toISOString() },
+  })
+}
+
+/**
+ * Ruta óptima de las paradas activas desde la posición del repartidor (GET /drivers/me/route/plan).
+ * Demo mode has no road to draw, so it answers an empty plan instead of inventing one.
+ */
+export function getDriverRoutePlan(origin: { latitude: number; longitude: number }, signal?: AbortSignal): Promise<RoutePlan> {
+  if (isDriverDemoMode()) return Promise.resolve({ order: [], distanceMeters: 0, durationSeconds: 0, geometry: [] })
+  const path = `/api/v1/drivers/me/route/plan?lat=${String(origin.latitude)}&lon=${String(origin.longitude)}`
+  return http.get(path, parseRoutePlan, signal ? { signal } : {})
 }
 
 export function getMyRoute(signal?: AbortSignal): Promise<DriverRoute> {

@@ -61,4 +61,19 @@ describe('buildMapDocument', () => {
     expect(html).toContain('window.__setState')
     expect(html).toContain("addEventListener('message'")
   })
+
+  it('dibuja la ruta óptima por calles debajo de las paradas', () => {
+    expect(html).toContain('state.road')
+    expect(html).toContain('roadLayer')
+  })
+
+  it('re-encuadra solo cuando el repartidor pide un encuadre nuevo (key distinta), no en cada render', () => {
+    expect(html).toContain('state.fit.key !== lastFit')
+    expect(html).toContain('state.fit.points')
+  })
+
+  it('encuadra la ruta incluyendo al repartidor junto a las paradas', () => {
+    expect(html).toContain('var fitPoints = state.driver ? points.concat([toLatLng(state.driver)]) : points')
+    expect(html).toContain('map.fitBounds(fitPoints')
+  })
 })

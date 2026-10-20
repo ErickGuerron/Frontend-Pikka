@@ -19,6 +19,12 @@ export interface MapState {
   highlightId: string | null
   /** Paradas de una ruta, en orden: se dibujan numeradas y unidas por una línea. */
   stops?: Coordinate[]
+  /** Posición reciente del repartidor, dibujada aparte del punto de entrega. Null o ausente: no se dibuja. */
+  driver?: Coordinate | null
+  /** Camino por calles de la ruta óptima, dibujado como línea. Vacío o ausente: no se dibuja. */
+  road?: Coordinate[]
+  /** Pedido de encuadre: al cambiar `key`, el mapa ajusta la vista a `points`. */
+  fit?: { points: Coordinate[]; key: string } | null
 }
 
 /** Lo que el mapa le avisa al anfitrión. */
@@ -93,6 +99,10 @@ export function buildMapDocument(): string {
   var highlightLayer = L.layerGroup().addTo(map);
   var pickedLayer = L.layerGroup().addTo(map);
   var stopsLayer = L.layerGroup().addTo(map);
+  var driverLayer = L.layerGroup().addTo(map);
+  var driverFitted = false;
+  var roadLayer = L.layerGroup().addTo(map);
+  var lastFit = null;
   var lastStops = null;
   var lastFocus = null;
   var fitted = false;
@@ -114,6 +124,8 @@ export function buildMapDocument(): string {
     highlightLayer.clearLayers();
     pickedLayer.clearLayers();
     stopsLayer.clearLayers();
+    driverLayer.clearLayers();
+    roadLayer.clearLayers();
     var all = [];
     (state.zones || []).forEach(function (zone) {
       var rings = polygonRings(zone);
@@ -128,6 +140,27 @@ export function buildMapDocument(): string {
     if (state.picked) {
       drawPicked(state.picked);
     }
+    if (state.driver) {
+      L.circleMarker(toLatLng(state.driver), { radius: 10, weight: 3, color: '#ffffff', fillColor: '#0369a1', fillOpacity: 1 })
+        .bindTooltip(label('Repartidor'), { direction: 'top' })
+        .addTo(driverLayer);
+      if (state.picked && !driverFitted) {
+        driverFitted = true;
+        map.fitBounds([toLatLng(state.driver), toLatLng(state.picked)], { padding: [40, 40], maxZoom: 16 });
+      }
+    }
+    // La ruta óptima por calles va debajo de las paradas.
+    if (state.road && state.road.length > 1) {
+      L.polyline(state.road.map(toLatLng), { color: '#0369a1', weight: 5, opacity: 0.8 }).addTo(roadLayer);
+    }
+    // Re-encuadre pedido por el repartidor: solo cuando cambia la key, no en cada render.
+    var userFit = false;
+    if (state.fit && state.fit.points.length > 0 && state.fit.key !== lastFit) {
+      lastFit = state.fit.key;
+      userFit = true;
+      fitted = true;
+      map.fitBounds(state.fit.points.map(toLatLng), { padding: [48, 48], maxZoom: 16 });
+    }
     var stops = state.stops || [];
     if (stops.length > 0) {
       var points = stops.map(toLatLng);
@@ -137,11 +170,16 @@ export function buildMapDocument(): string {
           .bindTooltip(label(String(index + 1)), { permanent: true, direction: 'center', className: 'stop-n' })
           .addTo(stopsLayer);
       });
-      var stopsKey = JSON.stringify(points);
+      // Encuadra paradas y repartidor juntos; vuelve a encuadrar cuando el repartidor aparece por primera vez.
+      var stopsKey = JSON.stringify(points) + (state.driver ? '|driver' : '');
       if (stopsKey !== lastStops) {
         lastStops = stopsKey;
         fitted = true;
-        map.fitBounds(points, { padding: [32, 32], maxZoom: 16 });
+        // El re-encuadre pedido por el repartidor gana sobre el encuadre automático de paradas.
+        if (!userFit) {
+          var fitPoints = state.driver ? points.concat([toLatLng(state.driver)]) : points;
+          map.fitBounds(fitPoints, { padding: [32, 32], maxZoom: 16 });
+        }
       }
     }
     if (!fitted && !state.picked && !state.focus && all.length > 0) {

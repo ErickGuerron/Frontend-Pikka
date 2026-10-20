@@ -4,13 +4,20 @@ import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } 
 import { isDriverDemoMode } from '../../../api/config'
 import { useSessionStore } from '../../../store/session-store'
 import { colors } from '../../../theme/colors'
+import type { Coordinate } from '../../../features/customer-orders/map/geo'
+import { attendOrder, focusPoints } from '../../../features/driver-route/attend'
 import { DriverHeader } from '../../../features/driver-route/DriverHeader'
 import { useDriverRoute } from '../../../features/driver-route/hooks'
+import { useDriverLocationReporter } from '../../../features/driver-route/location-reporter'
 import { RouteStopCard } from '../../../features/driver-route/RouteStopCard'
 import { RouteCard, RouteKpis } from '../../../features/driver-route/RouteSummary'
-import { completedCount, isFinal, orderedStops, remainingCount } from '../../../features/driver-route/types'
+import { StopPicker } from '../../../features/driver-route/StopPicker'
+import { useRoutePlan } from '../../../features/driver-route/plan-hooks'
+import { completedCount, isFinal, orderedStops, remainingCount, type RouteStop } from '../../../features/driver-route/types'
 
 type Tab = 'active' | 'done'
+
+const NO_ROAD: Coordinate[] = []
 
 export default function DriverRouteScreen() {
   const { route, loading, error, unavailable, reload, submit, advance } = useDriverRoute()
@@ -18,12 +25,40 @@ export default function DriverRouteScreen() {
   const clear = useSessionStore((s) => s.clear)
   const [tab, setTab] = useState<Tab>('active')
   const [confirmingLogout, setConfirmingLogout] = useState(false)
+  const [pinnedId, setPinnedId] = useState<string | null>(null)
+  // Pedido de encuadre: ids de los pedidos a mostrar en el mapa. Cada petición tiene su propio número.
+  const [fitRequest, setFitRequest] = useState<{ ids: string[]; n: number } | null>(null)
   const stops = route === null ? [] : orderedStops(route.stops)
+  // Sin ruta asignada el backend responde { id: "", stops: [] }: no es un error, es una vista vacía.
+  const hasRoute = route !== null && route.id !== ''
   const active = stops.filter((s) => !isFinal(s.status))
   const done = stops.filter((s) => isFinal(s.status))
-  const shown = tab === 'active' ? active : done
-  const currentId = active[0]?.id
+  // Comparte la posición con el cliente solo mientras hay paradas activas y la pantalla está abierta.
+  const { tracking, position } = useDriverLocationReporter(hasRoute && active.length > 0)
+  const activeKey = active.map((s) => s.id).join(',')
+  const { plan, error: planError } = useRoutePlan(position, activeKey, hasRoute && active.length > 0)
+  // Orden de atención: el pedido fijado primero, el resto por la ruta óptima del plan.
+  const byId = new Map(active.map((s) => [s.id, s] as const))
+  const attended: RouteStop[] = attendOrder(plan?.order ?? [], pinnedId, active.map((s) => s.id))
+    .map((id) => byId.get(id))
+    .filter((s): s is RouteStop => s !== undefined)
+  const shown = tab === 'active' ? attended : done
+  const currentId = attended[0]?.id
+  const fit = fitRequest === null
+    ? null
+    : { points: focusPoints(fitRequest.ids.map((id) => byId.get(id)).filter((s): s is RouteStop => s !== undefined)), key: String(fitRequest.n) }
   const name = user?.fullName ?? ''
+
+  const requestFit = (ids: string[]) => {
+    setFitRequest((prev) => ({ ids, n: (prev?.n ?? 0) + 1 }))
+  }
+  // Re-encuadre por defecto: el pedido que se atiende ahora y el siguiente.
+  const recenterCurrent = () => { requestFit(attended.slice(0, 2).map((s) => s.id)) }
+  // Re-encuadre de un pedido concreto de la lista: ese pedido y el que le sigue.
+  const focusOrder = (id: string) => {
+    const index = attended.findIndex((s) => s.id === id)
+    requestFit(attended.slice(index, index + 2).map((s) => s.id))
+  }
 
   return (
     <View style={styles.screen}>
@@ -45,8 +80,8 @@ export default function DriverRouteScreen() {
               </View>
             </View>
             <Text style={styles.subtitle}>
-              {route === null
-                ? 'Ruta de hoy'
+              {route === null || !hasRoute
+                ? (route === null ? 'Ruta de hoy' : 'Sin ruta asignada hoy')
                 : `Ruta de hoy · ${completedCount(route.stops)} de ${route.stops.length} completadas · ${remainingCount(route.stops)} pendientes`}
             </Text>
             {isDriverDemoMode() ? <Text style={styles.demo}>DEMO · datos simulados</Text> : null}
@@ -54,7 +89,30 @@ export default function DriverRouteScreen() {
         </View>
 
         <RouteKpis stops={stops} />
-        <RouteCard stops={stops} />
+        <RouteCard
+          stops={stops}
+          driver={position}
+          ordered={attended}
+          road={plan?.geometry ?? NO_ROAD}
+          fit={fit}
+          onRecenter={recenterCurrent}
+        />
+
+        {tab === 'active' && hasRoute && active.length > 0 ? (
+          <StopPicker stops={attended} currentId={currentId} onFocus={focusOrder} onAttend={setPinnedId} />
+        ) : null}
+        {tab === 'active' && planError !== null ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            No se pudo calcular la ruta óptima: {planError}. Revisa que el servicio de rutas esté levantado (make osrm-up).
+          </Text>
+        ) : null}
+
+        {tracking === 'denied' ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            Tu ubicación está desactivada. El cliente no verá tu posición en el mapa.
+          </Text>
+        ) : null}
+        {tracking === 'on' ? <Text style={styles.info}>Compartiendo tu ubicación con el cliente.</Text> : null}
 
         <View style={styles.tabs}>
           <TabButton label="Activos" count={active.length} selected={tab === 'active'} onPress={() => { setTab('active') }} />
@@ -64,13 +122,18 @@ export default function DriverRouteScreen() {
         {loading && route === null ? <Text style={styles.info}>Cargando tu ruta…</Text> : null}
         {error !== null ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            {unavailable ? error : `No pudimos cargar tu ruta. ${error}`}
+            {error}
           </Text>
         ) : null}
-        {!loading && route !== null && shown.length === 0 ? (
-          <Text style={styles.info}>
-            {tab === 'active' ? 'No tienes paradas asignadas por ahora.' : 'Todavía no completas ninguna parada.'}
-          </Text>
+        {!loading && route !== null && !hasRoute ? (
+          <EmptyState title="Sin ruta asignada hoy" body="Cuando el despachador te asigne una ruta, aparecerá aquí." />
+        ) : null}
+        {!loading && hasRoute && shown.length === 0 ? (
+          tab === 'active' ? (
+            <EmptyState title="No tienes paradas activas" body="Todas tus paradas ya tienen resultado, o aún no tienes paradas asignadas." />
+          ) : (
+            <EmptyState title="Aún no completas paradas" body="Aquí aparecerán las paradas que entregues o no logres entregar." />
+          )
         ) : null}
 
         {shown.map((stop) => (
@@ -137,6 +200,16 @@ interface TabButtonProps {
   onPress: () => void
 }
 
+/** Vista vacía de la ruta: sin ruta asignada, o sin paradas en una pestaña. No es un error. */
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <View accessibilityRole="summary" style={styles.empty}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyBody}>{body}</Text>
+    </View>
+  )
+}
+
 function TabButton({ label, count, selected, onPress }: TabButtonProps) {
   return (
     <Pressable
@@ -175,6 +248,9 @@ const styles = StyleSheet.create({
   tabCount: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabCountText: { fontSize: 10, fontWeight: '700', color: colors.onSurfaceVariant },
   info: { color: colors.onSurfaceVariant, textAlign: 'center' },
+  empty: { alignItems: 'center', gap: 6, backgroundColor: colors.surfaceContainerLowest, borderRadius: 12, padding: 20 },
+  emptyTitle: { fontSize: 14, fontWeight: '700', color: colors.onSurface, textAlign: 'center' },
+  emptyBody: { fontSize: 12, color: colors.onSurfaceVariant, textAlign: 'center' },
   error: { color: colors.onErrorContainer, backgroundColor: colors.errorContainer, borderRadius: 10, padding: 12 },
   footer: { alignItems: 'center', gap: 8, paddingTop: 4 },
   secure: { flexDirection: 'row', alignItems: 'center', gap: 6 },
