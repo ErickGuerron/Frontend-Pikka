@@ -124,7 +124,8 @@ describe('driver route screen in demo mode', () => {
     await render(<DriverRouteScreen />)
 
     expect(await screen.findByText(/0 de 4 completadas · 4 pendientes/)).toBeTruthy()
-    expect(screen.getByText('Av. Amazonas N24-03, Quito')).toBeTruthy()
+    // La dirección aparece en la tarjeta de la parada y en la lista de pedidos activos.
+    expect(screen.getAllByText('Av. Amazonas N24-03, Quito').length).toBeGreaterThan(0)
   })
 
   it('draws the pending stops on the real map, numbered in route order', async () => {

@@ -5,6 +5,15 @@ import type { DriverRoute, ProgressStatus, StopResultInput } from './types'
 
 export const UNAVAILABLE_MESSAGE = 'El servicio de rutas aún no está disponible'
 
+/**
+ * Message for a failed action. A 501/503/... from the endpoint means the server does not serve that
+ * action yet, so the driver is told that instead of a generic error.
+ */
+function actionError(prefix: string, e: unknown): string {
+  if (isRouteUnavailable(e)) return `${prefix} Esta acción aún no está disponible en el servidor.`
+  return `${prefix} ${userMessage(e)}`
+}
+
 /** Loads the driver's route and lets the driver register the result of a stop. */
 export function useDriverRoute() {
   const [route, setRoute] = useState<DriverRoute | null>(null)
@@ -22,7 +31,7 @@ export function useDriverRoute() {
       if (signal?.aborted) return
       const down = isRouteUnavailable(e)
       setUnavailable(down)
-      setError(down ? UNAVAILABLE_MESSAGE : userMessage(e))
+      setError(down ? UNAVAILABLE_MESSAGE : actionError('No pudimos cargar tu ruta.', e))
     } finally {
       setLoading(false)
     }
@@ -49,7 +58,7 @@ export function useDriverRoute() {
           await load()
           return
         }
-        setError(userMessage(e))
+        setError(actionError('No pudimos registrar la entrega.', e))
       }
     },
     [route, load],
@@ -68,7 +77,7 @@ export function useDriverRoute() {
           await load()
           return
         }
-        setError(userMessage(e))
+        setError(actionError('No pudimos actualizar la parada.', e))
       }
     },
     [route, load],
