@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from 'react'
 import { LeafletMap } from '../customer-orders/map/LeafletMap'
 import type { Coordinate } from '../customer-orders/map/geo'
 import { colors } from '../../theme/colors'
+import { externalRouteUrl } from './external-route'
 import { routeMapState } from './map-state'
 import { useStopPoints } from './stop-points'
 import { isFinal, type RouteStop } from './types'
@@ -42,20 +43,6 @@ export function RouteKpis({ stops }: { stops: readonly RouteStop[] }) {
   )
 }
 
-/** Google Maps directions through the pending stops, in route order. Addresses only: no coordinates are stored. */
-export function externalRouteUrl(pending: readonly RouteStop[]): string | null {
-  const addresses = pending.map((s) => s.address)
-  const destination = addresses[addresses.length - 1]
-  if (destination === undefined) return null
-  const waypoints = addresses.slice(0, -1)
-  const params = [
-    'api=1',
-    `destination=${encodeURIComponent(destination)}`,
-    ...(waypoints.length > 0 ? [`waypoints=${encodeURIComponent(waypoints.join('|'))}`] : []),
-  ]
-  return `https://www.google.com/maps/dir/?${params.join('&')}`
-}
-
 const ignore = () => undefined
 
 interface RouteCardProps {
@@ -73,8 +60,8 @@ interface RouteCardProps {
 /** Route card with the pending count, the driver's position, the optimal road and the one-tap launch of the external GPS. */
 export function RouteCard({ stops, driver = null, ordered, road = [], fit = null, onRecenter }: RouteCardProps) {
   const pending = stops.filter((s) => !isFinal(s.status))
-  const url = externalRouteUrl(pending)
   const numbered = ordered ?? pending
+  const url = externalRouteUrl(numbered)
   const points = useStopPoints(numbered)
   const mapState = useMemo(
     () => routeMapState(points, driver, { road, fit: fit?.points ?? null, fitKey: fit?.key }),
