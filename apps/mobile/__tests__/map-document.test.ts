@@ -76,4 +76,23 @@ describe('buildMapDocument', () => {
     expect(html).toContain('var fitPoints = state.driver ? points.concat([toLatLng(state.driver)]) : points')
     expect(html).toContain('map.fitBounds(fitPoints')
   })
+
+  it('dibuja al repartidor como una moto y las entregas como casas, con iconos armados por DOM', () => {
+    expect(html).toContain('var MOTORCYCLE')
+    expect(html).toContain('var HOUSE')
+    expect(html).toContain('pinIcon(MOTORCYCLE')
+    expect(html).toContain('pinIcon(HOUSE')
+    expect(html).toContain('createElementNS')
+  })
+
+  it('dibuja el punto de entrega del cliente (state.delivery) aparte del pin de seleccion', () => {
+    expect(html).toContain('state.delivery')
+    expect(html).toContain('deliveryLayer')
+    expect(html).toContain('state.picked')
+  })
+
+  it('numera las paradas con una insignia de texto, no con HTML', () => {
+    expect(html).toContain('number.textContent = String(badge)')
+    expect(html).not.toContain('innerHTML')
+  })
 })

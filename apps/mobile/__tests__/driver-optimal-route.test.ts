@@ -57,6 +57,14 @@ describe('focusPoints', () => {
 
   it('returns nothing when there is no active stop', () => {
     expect(focusPoints([])).toEqual([])
+    expect(focusPoints([], { latitude: 9, longitude: 9 })).toEqual([])
+  })
+
+  it('adds the driver position so the map shows how far the order is', () => {
+    expect(focusPoints([at('a1')], { latitude: 9, longitude: 9 })).toEqual([
+      { latitude: 1, longitude: 0 },
+      { latitude: 9, longitude: 9 },
+    ])
   })
 })
 
