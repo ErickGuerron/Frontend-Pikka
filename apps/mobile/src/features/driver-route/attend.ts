@@ -17,6 +17,7 @@ export function attendOrder(planOrder: readonly string[], pinnedId: string | nul
 /** Punto a encuadrar para el botón de re-encuadre: la parada fijada y la siguiente. */
 export function focusPoints<T extends { latitude?: number; longitude?: number; id: string }>(
   attended: readonly T[],
+  driver: Coordinate | null = null,
 ): Coordinate[] {
   const points: Coordinate[] = []
   for (const stop of attended.slice(0, 2)) {
@@ -24,5 +25,7 @@ export function focusPoints<T extends { latitude?: number; longitude?: number; i
       points.push({ latitude: stop.latitude, longitude: stop.longitude })
     }
   }
+  // The driver's position is included so the map shows how far the order is.
+  if (driver !== null && points.length > 0) points.push(driver)
   return points
 }
