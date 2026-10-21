@@ -31,8 +31,15 @@ jobs:
         run: npm run typecheck
       - name: ESLint
         run: npm run lint
-      - name: Vitest
-        run: npm test
+      - name: Vitest (with coverage)
+        run: npm run test:coverage
+      - name: Coverage is Sonar-ready (repo-relative paths that exist)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/sonar-coverage.mjs apps/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web
+          path: apps/web/coverage/lcov.info
       - name: Build
         run: npm run build
       - name: npm audit (críticas)
@@ -60,6 +67,29 @@ jobs:
           name: playwright-report
           path: apps/web/test-results
 
+  mobile:
+    name: Mobile (Jest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - name: Jest (with coverage)
+        run: npm run test:coverage
+      - name: Coverage is Sonar-ready (repo-relative paths that exist)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/sonar-coverage.mjs apps/mobile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-mobile
+          path: apps/mobile/coverage/lcov.info
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -70,3 +100,39 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    needs: [web, mobile]
+    # Activo cuando el repositorio define la variable SONAR_ENABLED=true y los secretos SONAR_TOKEN y
+    # SONAR_HOST_URL (SonarCloud: https://sonarcloud.io). Variables opcionales: SONAR_ORGANIZATION y
+    # SONAR_PROJECT_KEY. Los PR desde forks no reciben secretos, asi que se omiten.
+    if: ${{ vars.SONAR_ENABLED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-web
+          path: apps/web/coverage
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-mobile
+          path: apps/mobile/coverage
+      - name: Prepare and verify coverage (repo-relative paths, existing files)
+        run: node scripts/sonar-coverage.mjs
+      - uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            ${{ vars.SONAR_ORGANIZATION != '' && format('-Dsonar.organization={0}', vars.SONAR_ORGANIZATION) || '' }}
+            ${{ vars.SONAR_PROJECT_KEY != '' && format('-Dsonar.projectKey={0}', vars.SONAR_PROJECT_KEY) || '' }}
+      - uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

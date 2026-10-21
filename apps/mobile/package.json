@@ -38,6 +38,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:ci": "jest --ci --coverage",
+    "test:coverage": "jest --ci --coverage --maxWorkers=2",
     "typecheck": "tsc --noEmit"
   },
   "private": true
