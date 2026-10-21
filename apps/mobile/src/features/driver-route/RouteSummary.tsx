@@ -2,7 +2,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useMemo, type ReactNode } from 'react'
 import { LeafletMap } from '../customer-orders/map/LeafletMap'
+import type { Coordinate } from '../customer-orders/map/geo'
 import { colors } from '../../theme/colors'
+import { externalRouteUrl } from './external-route'
+import { routeMapState } from './map-state'
 import { useStopPoints } from './stop-points'
 import { isFinal, type RouteStop } from './types'
 
@@ -40,28 +43,31 @@ export function RouteKpis({ stops }: { stops: readonly RouteStop[] }) {
   )
 }
 
-/** Google Maps directions through the pending stops, in route order. Addresses only: no coordinates are stored. */
-export function externalRouteUrl(pending: readonly RouteStop[]): string | null {
-  const addresses = pending.map((s) => s.address)
-  const destination = addresses[addresses.length - 1]
-  if (destination === undefined) return null
-  const waypoints = addresses.slice(0, -1)
-  const params = [
-    'api=1',
-    `destination=${encodeURIComponent(destination)}`,
-    ...(waypoints.length > 0 ? [`waypoints=${encodeURIComponent(waypoints.join('|'))}`] : []),
-  ]
-  return `https://www.google.com/maps/dir/?${params.join('&')}`
-}
-
 const ignore = () => undefined
 
-/** Route card with the pending count and the one-tap launch of the external GPS. */
-export function RouteCard({ stops }: { stops: readonly RouteStop[] }) {
+interface RouteCardProps {
+  stops: readonly RouteStop[]
+  driver?: Coordinate | null
+  /** Pending stops in the order the driver attends them (optimal order); defaults to route order. */
+  ordered?: readonly RouteStop[]
+  /** Optimal road by streets, drawn under the stops. */
+  road?: Coordinate[]
+  /** Re-center request: the map fits these points each time `key` changes. */
+  fit?: { points: Coordinate[]; key: string } | null
+  onRecenter?: () => void
+}
+
+/** Route card with the pending count, the driver's position, the optimal road and the one-tap launch of the external GPS. */
+export function RouteCard({ stops, driver = null, ordered, road = [], fit = null, onRecenter }: RouteCardProps) {
   const pending = stops.filter((s) => !isFinal(s.status))
-  const url = externalRouteUrl(pending)
-  const points = useStopPoints(pending)
-  const mapState = useMemo(() => ({ zones: [], picked: null, focus: null, highlightId: null, stops: points }), [points])
+  const numbered = ordered ?? pending
+  const url = externalRouteUrl(numbered)
+  const points = useStopPoints(numbered)
+  const mapState = useMemo(
+    () => routeMapState(points, driver, { road, fit: fit?.points ?? null, fitKey: fit?.key }),
+    [points, driver, road, fit],
+  )
+  const canRecenter = onRecenter !== undefined && points.length > 0
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
@@ -69,6 +75,17 @@ export function RouteCard({ stops }: { stops: readonly RouteStop[] }) {
         <Text style={styles.chip}>{pending.length} por entregar</Text>
       </View>
       <LeafletMap state={mapState} onPick={ignore} style={styles.map} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Re-encuadrar en el pedido y el siguiente punto"
+        accessibilityState={{ disabled: !canRecenter }}
+        disabled={!canRecenter}
+        onPress={() => { onRecenter?.() }}
+        style={({ pressed }) => [styles.recenter, !canRecenter && styles.off, pressed && styles.pressed]}
+      >
+        <Ionicons name="locate" size={18} color={colors.primary} />
+        <Text style={styles.recenterText}>Re-encuadrar</Text>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Abrir ruta completa en el navegador GPS"
@@ -100,6 +117,8 @@ const styles = StyleSheet.create({
   map: { height: 200, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceContainer },
   gps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.secondary, borderRadius: 8, paddingVertical: 10 },
   gpsText: { color: colors.onSecondary, fontWeight: '600', fontSize: 14 },
+  recenter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.surfaceContainer, borderRadius: 8, paddingVertical: 10 },
+  recenterText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   off: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
 })
