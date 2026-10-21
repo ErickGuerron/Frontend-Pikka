@@ -11,7 +11,7 @@ import { useDriverRoute } from '../../../features/driver-route/hooks'
 import { useDriverLocationReporter } from '../../../features/driver-route/location-reporter'
 import { RouteStopCard } from '../../../features/driver-route/RouteStopCard'
 import { RouteCard, RouteKpis } from '../../../features/driver-route/RouteSummary'
-import { StopPicker } from '../../../features/driver-route/StopPicker'
+import { StopPickerModal } from '../../../features/driver-route/StopPickerModal'
 import { useRoutePlan } from '../../../features/driver-route/plan-hooks'
 import { completedCount, isFinal, orderedStops, remainingCount, type RouteStop } from '../../../features/driver-route/types'
 
@@ -26,6 +26,7 @@ export default function DriverRouteScreen() {
   const [tab, setTab] = useState<Tab>('active')
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [pinnedId, setPinnedId] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
   // Pedido de encuadre: ids de los pedidos a mostrar en el mapa. Cada petición tiene su propio número.
   const [fitRequest, setFitRequest] = useState<{ ids: string[]; n: number } | null>(null)
   const stops = route === null ? [] : orderedStops(route.stops)
@@ -46,19 +47,15 @@ export default function DriverRouteScreen() {
   const currentId = attended[0]?.id
   const fit = fitRequest === null
     ? null
-    : { points: focusPoints(fitRequest.ids.map((id) => byId.get(id)).filter((s): s is RouteStop => s !== undefined)), key: String(fitRequest.n) }
+    : { points: focusPoints(fitRequest.ids.map((id) => byId.get(id)).filter((s): s is RouteStop => s !== undefined), position), key: String(fitRequest.n) }
   const name = user?.fullName ?? ''
 
   const requestFit = (ids: string[]) => {
     setFitRequest((prev) => ({ ids, n: (prev?.n ?? 0) + 1 }))
   }
-  // Re-encuadre por defecto: el pedido que se atiende ahora y el siguiente.
-  const recenterCurrent = () => { requestFit(attended.slice(0, 2).map((s) => s.id)) }
-  // Re-encuadre de un pedido concreto de la lista: ese pedido y el que le sigue.
-  const focusOrder = (id: string) => {
-    const index = attended.findIndex((s) => s.id === id)
-    requestFit(attended.slice(index, index + 2).map((s) => s.id))
-  }
+  // Re-encuadrar abre el selector: el repartidor elige qué pedido encuadrar.
+  const recenterCurrent = () => { setPicking(true) }
+  const focusOrder = (id: string) => { requestFit([id]) }
 
   return (
     <View style={styles.screen}>
@@ -98,9 +95,6 @@ export default function DriverRouteScreen() {
           onRecenter={recenterCurrent}
         />
 
-        {tab === 'active' && hasRoute && active.length > 0 ? (
-          <StopPicker stops={attended} currentId={currentId} onFocus={focusOrder} onAttend={setPinnedId} />
-        ) : null}
         {tab === 'active' && planError !== null ? (
           <Text accessibilityRole="alert" style={styles.error}>
             No se pudo calcular la ruta óptima: {planError}. Revisa que el servicio de rutas esté levantado (make osrm-up).
@@ -163,6 +157,16 @@ export default function DriverRouteScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <StopPickerModal
+        visible={picking}
+        stops={attended}
+        currentId={currentId}
+        driver={position}
+        onClose={() => { setPicking(false) }}
+        onFocus={focusOrder}
+        onAttend={setPinnedId}
+      />
 
       <Modal transparent animationType="fade" visible={confirmingLogout} onRequestClose={() => { setConfirmingLogout(false) }}>
         <View style={styles.overlay}>
