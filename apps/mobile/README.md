@@ -59,20 +59,21 @@ Gateway URL by target:
 
 ## Orders backend status
 
-The backend has **no customer orders endpoints yet**. `src/features/customer-orders/api.ts` targets the planned
-`GET /api/v1/orders/mine`, `POST /api/v1/orders` and `POST /api/v1/orders/{id}/cancel`. With the mock flag off, the
-screen shows "El servicio de pedidos aún no está disponible". Set `EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS=true` to try the UI.
+The Gateway serves the customer endpoints: `GET /api/v1/orders/mine`, `POST /api/v1/orders` and `POST /api/v1/orders/{id}/cancel`
+(CUSTOMER role). `src/features/customer-orders/api.ts` uses them. Set `EXPO_PUBLIC_MOCK_CUSTOMER_ORDERS=true` to use the in-memory demo instead.
+The order in progress shows live tracking from `GET`/WebSocket `/api/v1/orders/{id}/tracking`: the WebSocket sends the snapshot on
+connect and on each change, using the `pikka.v1` subprotocol plus the JWT. The tracking section is hidden in demo mode.
 The order form does not collect coordinates (no map/geocoder) and order notes are UI-only.
 
 ## Driver route backend status
 
-The backend has **no driver route endpoints yet**. `src/features/driver-route/api.ts` targets the planned
-`GET /api/v1/drivers/me/route` and `POST /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/result`. With
+The Gateway still has **no driver route endpoints**: `GET /api/v1/drivers/me/route` and `POST /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/result`
+answer 501. `src/features/driver-route/api.ts` targets them. With
 `EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true` the screen runs on a demo route. Each result captures the driver's GPS position with `expo-location` (ADR 0007) at the moment it is
 registered, using foreground permission only. If the driver refuses, the result is not sent.
-The driver can mark each stop "recogido" and "en camino" before the result. Those two steps call a planned
-`PATCH /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/status`; the Tracking Service owns them in the plan, so the
-Gateway route is still missing.
+The driver can mark each stop "recogido" and "en camino" before the result. Those two steps call
+`PATCH /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/status`, which the Gateway serves and answers with `{stopId, status}`.
+The stop is reachable only once the route endpoint exists.
 
 ## Scripts
 

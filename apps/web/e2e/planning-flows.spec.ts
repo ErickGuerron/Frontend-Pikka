@@ -20,6 +20,13 @@ const plan = {
   unassignedOrderIds: ['o-9'],
 }
 
+// Real response of POST /api/v1/routes/plan: planId and routeId instead of id, plus orderCount.
+const generatedPlan = {
+  planId: plan.id,
+  routes: plan.routes.map((r) => ({ routeId: r.id, driverId: r.driverId, driverName: r.driverName, orderCount: r.stops.length, stops: r.stops })),
+  unassignedOrderIds: plan.unassignedOrderIds,
+}
+
 const trackedRoutes = [
   {
     id: 'route-1',
@@ -49,7 +56,7 @@ test('el operador ve los repartidores con su estado y filtra por nombre', async 
 test('el operador genera rutas y asigna un pedido de último momento', async ({ page }) => {
   await mockAuth(page)
   const requests: unknown[] = []
-  await page.route('**/api/v1/route-plans/generate', (route) => route.fulfill({ json: plan }))
+  await page.route('**/api/v1/routes/plan', (route) => route.fulfill({ json: generatedPlan }))
   await page.route('**/api/v1/route-plans/plan-1/stops', async (route) => {
     requests.push(route.request().postDataJSON())
     await route.fulfill({

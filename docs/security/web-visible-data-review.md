@@ -16,11 +16,11 @@ rechazar el servidor.
 | Pedidos (`orders`) | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/orders` solo personal (openapi) |
 | Excepciones | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/orders/exceptions` solo personal |
 | Zonas | ADMIN, OPERATOR | `permissions.ts` | Pendiente de confirmar en Zone Service |
-| Rutas | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/route-plans/*` no existe todavía |
-| Repartidores | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/drivers` no existe todavía |
-| Seguimiento | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/tracking/*` no existe todavía |
+| Rutas | ADMIN, OPERATOR | `permissions.ts` | `POST /api/v1/routes/plan` existe (generar, solo personal). Insertar y mover paradas (`/route-plans/*`) no existen todavía |
+| Repartidores | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/drivers` existe (listar y alta solo personal) |
+| Seguimiento | ADMIN, OPERATOR | `permissions.ts` | `/api/v1/tracking/*` no existe todavía. La vista del cliente es `/api/v1/orders/:id/tracking` (CUSTOMER) |
 | Usuarios | solo ADMIN | `permissions.ts` | `/api/v1/users` y `/api/v1/customers` con AdminOnly en el Gateway |
-| Mis pedidos | solo CUSTOMER | `permissions.ts` | `/api/v1/orders/mine` no existe todavía |
+| Mis pedidos | solo CUSTOMER | `permissions.ts` | `/api/v1/orders/mine` existe (CUSTOMER). Filtro por token pendiente de verificar con pruebas de API |
 
 ## Datos sensibles y quién los ve
 
@@ -45,7 +45,7 @@ rechazar el servidor.
 ## Pendientes antes de firmar la revisión
 
 1. Confirmar con el equipo si el operador puede ver teléfonos de repartidores (ver tabla).
-2. Verificar en el servidor, cuando existan, que `/orders/mine` y `/tracking/*` filtren por el usuario del token.
+2. Verificar en el servidor que `/orders/mine` filtre por el usuario del token, y que `/tracking/*` (vista de personal) exista antes de revisarla.
 3. Confirmar la autorización por rol de `/api/v1/zones` en el Zone Service.
 
 Esta revisión no reemplaza las pruebas de API. La firma queda pendiente hasta cerrar los puntos anteriores.

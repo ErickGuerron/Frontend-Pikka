@@ -79,6 +79,20 @@ export interface StopResultInput {
   location: DriverLocation
 }
 
+/**
+ * Response of PATCH .../stops/{stopId}/status (gateway contract): only the stop id and the new status.
+ * The caller merges it into the stop it already has.
+ */
+export interface StopProgress {
+  stopId: string
+  status: StopStatus
+}
+
+export function parseStopProgress(data: unknown): StopProgress {
+  const o = object(data, 'stop progress')
+  return { stopId: string(o, 'stopId'), status: oneOf(o, 'status', stopStatuses) }
+}
+
 export function parseRouteStop(data: unknown): RouteStop {
   const o = object(data, 'stop')
   const rawReason = o.reason

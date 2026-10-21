@@ -59,3 +59,32 @@ export function parseRoutePlan(data: unknown): RoutePlan {
     }),
   }
 }
+
+/**
+ * Parses the real response of POST /api/v1/routes/plan (gateway contract, phase 1):
+ * planId, routes[{routeId, driverId, driverName, orderCount, stops}], unassignedOrderIds.
+ * The plan id is derived by the backend and is not persisted; it is only a label.
+ */
+export function parseGeneratedRoutePlan(data: unknown): RoutePlan {
+  const o = record(data, 'generated route plan')
+  return {
+    id: text(o, 'planId'),
+    routes: list(o, 'routes').map((item) => {
+      const r = record(item, 'generated route')
+      return {
+        id: text(r, 'routeId'),
+        driverId: text(r, 'driverId'),
+        driverName: text(r, 'driverName'),
+        stops: list(r, 'stops').map((stop) => {
+          const s = record(stop, 'stop')
+          if (typeof s.sequence !== 'number') throw new RangeError('sequence: se esperaba numero')
+          return { orderId: text(s, 'orderId'), address: text(s, 'address'), sequence: s.sequence }
+        }),
+      }
+    }),
+    unassignedOrderIds: list(o, 'unassignedOrderIds').map((id) => {
+      if (typeof id !== 'string') throw new RangeError('unassignedOrderIds: se esperaba texto')
+      return id
+    }),
+  }
+}

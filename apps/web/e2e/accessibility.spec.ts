@@ -40,8 +40,8 @@ test('seguimiento no tiene problemas serios de accesibilidad', async ({ page }) 
 
 test('rutas no tiene problemas serios de accesibilidad', async ({ page }) => {
   await mockPlanning(page)
-  await page.route('**/api/v1/route-plans/generate', (route) =>
-    route.fulfill({ json: { id: 'plan-1', routes: [], unassignedOrderIds: [] } }),
+  await page.route('**/api/v1/routes/plan', (route) =>
+    route.fulfill({ json: { planId: 'plan-1', routes: [], unassignedOrderIds: [] } }),
   )
   await loginAsAdmin(page)
   await page.getByRole('link', { name: 'Rutas', exact: true }).click()

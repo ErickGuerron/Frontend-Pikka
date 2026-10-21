@@ -60,8 +60,8 @@ export function useDriverRoute() {
     async (stopId: string, to: ProgressStatus) => {
       if (route === null) return
       try {
-        const updated = await advanceStopStatus(route.id, stopId, to)
-        setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? updated : s)) })
+        const progress = await advanceStopStatus(route.id, stopId, to)
+        setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? { ...s, status: progress.status } : s)) })
         setError(null)
       } catch (e) {
         if (e instanceof ApiError && e.status === 409) {

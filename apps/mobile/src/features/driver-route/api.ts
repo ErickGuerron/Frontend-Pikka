@@ -5,18 +5,20 @@ import { advanceDemoStatus, getDemoRoute, registerDemoResult } from './demo'
 import {
   parseDriverRoute,
   parseRouteStop,
+  parseStopProgress,
   type DriverRoute,
   type ProgressStatus,
   type RouteStop,
+  type StopProgress,
   type StopResultInput,
 } from './types'
 
 /**
  * Driver route endpoints.
  *
- * PLANNED, NOT IMPLEMENTED: the API Gateway does not serve these routes yet
- * (GET /api/v1/drivers/me/route and the stop result below). Until then
- * EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true swaps in an in-memory demo.
+ * NOT IMPLEMENTED: the API Gateway does not serve GET /api/v1/drivers/me/route nor the stop
+ * result below (both answer 501). Until then EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true swaps in an
+ * in-memory demo. The stop status PATCH is served.
  *
  * GPS: the result carries the driver's location (ADR 0007, section 4), captured with
  * expo-location at the moment of registration.
@@ -33,13 +35,16 @@ export function getMyRoute(signal?: AbortSignal): Promise<DriverRoute> {
 }
 
 /**
- * Advances a stop to PICKED_UP or IN_TRANSIT. PLANNED: the Tracking Service owns these
- * transitions (PATCH /deliveries/{id}/status in the plan); the Gateway route is not served yet.
+ * Advances a stop to PICKED_UP or IN_TRANSIT. The Gateway serves this route (PATCH) and answers
+ * {stopId, status}; the route itself (GET /drivers/me/route) is still not served, so the stop
+ * can only be reached through the demo or once that route exists.
  */
-export function advanceStopStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<RouteStop> {
-  if (isDriverDemoMode()) return advanceDemoStatus(routeId, stopId, to)
+export function advanceStopStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<StopProgress> {
+  if (isDriverDemoMode()) {
+    return advanceDemoStatus(routeId, stopId, to).then((stop) => ({ stopId: stop.id, status: stop.status }))
+  }
   const path = `/api/v1/drivers/me/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}/status`
-  return http.patch(path, parseRouteStop, { body: { status: to } })
+  return http.patch(path, parseStopProgress, { body: { status: to } })
 }
 
 export function registerStopResult(routeId: string, stopId: string, input: StopResultInput): Promise<RouteStop> {

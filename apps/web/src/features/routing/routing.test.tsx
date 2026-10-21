@@ -27,7 +27,7 @@ function mockGenerate(response: { status: number; body: unknown }) {
   return mockApi((url, init) => {
     if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
     if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
-    if (url.endsWith('/api/v1/route-plans/generate') && init.method === 'POST') return response
+    if (url.endsWith('/api/v1/routes/plan') && init.method === 'POST') return response
     return { status: 200, body: [] }
   })
 }
@@ -36,9 +36,24 @@ beforeEach(() => {
   useSession.getState().setToken('tok')
 })
 
+/** The Gateway response shape for POST /api/v1/routes/plan, built from an in-memory plan. */
+function asBackend(p: RoutePlan) {
+  return {
+    planId: p.id,
+    unassignedOrderIds: p.unassignedOrderIds,
+    routes: p.routes.map((r) => ({
+      routeId: r.id,
+      driverId: r.driverId,
+      driverName: r.driverName,
+      orderCount: r.stops.length,
+      stops: r.stops,
+    })),
+  }
+}
+
 describe('generar rutas', () => {
   it('genera el plan y muestra cada ruta con sus paradas en orden', async () => {
-    mockGenerate({ status: 200, body: plan })
+    mockGenerate({ status: 200, body: asBackend(plan) })
     const user = userEvent.setup()
     renderApp('/routes')
 
@@ -89,7 +104,7 @@ describe('pedido de último momento y ajustes', () => {
     mockApi((url, init) => {
       if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
       if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
-      if (url.endsWith('/api/v1/route-plans/generate') && init.method === 'POST') return { status: 200, body: plan }
+      if (url.endsWith('/api/v1/routes/plan') && init.method === 'POST') return { status: 200, body: asBackend(plan) }
       if (url.endsWith('/api/v1/route-plans/plan-1/stops') && init.method === 'POST') return { status: 200, body: updated }
       return { status: 200, body: [] }
     })
@@ -108,7 +123,7 @@ describe('pedido de último momento y ajustes', () => {
     mockApi((url, init) => {
       if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
       if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
-      if (url.endsWith('/api/v1/route-plans/generate') && init.method === 'POST') return { status: 200, body: twoRoutes }
+      if (url.endsWith('/api/v1/routes/plan') && init.method === 'POST') return { status: 200, body: asBackend(twoRoutes) }
       if (url.includes('/stops/o-1') && init.method === 'PATCH') return { status: 409, body: { error: { code: 'CONFLICT', message: 'x' } } }
       return { status: 200, body: [] }
     })
