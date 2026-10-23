@@ -91,7 +91,7 @@ describe('repartidores', () => {
     renderApp('/drivers')
 
     await waitFor(() => {
-      expect(screen.getByText('No hay repartidores registrados.')).toBeTruthy()
+      expect(screen.getByRole('heading', { name: 'No hay repartidores registrados' })).toBeTruthy()
     })
   })
 })

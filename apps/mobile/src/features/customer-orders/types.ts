@@ -103,7 +103,7 @@ function isOnTheWay(status: OrderStatus): boolean {
   return status === 'PICKED_UP' || status === 'IN_TRANSIT'
 }
 
-export const progressSteps = ['Confirmado', 'Preparado', 'En camino', 'Entregado'] as const
+export const progressSteps = ['Confirmado', 'Preparado', 'Recogido', 'En camino', 'Entregado'] as const
 
 /** Index in `progressSteps` reached by the status, or -1 when the stepper does not apply. */
 export function progressIndex(status: OrderStatus): number {
@@ -113,10 +113,11 @@ export function progressIndex(status: OrderStatus): number {
     case 'ROUTE_ASSIGNED':
       return 1
     case 'PICKED_UP':
-    case 'IN_TRANSIT':
       return 2
-    case 'DELIVERED':
+    case 'IN_TRANSIT':
       return 3
+    case 'DELIVERED':
+      return 4
     default:
       return -1
   }

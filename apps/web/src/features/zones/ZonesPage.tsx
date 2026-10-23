@@ -94,7 +94,8 @@ export function ZonesPage() {
           <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-surface-container-high/60 bg-surface-container-lowest p-2 shadow-sm">
             <AddressPicker
               className="min-h-0 flex-1"
-              mapClassName="h-[420px] xl:h-auto xl:min-h-[360px] xl:flex-1 w-full rounded-xl z-0"
+              mapClassName="h-[420px] xl:h-full xl:min-h-[360px] w-full rounded-xl z-0"
+              showSelection={false}
               value={place}
               onChange={setPlace}
               highlight={zone?.ring ?? browsed?.ring ?? null}
@@ -123,6 +124,19 @@ export function ZonesPage() {
               </div>
             )}
             {classifyTab === 'diagnostico' && (
+            <>
+            {place !== null && (
+              <div className="flex items-center justify-between gap-2 border-b border-surface-container-high/60 px-4 py-2 text-[12px]">
+                <span className="truncate text-on-surface-variant">{place.name || 'Punto elegido en el mapa'}</span>
+                <button
+                  className="shrink-0 cursor-pointer rounded-lg px-3 py-1.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container"
+                  onClick={() => { setPlace(null); }}
+                  type="button"
+                >
+                  Quitar selección
+                </button>
+              </div>
+            )}
             <ClassifyPanel
               point={classifyTarget}
               placeLabel={place === null ? null : place.address === '' ? place.name : `${place.name}, ${place.address}`}
@@ -132,6 +146,7 @@ export function ZonesPage() {
               failed={classifyFailed}
               errorMessage={classifyFailed ? `No pudimos clasificar el punto. ${userMessage(classification.error)}` : null}
             />
+            </>
             )}
           </section>
         </div>

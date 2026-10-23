@@ -5,6 +5,7 @@ import { canAccess } from '@/features/auth/permissions'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { userMessage } from '@/shared/api/errors'
 import { KpiGrid } from '@/shared/ui/kpi'
+import { NoDriversIllustration } from '@/shared/ui/NoDriversIllustration'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { isDriversDemoMode, listDrivers } from './api'
 import { driverStatusLabels, driverStatuses, filterDrivers, vehicleTypeLabels, type DriverStatus } from './types'
@@ -117,9 +118,13 @@ export function DriversPage() {
             </button>
           </div>
         ) : drivers.length === 0 ? (
-          <p className="px-4 py-12 text-center font-mono text-xs text-[#557b7f]">
-            No hay repartidores registrados.
-          </p>
+          <div className="px-6 py-20 md:py-28 flex flex-col items-center justify-center text-center max-w-lg mx-auto">
+            <div className="w-32 h-32 rounded-3xl bg-[#edf7f6] border border-[#bce4df] flex items-center justify-center mb-6 shadow-sm">
+              <NoDriversIllustration />
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[#08292d] mb-2">No hay repartidores registrados</h2>
+            <p className="text-sm text-[#587679] max-w-md">Usa el botón superior para dar de alta repartidores y gestionar la flota activa.</p>
+          </div>
         ) : visible.length === 0 ? (
           <p className="px-4 py-12 text-center font-mono text-xs text-[#557b7f]">
             Ningún repartidor coincide con el filtro.

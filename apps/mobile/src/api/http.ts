@@ -17,6 +17,7 @@ export interface RequestOptions {
 export interface HttpClient {
   get<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
   post<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  put<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
   patch<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
   delete<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
 }
@@ -64,6 +65,7 @@ export function createHttpClient({ baseUrl, getToken, onUnauthorized }: HttpClie
   return {
     get: (path, parse, options) => request('GET', path, parse, options),
     post: (path, parse, options) => request('POST', path, parse, options),
+    put: (path, parse, options) => request('PUT', path, parse, options),
     patch: (path, parse, options) => request('PATCH', path, parse, options),
     delete: (path, parse, options) => request('DELETE', path, parse, options),
   }

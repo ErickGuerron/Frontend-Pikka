@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="195 130 330 260" width="330" height="260" fill="none" stroke="#004e51" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Scooter de reparto">
+  <title>Scooter de reparto</title>
+  <!-- líneas de velocidad -->
+  <path d="M220 150H278"/>
+  <path d="M220 181H238"/>
+  <!-- caja de entrega -->
+  <rect x="220" y="205" width="80" height="75" rx="6"/>
+  <!-- chasis: desde la caja hasta la rueda trasera -->
+  <path d="M220 280C210 290 210 345 218 362"/>
+  <!-- asiento y carrocería -->
+  <path d="M300 290H330Q345 300 350 305Q370 318 390 312Q410 305 412 280V210"/>
+  <!-- manubrio -->
+  <path d="M345 182H430Q447 182 447 196Q447 210 430 210H412"/>
+  <!-- guardabarros delantero -->
+  <path d="M412 210Q452 240 452 300V315"/>
+  <!-- horquilla y faro -->
+  <path d="M452 316L420 348"/>
+  <path d="M458 265L500 300L465 310"/>
+  <!-- eje y ruedas -->
+  <path d="M320 360H418"/>
+  <circle cx="280" cy="360" r="40"/>
+  <circle cx="458" cy="362" r="40"/>
+</svg>

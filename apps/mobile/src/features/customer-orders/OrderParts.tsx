@@ -40,7 +40,7 @@ export function OrderStepper({ status }: { status: OrderStatus }) {
       </View>
       <View style={styles.steps}>
         {progressSteps.map((label, index) => (
-          <Text key={label} style={[styles.step, index <= current ? styles.stepDone : null]}>
+          <Text key={label} adjustsFontSizeToFit numberOfLines={1} style={[styles.step, index <= current ? styles.stepDone : null]}>
             {label.toUpperCase()}
           </Text>
         ))}
@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceContainer, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4, backgroundColor: colors.secondary },
   steps: { flexDirection: 'row', justifyContent: 'space-between' },
-  step: { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', color: colors.outline },
+    step: { flex: 1, textAlign: 'center', fontSize: 8, fontWeight: '700', color: colors.outline },
   stepDone: { color: colors.secondary },
 })

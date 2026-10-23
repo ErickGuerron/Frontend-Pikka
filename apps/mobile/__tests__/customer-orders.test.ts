@@ -32,8 +32,9 @@ describe('order rules', () => {
 
   it('maps statuses to stepper positions', () => {
     expect(progressIndex('PENDING')).toBe(0)
-    expect(progressIndex('IN_TRANSIT')).toBe(2)
-    expect(progressIndex('DELIVERED')).toBe(3)
+    expect(progressIndex('PICKED_UP')).toBe(2)
+    expect(progressIndex('IN_TRANSIT')).toBe(3)
+    expect(progressIndex('DELIVERED')).toBe(4)
     expect(progressIndex('CANCELLED')).toBe(-1)
   })
 
