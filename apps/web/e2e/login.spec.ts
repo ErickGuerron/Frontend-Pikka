@@ -10,6 +10,10 @@ const admin = {
 }
 
 async function mockGateway(page: Page) {
+  // Catch-all registrado primero (menor prioridad): cualquier /api no mockeado queda aislado aquí.
+  // Sin esto, la petición llega al gateway de VITE_DEV_GATEWAY_URL; si hay un backend local,
+  // su 401 real cierra la sesión simulada y la prueba vuelve a /login.
+  await page.route('**/api/**', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/v1/auth/login', async (route) => {
     const body: unknown = route.request().postDataJSON()
     const ok = typeof body === 'object' && body !== null && 'password' in body && body.password === 'admin-password'
