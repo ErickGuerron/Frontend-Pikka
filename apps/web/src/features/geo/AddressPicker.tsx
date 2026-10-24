@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Field, fieldLabelClass, inputClass } from '@/shared/ui/form'
-import { reversePlace } from './api'
+import { reverseStreetPlace } from './api'
 import { ExpandedMapDialog } from './ExpandedMapDialog'
 import { LazyMapCanvas } from './LazyMapCanvas'
 import type { MapZone } from './MapCanvas'
@@ -32,6 +32,11 @@ export interface AddressPickerProps {
   mapClassName?: string
   /** Ofrece "Ampliar mapa": abre el mismo mapa en un diálogo grande para ubicar el punto con precisión. */
   expandable?: boolean
+  /**
+   * Muestra nombre, dirección, coordenadas y "Quitar selección" debajo del mapa. Con false, el padre
+   * muestra esos datos en otro lugar y el mapa ocupa todo el espacio que le den.
+   */
+  showSelection?: boolean
 }
 
 /**
@@ -52,6 +57,7 @@ export function AddressPicker({
   className = '',
   mapClassName = 'h-[420px] w-full rounded-xl z-0',
   expandable = false,
+  showSelection = true,
 }: AddressPickerProps) {
   const [focus, setFocus] = useState<Coordinate | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -74,7 +80,7 @@ export function AddressPicker({
     lookup.current = controller
     onChange(placeAt(point))
     setAddressPending(true)
-    reversePlace(point.latitude, point.longitude, controller.signal)
+    reverseStreetPlace(point.latitude, point.longitude, controller.signal)
       .then((found) => {
         if (controller.signal.aborted) return
         // Photon puede devolver un lugar cercano; conservamos las coordenadas exactas del clic.
@@ -99,7 +105,7 @@ export function AddressPicker({
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <PlaceSearch onSelect={pickFromSearch} variant="inline" />
-      <div className="relative">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <LazyMapCanvas
           className={mapClassName}
           zones={zones}
@@ -141,7 +147,7 @@ export function AddressPicker({
         />
       ) : null}
 
-      {value !== null && (
+      {showSelection && value !== null && (
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-[12px]">
           <Field label="Nombre del lugar">
             <input

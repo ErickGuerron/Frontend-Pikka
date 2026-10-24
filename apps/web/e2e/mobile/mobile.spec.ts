@@ -107,6 +107,8 @@ test('el cliente entra al catalogo y en Pedidos ve su pedido', async ({ page }) 
   await page.getByLabel('Pedidos', { exact: true }).click()
   // La direccion aparece en la tarjeta del pedido actual y en el historial: basta con que se vea.
   await expect(page.getByText('Av. Amazonas 100').first()).toBeVisible()
+  // El pedido de prueba esta PENDING: el cliente debe saber que espera repartidor de su zona.
+  await expect(page.getByText('Lo asignaremos a un repartidor de tu zona')).toBeVisible()
 })
 
 test('el repartidor entra y ve su ruta con la parada activa', async ({ page }) => {
@@ -127,6 +129,72 @@ test('el repartidor cierra turno y vuelve a login', async ({ page }) => {
   await page.getByRole('button', { name: 'Cerrar turno' }).click()
   await page.getByText('Confirmar y cerrar sesión').click()
   await expect(page).toHaveURL(/\/login$/)
+})
+
+test('el cliente centra el mapa en su repartidor y lo sigue', async ({ page }) => {
+  currentUser = customer
+  await mockGateway(page)
+  await page.route('**/api/v1/orders/mine', (route) =>
+    route.fulfill({ json: { orders: [{ ...customerOrder, status: 'IN_TRANSIT' }] } }),
+  )
+  // Snapshot de seguimiento por WebSocket: el repartidor esta a ~1 km del punto de entrega.
+  const snapshot = {
+    order_id: 'order-1',
+    status: 'IN_TRANSIT',
+    delivery_address: 'Av. Amazonas 100',
+    delivery_window: { start: '2026-10-25T10:00:00Z', end: '2026-10-25T12:00:00Z' },
+    eta: { distance_meters: 1200, duration_seconds: 300 },
+    stops_before: 2,
+    driver_position: { latitude: -0.18, longitude: -78.48, recorded_at: '2026-10-24T10:00:00Z' },
+    delivery_point: { latitude: -0.19, longitude: -78.49 },
+    road: [],
+    updated_at: '2026-10-24T10:00:00Z',
+  }
+  await page.routeWebSocket(/\/api\/v1\/orders\/order-1\/tracking\/ws/, (ws) => {
+    ws.send(JSON.stringify(snapshot))
+  })
+
+  await page.goto('/login')
+  await login(page, customer.email, 'cliente-password')
+  await expect(page).toHaveURL(/\/mis-pedidos$/)
+  await page.getByLabel('Pedidos', { exact: true }).click()
+
+  await expect(page.getByLabel('Centrar en repartidor')).toBeEnabled()
+  const follow = page.getByLabel('Seguir repartidor')
+  await expect(follow).not.toBeChecked()
+  await follow.click()
+  await expect(follow).toBeChecked()
+  await page.getByLabel('Centrar en mi punto').click()
+  await expect(page.getByLabel('Centrar en mi punto')).toBeVisible()
+})
+
+test('el repartidor busca y pagina sus paradas', async ({ page }) => {
+  currentUser = driver
+  await mockGateway(page)
+  // Siete paradas activas: una pagina de cinco y otra de dos.
+  const stops = Array.from({ length: 7 }, (_, i) => ({
+    id: `stop-${String(i + 1)}`,
+    sequence: i + 1,
+    address: `Calle ${String(i + 1)}`,
+    windowStart: '10:00',
+    windowEnd: '12:00',
+    status: 'PENDING',
+    reason: null,
+  }))
+  await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: { id: 'route-1', stops, max_orders: 10 } }))
+
+  await page.goto('/login')
+  await login(page, driver.email, 'repartidor-password')
+  await expect(page.getByText('Página 1 de 2')).toBeVisible()
+  await expect(page.getByText('Cupo: 7 de 10 pedidos')).toBeVisible()
+
+  await page.getByLabel('Página siguiente').click()
+  await expect(page.getByText('Página 2 de 2')).toBeVisible()
+
+  await page.getByLabel('Buscar parada por dirección').fill('calle 3')
+  await expect(page.getByText('Calle 3', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Calle 7', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Página 2 de 2')).toHaveCount(0)
 })
 
 test.describe('registro de entrega del repartidor', () => {

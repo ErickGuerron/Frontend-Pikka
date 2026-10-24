@@ -1,4 +1,5 @@
 import { isRecord, ParseError } from '../../../api/parse'
+import { streetAddressFrom } from './street-address'
 
 /**
  * Geocodificación inversa con Photon (Komoot, datos de OpenStreetMap), igual que la web.
@@ -67,9 +68,8 @@ function optionalString(obj: Record<string, unknown>, key: string): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-/** Devuelve el lugar más cercano a una coordenada, o null si no hay ninguno. */
-export async function reversePlace(latitude: number, longitude: number, signal?: AbortSignal): Promise<Place | null> {
-  const url = `${PHOTON_URL}/reverse?lat=${String(latitude)}&lon=${String(longitude)}&limit=1`
+/** Lugares que devuelve Photon para una URL, con el mismo timeout y cancelacion en todas las consultas. */
+async function fetchPlaces(url: string, signal?: AbortSignal): Promise<Place[]> {
   const controller = new AbortController()
   const cancel = () => { controller.abort() }
   const timer = setTimeout(cancel, PHOTON_TIMEOUT_MS)
@@ -78,11 +78,31 @@ export async function reversePlace(latitude: number, longitude: number, signal?:
     const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
     if (!response.ok) throw new Error(`geocoder HTTP ${String(response.status)}`)
     const body: unknown = await response.json()
-    return parsePhotonFeatures(body)[0] ?? null
+    return parsePhotonFeatures(body)
   } finally {
     clearTimeout(timer)
     signal?.removeEventListener('abort', cancel)
   }
+}
+
+/** Devuelve el lugar más cercano a una coordenada, o null si no hay ninguno. */
+export async function reversePlace(latitude: number, longitude: number, signal?: AbortSignal): Promise<Place | null> {
+  const url = `${PHOTON_URL}/reverse?lat=${String(latitude)}&lon=${String(longitude)}&limit=1`
+  return (await fetchPlaces(url, signal))[0] ?? null
+}
+
+/**
+ * Direccion con calles cercanas a la coordenada (ver streetAddressFrom). Pide solo vias: sin el filtro, Photon
+ * devuelve la ciudad cuando no hay una calle mapeada justo en el punto. Null si no hay ninguna via cercana.
+ */
+export async function reverseStreetAddress(
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const url = `${PHOTON_URL}/reverse?lat=${String(latitude)}&lon=${String(longitude)}&limit=5&osm_tag=highway`
+  const streets = await fetchPlaces(url, signal)
+  return streetAddressFrom(streets, { latitude, longitude })
 }
 
 /** Primer lugar que devuelve Photon para una dirección escrita, sesgado a Quito; null si no hay ninguno. */

@@ -8,6 +8,7 @@ import { isFinal, nextProgressStatus, validateStopResult } from './types'
  */
 const initialRoute: DriverRoute = {
   id: 'route-demo-1',
+  maxOrders: 10,
   stops: [
     { id: 'stop-1', sequence: 1, address: 'Av. Amazonas N24-03, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null, latitude: -0.2012, longitude: -78.4965 },
     { id: 'stop-2', sequence: 2, address: 'Calle Juan León Mera 1224, Quito', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reason: null, latitude: -0.2074, longitude: -78.4953 },
@@ -19,7 +20,7 @@ const initialRoute: DriverRoute = {
 let route: DriverRoute = clone(initialRoute)
 
 function clone(value: DriverRoute): DriverRoute {
-  return { id: value.id, stops: value.stops.map((s) => ({ ...s })) }
+  return { id: value.id, maxOrders: value.maxOrders, stops: value.stops.map((s) => ({ ...s })) }
 }
 
 function findStop(routeId: string, stopId: string): RouteStop {

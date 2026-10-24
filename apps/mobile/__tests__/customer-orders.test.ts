@@ -5,6 +5,7 @@ import {
   canCancel,
   filterOrders,
   parseMyOrders,
+  pendingDriverNotice,
   pickCurrentOrder,
   progressIndex,
   validateNewOrder,
@@ -97,5 +98,19 @@ describe('demo adapter', () => {
     const delivered = (await listDemoOrders()).find((o) => o.status === 'DELIVERED')
     await expect(cancelDemoOrder(delivered?.id ?? '')).rejects.toMatchObject({ status: 409 })
     await expect(cancelDemoOrder('missing')).rejects.toBeInstanceOf(ApiError)
+  })
+})
+
+describe('pendingDriverNotice', () => {
+  it('avisa al cliente que espera repartidor en su zona cuando el pedido esta PENDING', () => {
+    const notice = pendingDriverNotice('PENDING')
+    expect(notice).toContain('repartidor')
+    expect(notice).toContain('zona')
+  })
+
+  it('no muestra el aviso en otros estados', () => {
+    expect(pendingDriverNotice('PENDING_REVIEW')).toBeNull()
+    expect(pendingDriverNotice('ROUTE_ASSIGNED')).toBeNull()
+    expect(pendingDriverNotice('DELIVERED')).toBeNull()
   })
 })

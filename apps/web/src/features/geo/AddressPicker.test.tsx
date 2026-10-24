@@ -8,7 +8,7 @@ import { AddressPicker } from './AddressPicker'
 import type { Place } from './photon'
 
 vi.mock('./api', () => ({
-  reversePlace: vi.fn(() => Promise.resolve(null)),
+  reverseStreetPlace: vi.fn(() => Promise.resolve(null)),
   searchPlaces: vi.fn(() => Promise.resolve([])),
 }))
 

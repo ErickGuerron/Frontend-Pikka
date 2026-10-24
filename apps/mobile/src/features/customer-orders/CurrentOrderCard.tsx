@@ -7,7 +7,7 @@ import { colors } from '../../theme/colors'
 import { OrderStepper, StatusPill } from './OrderParts'
 import { OrderTrackingSection } from './OrderTrackingSection'
 import { useOrdersStore } from './orders-store'
-import { canCancel, formatWindow, isInProgress, orderCode, reviewReasonLabels, type CustomerOrder } from './types'
+import { canCancel, formatWindow, isInProgress, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
 
 /** The order in focus: status, stepper, delivery details and (when allowed) cancel. No map in this build. */
 export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
@@ -42,6 +42,12 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
         </Text>
         <StatusPill status={order.status} />
       </View>
+
+      {pendingDriverNotice(order.status) !== null ? (
+        <View accessibilityRole="summary" style={styles.banner} accessibilityLabel="Pedido en espera de repartidor">
+          <Text style={styles.bannerText}>{pendingDriverNotice(order.status)}</Text>
+        </View>
+      ) : null}
 
       {order.status === 'PENDING_REVIEW' ? (
         <View accessibilityRole="summary" style={styles.banner}>

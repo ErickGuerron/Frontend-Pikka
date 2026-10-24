@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { AddressMapPicker } from '../src/features/customer-orders/map/AddressMapPicker'
 import { useCoverageZones } from '../src/features/customer-orders/map/coverage'
 import type { Coordinate, CoverageZone } from '../src/features/customer-orders/map/geo'
-import { reversePlace } from '../src/features/customer-orders/map/photon'
+import { reverseStreetAddress } from '../src/features/customer-orders/map/photon'
 
 // El mapa real es un WebView/iframe con Leaflet (lo cubre la prueba en navegador). Aquí un doble expone el estado
 // que recibe y dos botones emiten un punto dentro y otro fuera de la zona.
@@ -32,7 +32,7 @@ jest.mock('../src/features/customer-orders/map/LeafletMap', () => {
 jest.mock('../src/features/customer-orders/map/coverage', () => ({ useCoverageZones: jest.fn() }))
 jest.mock('../src/features/customer-orders/map/photon', () => ({
   ...jest.requireActual('../src/features/customer-orders/map/photon'),
-  reversePlace: jest.fn(),
+  reverseStreetAddress: jest.fn(),
 }))
 
 const zone: CoverageZone = {
@@ -49,8 +49,7 @@ const zone: CoverageZone = {
 }
 
 const coverage = jest.mocked(useCoverageZones)
-const reverse = jest.mocked(reversePlace)
-const found = { name: 'Av. Central', address: 'Av. Central 123, Quito', latitude: -0.2, longitude: -78.5 }
+  const reverse = jest.mocked(reverseStreetAddress)
 
 function Harness({ initialAddress = '', onAddress, onLocation }: { initialAddress?: string; onAddress?: (a: string) => void; onLocation?: (c: Coordinate | null) => void }) {
   const [location, setLocation] = useState<Coordinate | null>(null)
@@ -68,7 +67,7 @@ function Harness({ initialAddress = '', onAddress, onLocation }: { initialAddres
 beforeEach(() => {
   jest.clearAllMocks()
   coverage.mockReturnValue({ zones: [zone], loading: false, failed: false })
-  reverse.mockResolvedValue(found)
+  reverse.mockResolvedValue('Av. Central 123, Quito')
 })
 
 describe('AddressMapPicker', () => {
@@ -111,6 +110,17 @@ describe('AddressMapPicker', () => {
 
     await waitFor(() => { expect(onAddress).toHaveBeenCalledWith('Av. Central 123, Quito') })
     expect(reverse).toHaveBeenCalledWith(-0.2, -78.5, expect.anything())
+  })
+
+  it('sin calle cercana no rellena con la ciudad', async () => {
+    reverse.mockResolvedValue(null)
+    const onAddress = jest.fn()
+    await render(<Harness onAddress={onAddress} />)
+
+    await fireEvent.press(screen.getByLabelText('Elegir punto en mapa'))
+
+    await waitFor(() => { expect(reverse).toHaveBeenCalled() })
+    expect(onAddress).not.toHaveBeenCalled()
   })
 
   it('no pisa una dirección que el cliente escribió a mano', async () => {

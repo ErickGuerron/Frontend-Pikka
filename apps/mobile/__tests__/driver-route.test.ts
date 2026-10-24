@@ -149,3 +149,13 @@ describe('stop coordinates', () => {
     expect(parseDriverRoute({ id: 'r', stops: [{ ...base, latitude: -0.2 }] }).stops[0]).not.toHaveProperty('latitude')
   })
 })
+
+describe('parseDriverRoute: capacidad de la ruta', () => {
+  it('lee max_orders cuando el servidor lo envia', () => {
+    expect(parseDriverRoute({ ...validRoute, max_orders: 10 }).maxOrders).toBe(10)
+  })
+
+  it('sin max_orders la capacidad es desconocida (null), no cero', () => {
+    expect(parseDriverRoute(validRoute).maxOrders).toBeNull()
+  })
+})

@@ -68,6 +68,8 @@ export interface RouteStop {
 export interface DriverRoute {
   id: string
   stops: RouteStop[]
+  /** Pedidos que caben en esta ruta (capacidad de su zona). Null cuando el servidor no la conoce. */
+  maxOrders: number | null
 }
 
 export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
@@ -111,7 +113,8 @@ export function parseRouteStop(data: unknown): RouteStop {
 export function parseDriverRoute(data: unknown): DriverRoute {
   const o = object(data, 'route')
   if (!Array.isArray(o.stops)) throw new ParseError('stops: expected array')
-  return { id: string(o, 'id'), stops: o.stops.map(parseRouteStop) }
+  const maxOrders = typeof o.max_orders === 'number' && o.max_orders > 0 ? o.max_orders : null
+  return { id: string(o, 'id'), stops: o.stops.map(parseRouteStop), maxOrders }
 }
 
 /** Stops in the order the driver must visit them. */

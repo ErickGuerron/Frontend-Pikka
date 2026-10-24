@@ -227,3 +227,13 @@ export function validateNewOrder(input: NewCustomerOrder, today: string): OrderE
 export function formatWindow(start: string, end: string): string {
   return `${start.slice(0, 2)}–${end.slice(0, 2)} h`
 }
+
+/**
+ * Aviso para un pedido aceptado que aun no tiene repartidor: se asigna cuando la zona tenga uno disponible.
+ * La app no sabe cuantos repartidores hay; solo informa que el pedido espera.
+ */
+export function pendingDriverNotice(status: OrderStatus): string | null {
+  return status === 'PENDING'
+    ? 'Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.'
+    : null
+}
