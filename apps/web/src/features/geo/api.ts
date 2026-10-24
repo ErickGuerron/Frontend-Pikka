@@ -1,4 +1,5 @@
 import { parsePhotonFeatures, type Place } from './photon'
+import { streetAddressFrom } from './street-address'
 
 /**
  * Geocodificación con Photon (Komoot), sobre datos de OpenStreetMap.
@@ -19,6 +20,20 @@ export const PHOTON_TIMEOUT_MS = 8000
 export function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
   const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(query)}&limit=${String(SEARCH_LIMIT)}`
   return fetchPlaces(url, signal)
+}
+
+/**
+ * Direccion con las calles cercanas a la coordenada: "Av. A y Calle B, Ciudad, Pais" o "Av. A, Ciudad, Pais".
+ * Pide solo vias: sin el filtro Photon devuelve la ciudad cuando no hay una calle mapeada justo en el punto.
+ * Null si no hay ninguna via cercana: en ese caso no se propone la ciudad como direccion.
+ */
+export async function reverseStreetPlace(latitude: number, longitude: number, signal?: AbortSignal): Promise<Place | null> {
+  const url = `${PHOTON_URL}/reverse?lat=${String(latitude)}&lon=${String(longitude)}&limit=5&osm_tag=highway`
+  const streets = await fetchPlaces(url, signal)
+  const address = streetAddressFrom(streets, { latitude, longitude })
+  const first = streets[0]
+  if (address === null || first === undefined) return null
+  return { name: first.name, address, latitude, longitude }
 }
 
 /** Devuelve el lugar más cercano a una coordenada, o null si no hay ninguno. */
