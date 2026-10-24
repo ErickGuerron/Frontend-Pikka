@@ -7,7 +7,7 @@ import { useCoverageZones, type CoverageState } from './coverage'
 import type { MapState } from './document'
 import { zoneCovering, type Coordinate, type CoverageZone } from './geo'
 import { LeafletMap } from './LeafletMap'
-import { reversePlace } from './photon'
+import { reverseStreetAddress } from './photon'
 
 interface Props {
   /** Punto elegido (coordenadas reales), o null. El formulario es el dueño del valor. */
@@ -57,12 +57,12 @@ export function AddressMapPicker({ location, error, address, onChangeLocation, o
     lookup.current = controller
     onChangeLocation(point)
     setLookingUp(true)
-    reversePlace(point.latitude, point.longitude, controller.signal)
-      .then((found) => {
+    reverseStreetAddress(point.latitude, point.longitude, controller.signal)
+      .then((suggestion) => {
         if (controller.signal.aborted) return
         setLookingUp(false)
-        if (found === null) return
-        const suggestion = found.address || found.name
+        // Sin calle cercana no se propone nada: la ciudad sola no es una direccion de entrega.
+        if (suggestion === null) return
         // Conserva lo que el cliente escribió a mano: solo reemplaza una dirección vacía o puesta por el mapa.
         if (currentAddress.current === '' || currentAddress.current === autoFilled.current) {
           autoFilled.current = suggestion
