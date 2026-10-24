@@ -89,6 +89,11 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
 
           {/* Stepper / Aviso de Revisión */}
           <div>
+            {order.status === 'PENDING' ? (
+              <p role="status" className="mb-3 rounded-xl border border-surface-container-high bg-surface-container-low p-4 text-sm text-on-surface">
+                Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.
+              </p>
+            ) : null}
             {order.status === 'PENDING_REVIEW' ? (
               <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <p className="font-semibold">Tu pedido está en revisión por un operador.</p>

@@ -144,6 +144,13 @@ describe('Mis Pedidos: pedido en curso', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument()
   })
 
+  it('pedido aceptado sin repartidor avisa que espera uno de su zona', async () => {
+    serve([order({ status: 'PENDING' })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('en revisión muestra un aviso informativo y no un error', async () => {
     serve([order({ status: 'PENDING_REVIEW', reviewReasons: ['ZONE_NOT_COVERED'] })])
     renderApp('/mis-pedidos')

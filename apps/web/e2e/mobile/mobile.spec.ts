@@ -107,6 +107,8 @@ test('el cliente entra al catalogo y en Pedidos ve su pedido', async ({ page }) 
   await page.getByLabel('Pedidos', { exact: true }).click()
   // La direccion aparece en la tarjeta del pedido actual y en el historial: basta con que se vea.
   await expect(page.getByText('Av. Amazonas 100').first()).toBeVisible()
+  // El pedido de prueba esta PENDING: el cliente debe saber que espera repartidor de su zona.
+  await expect(page.getByText('Lo asignaremos a un repartidor de tu zona')).toBeVisible()
 })
 
 test('el repartidor entra y ve su ruta con la parada activa', async ({ page }) => {
