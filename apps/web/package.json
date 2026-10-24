@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test -c playwright.mobile.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
