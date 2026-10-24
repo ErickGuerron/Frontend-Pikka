@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { isDriverDemoMode } from '../../../api/config'
 import { useSessionStore } from '../../../store/session-store'
 import { colors } from '../../../theme/colors'
@@ -10,6 +10,7 @@ import { DriverHeader } from '../../../features/driver-route/DriverHeader'
 import { useDriverRoute } from '../../../features/driver-route/hooks'
 import { useDriverLocationReporter } from '../../../features/driver-route/location-reporter'
 import { RouteStopCard } from '../../../features/driver-route/RouteStopCard'
+import { pageStops } from '../../../features/driver-route/stop-list'
 import { RouteCard, RouteKpis } from '../../../features/driver-route/RouteSummary'
 import { StopPickerModal } from '../../../features/driver-route/StopPickerModal'
 import { useRoutePlan } from '../../../features/driver-route/plan-hooks'
@@ -24,6 +25,9 @@ export default function DriverRouteScreen() {
   const user = useSessionStore((s) => s.user)
   const clear = useSessionStore((s) => s.clear)
   const [tab, setTab] = useState<Tab>('active')
+  // Busqueda y pagina de la pestana visible. Cualquier cambio de pestana o de texto vuelve a la primera pagina.
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [pinnedId, setPinnedId] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
@@ -43,7 +47,17 @@ export default function DriverRouteScreen() {
   const attended: RouteStop[] = attendOrder(plan?.order ?? [], pinnedId, active.map((s) => s.id))
     .map((id) => byId.get(id))
     .filter((s): s is RouteStop => s !== undefined)
-  const shown = tab === 'active' ? attended : done
+  const list = pageStops(tab === 'active' ? attended : done, query, page)
+  const shown = list.items
+  const searching = query.trim() !== ''
+  const selectTab = (next: Tab) => {
+    setTab(next)
+    setPage(0)
+  }
+  const changeQuery = (text: string) => {
+    setQuery(text)
+    setPage(0)
+  }
   const currentId = attended[0]?.id
   const fit = fitRequest === null
     ? null
@@ -109,8 +123,26 @@ export default function DriverRouteScreen() {
         {tracking === 'on' ? <Text style={styles.info}>Compartiendo tu ubicación con el cliente.</Text> : null}
 
         <View style={styles.tabs}>
-          <TabButton label="Activos" count={active.length} selected={tab === 'active'} onPress={() => { setTab('active') }} />
-          <TabButton label="Completados" count={done.length} selected={tab === 'done'} onPress={() => { setTab('done') }} />
+          <TabButton label="Activos" count={active.length} selected={tab === 'active'} onPress={() => { selectTab('active') }} />
+          <TabButton label="Completados" count={done.length} selected={tab === 'done'} onPress={() => { selectTab('done') }} />
+        </View>
+
+        <View style={styles.search}>
+          <Ionicons name="search" size={16} color={colors.onSurfaceVariant} />
+          <TextInput
+            accessibilityLabel="Buscar parada por dirección"
+            placeholder="Buscar por dirección"
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={query}
+            onChangeText={changeQuery}
+            autoCorrect={false}
+            style={styles.searchInput}
+          />
+          {searching ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" onPress={() => { changeQuery('') }}>
+              <Ionicons name="close-circle" size={18} color={colors.onSurfaceVariant} />
+            </Pressable>
+          ) : null}
         </View>
 
         {loading && route === null ? <Text style={styles.info}>Cargando tu ruta…</Text> : null}
@@ -122,7 +154,10 @@ export default function DriverRouteScreen() {
         {!loading && route !== null && !hasRoute ? (
           <EmptyState title="Sin ruta asignada hoy" body="Cuando el despachador te asigne una ruta, aparecerá aquí." />
         ) : null}
-        {!loading && hasRoute && shown.length === 0 ? (
+        {!loading && hasRoute && list.total === 0 && searching && (tab === 'active' ? attended : done).length > 0 ? (
+          <EmptyState title="Ninguna parada coincide" body="Revisa el texto buscado o limpia la búsqueda." />
+        ) : null}
+        {!loading && hasRoute && list.total === 0 && !searching ? (
           tab === 'active' ? (
             <EmptyState title="No tienes paradas activas" body="Todas tus paradas ya tienen resultado, o aún no tienes paradas asignadas." />
           ) : (
@@ -140,6 +175,32 @@ export default function DriverRouteScreen() {
             onAdvance={advance}
           />
         ))}
+
+        {list.pages > 1 ? (
+          <View style={styles.pager}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Página anterior"
+              accessibilityState={{ disabled: list.page === 0 }}
+              disabled={list.page === 0}
+              onPress={() => { setPage(list.page - 1) }}
+              style={[styles.pageBtn, list.page === 0 && styles.off]}
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.primary} />
+            </Pressable>
+            <Text style={styles.pageText}>{`Página ${String(list.page + 1)} de ${String(list.pages)}`}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Página siguiente"
+              accessibilityState={{ disabled: list.page >= list.pages - 1 }}
+              disabled={list.page >= list.pages - 1}
+              onPress={() => { setPage(list.page + 1) }}
+              style={[styles.pageBtn, list.page >= list.pages - 1 && styles.off]}
+            >
+              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.footer}>
           <View style={styles.secure}>
@@ -251,6 +312,12 @@ const styles = StyleSheet.create({
   tabTextSelected: { color: colors.primary },
   tabCount: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabCountText: { fontSize: 10, fontWeight: '700', color: colors.onSurfaceVariant },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surfaceContainerLowest, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: colors.onSurface, padding: 0 },
+  pager: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 4 },
+  pageBtn: { padding: 6, borderRadius: 999, backgroundColor: colors.surfaceContainer },
+  off: { opacity: 0.4 },
+  pageText: { fontSize: 12, fontWeight: '600', color: colors.onSurfaceVariant },
   info: { color: colors.onSurfaceVariant, textAlign: 'center' },
   empty: { alignItems: 'center', gap: 6, backgroundColor: colors.surfaceContainerLowest, borderRadius: 12, padding: 20 },
   emptyTitle: { fontSize: 14, fontWeight: '700', color: colors.onSurface, textAlign: 'center' },
