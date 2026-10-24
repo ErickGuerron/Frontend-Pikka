@@ -93,7 +93,7 @@ export default function DriverRouteScreen() {
             <Text style={styles.subtitle}>
               {route === null || !hasRoute
                 ? (route === null ? 'Ruta de hoy' : 'Sin ruta asignada hoy')
-                : `Ruta de hoy · ${completedCount(route.stops)} de ${route.stops.length} completadas · ${remainingCount(route.stops)} pendientes`}
+                : `Ruta de hoy · ${completedCount(route.stops)} de ${route.stops.length} completadas · ${remainingCount(route.stops)} pendientes${route.maxOrders === null ? '' : ` · Cupo: ${route.stops.length} de ${route.maxOrders} pedidos`}`}
             </Text>
             {isDriverDemoMode() ? <Text style={styles.demo}>DEMO · datos simulados</Text> : null}
           </View>

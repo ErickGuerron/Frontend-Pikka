@@ -179,11 +179,12 @@ test('el repartidor busca y pagina sus paradas', async ({ page }) => {
     status: 'PENDING',
     reason: null,
   }))
-  await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: { id: 'route-1', stops } }))
+  await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: { id: 'route-1', stops, max_orders: 10 } }))
 
   await page.goto('/login')
   await login(page, driver.email, 'repartidor-password')
   await expect(page.getByText('Página 1 de 2')).toBeVisible()
+  await expect(page.getByText('Cupo: 7 de 10 pedidos')).toBeVisible()
 
   await page.getByLabel('Página siguiente').click()
   await expect(page.getByText('Página 2 de 2')).toBeVisible()
