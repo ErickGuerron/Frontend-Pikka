@@ -1,8 +1,7 @@
 import { http } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/errors'
-import { parseOrder } from '@/features/orders/types'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
-import { parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
+import { parseCustomerOrder, parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
 import { parseNotifications, type CustomerNotification } from './notifications'
 
 /**
@@ -32,7 +31,7 @@ export function listMyOrders(signal?: AbortSignal): Promise<CustomerOrder[]> {
 export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
   if (isDemoMode()) return createDemoOrder(input)
   const { address, addressReference, postalCode, contactPhone, latitude, longitude, deliveryDate, windowStart, windowEnd, items } = input
-  return http.post('/api/v1/orders', parseOrder, {
+  return http.post('/api/v1/orders', parseCustomerOrder, {
     body: { address, addressReference, postalCode, contactPhone, latitude, longitude, deliveryDate, windowStart, windowEnd, items },
   })
 }
@@ -45,5 +44,5 @@ export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotif
 
 export function cancelOrder(id: string): Promise<CustomerOrder> {
   if (isDemoMode()) return cancelDemoOrder(id)
-  return http.post(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, parseOrder)
+  return http.post(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, parseCustomerOrder)
 }

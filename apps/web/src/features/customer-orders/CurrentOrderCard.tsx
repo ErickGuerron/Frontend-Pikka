@@ -4,7 +4,7 @@ import { formatDate, formatWindow } from '@/features/orders/format'
 import { CancelOrderDialog } from './CancelOrderDialog'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { OrderStepper } from './OrderStepper'
-import { canCancel, isInProgress, orderCode, reviewReasonLabels, type CustomerOrder } from './types'
+import { canCancel, isInProgress, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
 
 const noop = () => undefined
 
@@ -89,9 +89,9 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
 
           {/* Stepper / Aviso de Revisión */}
           <div>
-            {order.status === 'PENDING' ? (
+            {pendingDriverNotice(order.status, order.queuePosition) !== null ? (
               <p role="status" className="mb-3 rounded-xl border border-surface-container-high bg-surface-container-low p-4 text-sm text-on-surface">
-                Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.
+                {pendingDriverNotice(order.status, order.queuePosition)}
               </p>
             ) : null}
             {order.status === 'PENDING_REVIEW' ? (

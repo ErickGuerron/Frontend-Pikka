@@ -43,9 +43,9 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
         <StatusPill status={order.status} />
       </View>
 
-      {pendingDriverNotice(order.status) !== null ? (
+      {pendingDriverNotice(order.status, order.queuePosition) !== null ? (
         <View accessibilityRole="summary" style={styles.banner} accessibilityLabel="Pedido en espera de repartidor">
-          <Text style={styles.bannerText}>{pendingDriverNotice(order.status)}</Text>
+          <Text style={styles.bannerText}>{pendingDriverNotice(order.status, order.queuePosition)}</Text>
         </View>
       ) : null}
 

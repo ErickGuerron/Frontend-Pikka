@@ -31,6 +31,7 @@ const order = (over: Partial<CustomerOrder>): CustomerOrder => ({
   status: 'PENDING',
   reviewReasons: [],
   createdAt: '2026-10-10T12:00:00Z',
+  queuePosition: 0,
   ...over,
 })
 
@@ -149,6 +150,20 @@ describe('Mis Pedidos: pedido en curso', () => {
     renderApp('/mis-pedidos')
     expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('pedido PENDING en cola muestra su posición de espera', async () => {
+    serve([order({ status: 'PENDING', queuePosition: 3 })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Tu pedido es el #3 en espera\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Lo asignaremos a un repartidor de tu zona/)).not.toBeInTheDocument()
+  })
+
+  it('pedido PENDING sin cola (queuePosition 0) conserva el aviso anterior', async () => {
+    serve([order({ status: 'PENDING', queuePosition: 0 })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
+    expect(screen.queryByText(/en espera\./)).not.toBeInTheDocument()
   })
 
   it('en revisión muestra un aviso informativo y no un error', async () => {
