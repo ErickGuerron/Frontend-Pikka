@@ -15,7 +15,7 @@ import {
   Sparkles,
   Lock as LockIcon,
 } from 'lucide-react'
-import { userMessage } from '@/shared/api/errors'
+import { loginErrorMessage } from './login-error'
 import pikkaMascot from '@/assets/pikka.png'
 import { Brand } from '@/features/landing/Brand'
 import { useLogin } from './hooks'
@@ -219,7 +219,7 @@ export function LoginPage() {
                   role="alert"
                   className="auth-alert"
                 >
-                  {userMessage(loginMutation.error)}
+                  {loginErrorMessage(loginMutation.error)}
                 </div>
               )}
 

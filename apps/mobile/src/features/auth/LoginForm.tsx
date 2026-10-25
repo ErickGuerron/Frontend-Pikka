@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Link } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { Field } from '../../components/Field'
 import { colors } from '../../theme/colors'
 import { useSessionStore } from '../../store/session-store'
 import { login } from './api'
 import { isMobileRole, NON_MOBILE_MESSAGE } from './guards'
+import { loginErrorMessage } from './login-error'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -36,7 +36,7 @@ export function LoginForm() {
       // The (auth) layout redirects to /mis-pedidos as soon as the session exists.
       await setSession(result.accessToken, result.user, result.expiresIn)
     } catch (e) {
-      setError(userMessage(e))
+      setError(loginErrorMessage(e))
     } finally {
       setLoading(false)
     }
