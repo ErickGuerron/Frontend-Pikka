@@ -3,7 +3,7 @@ import { ParseError } from '@/shared/api/parse'
 import {
   orderStatuses,
   orderStatusLabels,
-  parseOrders,
+  parseOrder,
   reviewReasonLabels,
   type NewOrder,
   type Order,
@@ -13,8 +13,13 @@ import {
 export { orderStatuses, orderStatusLabels, reviewReasonLabels }
 export type { NewOrder, Order, OrderStatus }
 
-/** An order as the customer sees it: the same schema, without driver data. */
-export type CustomerOrder = Order
+/**
+ * An order as the customer sees it: the shared schema plus the zone queue position.
+ * queuePosition 0 = not waiting; >= 1 = FIFO position (1 = next) of a PENDING order without zone capacity.
+ */
+export interface CustomerOrder extends Order {
+  queuePosition: number
+}
 
 /** Creation payload built by the form. `notes` is UI-only until the contract accepts it. */
 export interface NewCustomerOrder extends NewOrder {
@@ -73,11 +78,36 @@ export function orderCode(id: string): string {
   return `#${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`
 }
 
+/** Missing or invalid queuePosition (old payloads, non-integer, negative) means "not waiting". */
+function parseQueuePosition(data: unknown): number {
+  const value = isRecord(data) ? data.queuePosition : undefined
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0
+}
+
+/** Shared order parser plus the customer-only queuePosition. */
+export function parseCustomerOrder(data: unknown): CustomerOrder {
+  return { ...parseOrder(data), queuePosition: parseQueuePosition(data) }
+}
+
+function parseCustomerOrders(data: unknown): CustomerOrder[] {
+  if (!Array.isArray(data)) throw new ParseError('orders: expected array')
+  return data.map((item) => parseCustomerOrder(item))
+}
+
 /** Accepts `{ orders: [...] }` (gateway envelope) or a bare array. */
 export function parseMyOrders(data: unknown): CustomerOrder[] {
-  if (isRecord(data) && 'orders' in data) return parseOrders(data.orders)
-  if (Array.isArray(data)) return parseOrders(data)
+  if (isRecord(data) && 'orders' in data) return parseCustomerOrders(data.orders)
+  if (Array.isArray(data)) return parseCustomerOrders(data)
   throw new ParseError('orders: expected array or { orders }')
+}
+
+/** Aviso de un pedido aceptado sin repartidor. queuePosition >= 1 means it waits for zone capacity. */
+export function pendingDriverNotice(status: OrderStatus, queuePosition = 0): string | null {
+  if (status !== 'PENDING') return null
+  if (queuePosition >= 1) {
+    return `Tu pedido es el #${String(queuePosition)} en espera. La zona tiene su cupo de envíos completo; se asignará a un repartidor de tu zona cuando se libere un envío.`
+  }
+  return 'Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.'
 }
 
 /** Pure filter: text matches address or code (with or without "#"), status is exact. */

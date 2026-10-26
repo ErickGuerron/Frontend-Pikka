@@ -47,6 +47,8 @@ export interface CustomerOrder {
   reviewReasons: ReviewReason[]
   /** RFC 3339, UTC. */
   createdAt: string
+  /** FIFO position (1 = next) of a PENDING order waiting for zone capacity; 0 = not waiting. */
+  queuePosition: number
 }
 
 /** One product line of an order (contract: productId + quantity 1..50, no repeats). */
@@ -126,6 +128,12 @@ export function orderCode(id: string): string {
   return `#${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`
 }
 
+/** Missing or invalid queuePosition (old payloads, non-integer, negative) means "not waiting". */
+function parseQueuePosition(o: Record<string, unknown>): number {
+  const value = o.queuePosition
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0
+}
+
 export function parseOrder(data: unknown): CustomerOrder {
   const o = object(data, 'order')
   // Coordinates sent by the future API are ignored: this client has no map.
@@ -138,6 +146,7 @@ export function parseOrder(data: unknown): CustomerOrder {
     status: oneOf(o, 'status', orderStatuses),
     reviewReasons: enumArray(o, 'reviewReasons', reviewReasonValues),
     createdAt: string(o, 'createdAt'),
+    queuePosition: parseQueuePosition(o),
   }
 }
 
@@ -230,10 +239,13 @@ export function formatWindow(start: string, end: string): string {
 
 /**
  * Aviso para un pedido aceptado que aun no tiene repartidor: se asigna cuando la zona tenga uno disponible.
+ * With queuePosition >= 1 the order is waiting in its zone's FIFO queue (zone at capacity).
  * La app no sabe cuantos repartidores hay; solo informa que el pedido espera.
  */
-export function pendingDriverNotice(status: OrderStatus): string | null {
-  return status === 'PENDING'
-    ? 'Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.'
-    : null
+export function pendingDriverNotice(status: OrderStatus, queuePosition = 0): string | null {
+  if (status !== 'PENDING') return null
+  if (queuePosition >= 1) {
+    return `Tu pedido es el #${String(queuePosition)} en espera. La zona tiene su cupo de envíos completo; se asignará a un repartidor de tu zona cuando se libere un envío.`
+  }
+  return 'Tu pedido está registrado. Lo asignaremos a un repartidor de tu zona cuando haya uno disponible.'
 }

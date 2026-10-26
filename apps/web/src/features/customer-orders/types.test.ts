@@ -23,7 +23,7 @@ const base = {
   createdAt: '2026-10-10T12:00:00Z',
 }
 const raw = (id: string, status: OrderStatus) => ({ ...base, id, status })
-const order = (id: string, status: OrderStatus, extra: Partial<CustomerOrder> = {}): CustomerOrder => ({ ...base, id, status, ...extra })
+const order = (id: string, status: OrderStatus, extra: Partial<CustomerOrder> = {}): CustomerOrder => ({ ...base, id, status, queuePosition: 0, ...extra })
 
 describe('parseMyOrders', () => {
   it('acepta un arreglo o el sobre { orders }', () => {
@@ -35,6 +35,17 @@ describe('parseMyOrders', () => {
     expect(() => parseMyOrders('x')).toThrow()
     expect(() => parseMyOrders({ items: [] })).toThrow()
     expect(() => parseMyOrders([raw('a', 'PENDING'), { ...raw('b', 'PENDING'), status: 'WAT' }])).toThrow()
+  })
+
+  it('queuePosition vale 0 cuando el payload no lo trae', () => {
+    expect(parseMyOrders([raw('a', 'PENDING')])[0]?.queuePosition).toBe(0)
+  })
+
+  it('lee el entero de queuePosition y trata negativos, decimales o texto como 0', () => {
+    expect(parseMyOrders([{ ...raw('a', 'PENDING'), queuePosition: 3 }])[0]?.queuePosition).toBe(3)
+    expect(parseMyOrders([{ ...raw('a', 'PENDING'), queuePosition: -1 }])[0]?.queuePosition).toBe(0)
+    expect(parseMyOrders([{ ...raw('a', 'PENDING'), queuePosition: 1.5 }])[0]?.queuePosition).toBe(0)
+    expect(parseMyOrders([{ ...raw('a', 'PENDING'), queuePosition: '2' }])[0]?.queuePosition).toBe(0)
   })
 })
 

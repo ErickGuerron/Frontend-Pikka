@@ -5,6 +5,7 @@ import {
   canCancel,
   filterOrders,
   parseMyOrders,
+  parseOrder,
   pendingDriverNotice,
   pickCurrentOrder,
   progressIndex,
@@ -112,5 +113,31 @@ describe('pendingDriverNotice', () => {
     expect(pendingDriverNotice('PENDING_REVIEW')).toBeNull()
     expect(pendingDriverNotice('ROUTE_ASSIGNED')).toBeNull()
     expect(pendingDriverNotice('DELIVERED')).toBeNull()
+  })
+
+  it('muestra la posicion en cola cuando el pedido PENDING espera cupo de su zona', () => {
+    expect(pendingDriverNotice('PENDING', 3)).toBe(
+      'Tu pedido es el #3 en espera. La zona tiene su cupo de envíos completo; se asignará a un repartidor de tu zona cuando se libere un envío.',
+    )
+  })
+
+  it('con queuePosition 0 mantiene el aviso anterior de PENDING', () => {
+    expect(pendingDriverNotice('PENDING', 0)).toContain('Tu pedido está registrado')
+    expect(pendingDriverNotice('PENDING', 0)).not.toContain('en espera')
+  })
+})
+
+describe('queuePosition en el parser', () => {
+  const raw = { id: 'x', address: 'a', deliveryDate: '2026-01-01', windowStart: '09:00', windowEnd: '12:00', status: 'PENDING', reviewReasons: [], createdAt: 'now' }
+
+  it('vale 0 cuando el payload no trae queuePosition', () => {
+    expect(parseOrder(raw).queuePosition).toBe(0)
+  })
+
+  it('lee el entero y trata negativos, decimales o texto como 0', () => {
+    expect(parseOrder({ ...raw, queuePosition: 3 }).queuePosition).toBe(3)
+    expect(parseOrder({ ...raw, queuePosition: -1 }).queuePosition).toBe(0)
+    expect(parseOrder({ ...raw, queuePosition: 1.5 }).queuePosition).toBe(0)
+    expect(parseOrder({ ...raw, queuePosition: '2' }).queuePosition).toBe(0)
   })
 })

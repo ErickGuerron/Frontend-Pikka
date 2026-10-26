@@ -36,6 +36,7 @@ function sample(partial: Partial<CustomerOrder> & Pick<CustomerOrder, 'id' | 'st
     windowEnd: '15:00',
     reviewReasons: [],
     createdAt: new Date().toISOString(),
+    queuePosition: 0,
     ...partial,
   }
 }
@@ -121,6 +122,7 @@ export function createDemoOrder(input: NewCustomerOrder): Promise<CustomerOrder>
     windowEnd: input.windowEnd,
     status: covered ? 'PENDING' : 'PENDING_REVIEW',
     reviewReasons: covered ? [] : ['ZONE_NOT_COVERED'],
+    queuePosition: 0,
     createdAt: new Date().toISOString(),
   }
   store = [order, ...store]
