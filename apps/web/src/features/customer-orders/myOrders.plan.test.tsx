@@ -20,6 +20,7 @@ const order = (over: Partial<CustomerOrder>): CustomerOrder => ({
   status: 'PENDING',
   reviewReasons: [],
   createdAt: '2026-10-10T12:00:00Z',
+  queuePosition: 0,
   ...over,
 })
 

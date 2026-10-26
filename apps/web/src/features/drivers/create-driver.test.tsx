@@ -45,7 +45,7 @@ const submit = () => screen.getByRole('button', { name: 'Crear repartidor' })
 describe('alta de repartidor', () => {
   it('envía el perfil normalizado y confirma el alta', async () => {
     const fetchMock = mockCreate({ status: 201, body: created })
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp('/drivers/new')
     await fillValid(user)
 
@@ -69,7 +69,7 @@ describe('alta de repartidor', () => {
 
   it('con datos inválidos muestra los errores y no llama al servidor', async () => {
     const fetchMock = mockCreate({ status: 201, body: created })
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp('/drivers/new')
     await user.type(await screen.findByLabelText('Fecha de nacimiento'), '2020-01-01')
 
@@ -82,7 +82,7 @@ describe('alta de repartidor', () => {
 
   it('ante un 409 avisa del duplicado, conserva lo escrito y sugiere otro correo', async () => {
     mockCreate(apiError(409, 'CONFLICT', 'plate'))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp('/drivers/new')
     await fillValid(user)
 
@@ -96,7 +96,7 @@ describe('alta de repartidor', () => {
 
   it('ante un 503 muestra que el servicio no está disponible', async () => {
     mockCreate(apiError(503, 'UPSTREAM_UNAVAILABLE'))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp('/drivers/new')
     await fillValid(user)
 
@@ -115,7 +115,7 @@ describe('alta de repartidor', () => {
     const original = globalThis.fetch
     globalThis.fetch = ((input: string, init?: RequestInit) =>
       (input.endsWith('/api/v1/drivers') && init?.method === 'POST' ? gate : Promise.resolve()).then(() => original(input, init))) as typeof fetch
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp('/drivers/new')
     await fillValid(user)
 
