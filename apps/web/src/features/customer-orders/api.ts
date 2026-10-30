@@ -3,6 +3,7 @@ import { ApiError } from '@/shared/api/errors'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
 import { parseCustomerOrder, parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
 import { parseNotifications, type CustomerNotification } from './notifications'
+import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
 
 /**
  * Customer order endpoints.
@@ -45,4 +46,21 @@ export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotif
 export function cancelOrder(id: string): Promise<CustomerOrder> {
   if (isDemoMode()) return cancelDemoOrder(id)
   return http.post(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, parseCustomerOrder)
+}
+
+/**
+ * Lo que el cliente debe (ADR 0006). Una cuenta bloqueada por saldo TAMBIÉN puede consultarlo: así sabe cuánto
+ * pagar. En modo demo no se llama (no hay saldo simulado).
+ */
+export function getMyBalance(signal?: AbortSignal): Promise<MyBalance> {
+  return http.get('/api/v1/customers/me/balance', parseMyBalance, { signal })
+}
+
+/**
+ * Paga el saldo completo con el cobro simulado. No lleva cuerpo: el monto lo fija el servidor, el cliente no
+ * puede elegirlo. Una tarjeta simulada rechazada contesta 200 con `SIMULATED_DECLINED`; sin saldo, 422; si el
+ * saldo cambió mientras se pagaba, 409 (el cobro se devuelve).
+ */
+export function payMyBalance(): Promise<BalancePayment> {
+  return http.post('/api/v1/customers/me/balance/payment', parseBalancePayment)
 }

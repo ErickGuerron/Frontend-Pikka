@@ -43,6 +43,9 @@ async function openNewOrderForm(page: Page) {
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: customer }))
   await page.route('**/ready', (route) => route.fulfill({ json: { status: 'ready' } }))
   await page.route('**/api/v1/orders/mine', (route) => route.fulfill({ json: { orders: [] } }))
+  await page.route('**/api/v1/customers/me/balance', (route) =>
+    route.fulfill({ json: { pendingSurcharge: '0.00', accountStatus: 'ACTIVO', blocked: false, simulated: true, lines: [] } }),
+  )
   await page.route('**/api/v1/notifications/mine', (route) => route.fulfill({ json: { notifications: [] } }))
   await page.route('**/api/v1/products**', (route) => route.fulfill({ json: { products: [water] } }))
   await page.route('**/api/v1/coverage/zones', (route) => route.fulfill({ json: { zones: [zone] } }))

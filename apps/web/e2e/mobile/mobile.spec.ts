@@ -69,6 +69,9 @@ async function mockGateway(page: Page) {
   // /auth/me responde segun el token que la app guardo tras el login.
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: route.request().headers().authorization ? currentUser : customer }))
   await page.route('**/api/v1/orders/mine', (route) => route.fulfill({ json: { orders: [customerOrder] } }))
+  await page.route('**/api/v1/customers/me/balance', (route) =>
+    route.fulfill({ json: { pendingSurcharge: '0.00', accountStatus: 'ACTIVO', blocked: false, simulated: true, lines: [] } }),
+  )
   await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: driverRoute }))
 }
 
