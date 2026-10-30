@@ -3,6 +3,7 @@ import { isDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders, listDemoProducts } from './demo'
 import { parseProducts, type Product } from './products'
+import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
 import { parseMyOrders, parseOrder, type CustomerOrder, type NewCustomerOrder } from './types'
 
 /**
@@ -53,4 +54,21 @@ export function createOrder(input: NewCustomerOrder): Promise<CustomerOrder> {
 export function cancelOrder(id: string): Promise<CustomerOrder> {
   if (isDemoMode()) return cancelDemoOrder(id)
   return http.post(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, parseOrder)
+}
+
+/**
+ * What the customer owes (ADR 0006). An account blocked for the balance can ALSO read it: that is how it
+ * learns how much to pay.
+ */
+export function getMyBalance(signal?: AbortSignal): Promise<MyBalance> {
+  return http.get('/api/v1/customers/me/balance', parseMyBalance, signal ? { signal } : {})
+}
+
+/**
+ * Pays the whole balance with the simulated card. No body: the server sets the amount and the client cannot
+ * choose it. A declined simulated card answers 200 with `SIMULATED_DECLINED`; nothing owed is 422; a balance
+ * that changed while paying is 409 (the charge is refunded).
+ */
+export function payMyBalance(): Promise<BalancePayment> {
+  return http.post('/api/v1/customers/me/balance/payment', parseBalancePayment)
 }
