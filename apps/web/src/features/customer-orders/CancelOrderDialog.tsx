@@ -1,4 +1,5 @@
 import { ApiError } from '@/shared/api/errors'
+import { cancelBlockedMessage } from './balance'
 import { useCancelOrder } from './hooks'
 import { Modal } from './Modal'
 import { orderCode, type CustomerOrder } from './types'
@@ -12,6 +13,8 @@ function cancelErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status === 409) {
     return 'Este pedido ya no se puede cancelar porque su estado cambió.'
   }
+  // El servidor rechaza con 403 cancelar a una cuenta bloqueada por saldo (ADR 0006).
+  if (error instanceof ApiError && error.status === 403) return cancelBlockedMessage
   return 'No pudimos cancelar el pedido. Inténtalo de nuevo.'
 }
 
