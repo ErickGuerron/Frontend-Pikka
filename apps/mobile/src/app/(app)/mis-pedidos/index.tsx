@@ -24,6 +24,8 @@ import { CustomerHeader } from '../../../features/customer-catalog/CustomerHeade
 import type { CatalogProduct, CustomerTab } from '../../../features/customer-catalog/types'
 import { BalanceCard } from '../../../features/customer-orders/BalanceCard'
 import { useMyBalance, usePayBalance } from '../../../features/customer-orders/balance-hooks'
+import { useMyNotifications } from '../../../features/customer-orders/notifications-hooks'
+import { NotificationsPanel } from '../../../features/customer-orders/NotificationsPanel'
 import { CurrentOrderCard } from '../../../features/customer-orders/CurrentOrderCard'
 import { useMyOrders } from '../../../features/customer-orders/hooks'
 import { OrderHistory } from '../../../features/customer-orders/OrderHistory'
@@ -48,6 +50,7 @@ export default function CustomerMainScreen() {
     void load('refresh')
   })
   const blocked = balance?.blocked === true
+  const { notifications } = useMyNotifications()
 
   // Account editing state
   const [isEditingContact, setIsEditingContact] = useState(false)
@@ -131,6 +134,8 @@ export default function CustomerMainScreen() {
               </View>
               {isDemoMode() ? <Text style={styles.demoBadge}>DEMO</Text> : null}
             </View>
+
+            <NotificationsPanel notifications={notifications} />
 
             <BalanceCard
               balance={balance}

@@ -4,6 +4,7 @@ import { ApiError } from '../../api/errors'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders, listDemoProducts } from './demo'
 import { parseProducts, type Product } from './products'
 import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
+import { parseNotifications, type CustomerNotification } from './notifications'
 import { parseMyOrders, parseOrder, type CustomerOrder, type NewCustomerOrder } from './types'
 
 /**
@@ -71,4 +72,13 @@ export function getMyBalance(signal?: AbortSignal): Promise<MyBalance> {
  */
 export function payMyBalance(): Promise<BalancePayment> {
   return http.post('/api/v1/customers/me/balance/payment', parseBalancePayment)
+}
+
+/**
+ * The customer's notices: the review of their orders, the surcharge and the balance block. Demo mode has none.
+ * An account blocked for the balance can also read them: that is how it learns why.
+ */
+export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotification[]> {
+  if (isDemoMode()) return Promise.resolve([])
+  return http.get('/api/v1/notifications/mine', parseNotifications, signal ? { signal } : {})
 }
