@@ -162,7 +162,7 @@ export default function CustomerMainScreen() {
               </View>
             ) : null}
 
-            {current ? <CurrentOrderCard order={current} /> : null}
+            {current ? <CurrentOrderCard order={current} cancelBlocked={blocked} /> : null}
             {!unavailable && !loading ? <OrderHistory orders={orders} /> : null}
           </ScrollView>
         ) : null}

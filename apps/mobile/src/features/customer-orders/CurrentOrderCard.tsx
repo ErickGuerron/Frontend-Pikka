@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Alert, StyleSheet, Text, View } from 'react-native'
 import { isDemoMode } from '../../api/config'
-import { userMessage } from '../../api/errors'
+import { ApiError, userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
 import { OrderStepper, StatusPill } from './OrderParts'
@@ -9,8 +9,14 @@ import { OrderTrackingSection } from './OrderTrackingSection'
 import { useOrdersStore } from './orders-store'
 import { canCancel, formatWindow, isInProgress, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
 
-/** The order in focus: status, stepper, delivery details and (when allowed) cancel. No map in this build. */
-export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
+/** What the customer sees when an account blocked for the balance cannot cancel (ADR 0006). */
+export const cancelBlockedMessage = 'Paga tu saldo pendiente para volver a cancelar pedidos.'
+
+/**
+ * The order in focus: status, stepper, delivery details and (when allowed) cancel. No map in this build.
+ * `cancelBlocked` is true while the account is blocked for the balance: the server refuses the cancel with 403.
+ */
+export function CurrentOrderCard({ order, cancelBlocked = false }: { order: CustomerOrder; cancelBlocked?: boolean }) {
   const cancel = useOrdersStore((s) => s.cancel)
   const [busy, setBusy] = useState(false)
 
@@ -24,7 +30,7 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
           setBusy(true)
           cancel(order.id)
             .catch((error: unknown) => {
-              Alert.alert('No se pudo cancelar', userMessage(error))
+              Alert.alert('No se pudo cancelar', error instanceof ApiError && error.status === 403 ? cancelBlockedMessage : userMessage(error))
             })
             .finally(() => {
               setBusy(false)
@@ -72,7 +78,12 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
         <Text style={styles.text}>{order.address}</Text>
       </View>
       {isInProgress(order.status) && !isDemoMode() ? <OrderTrackingSection orderId={order.id} /> : null}
-      {canCancel(order.status) ? <Button label="Cancelar pedido" variant="danger" onPress={confirmCancel} loading={busy} /> : null}
+      {canCancel(order.status) ? (
+        <>
+          <Button label="Cancelar pedido" variant="danger" onPress={confirmCancel} loading={busy} disabled={cancelBlocked} />
+          {cancelBlocked ? <Text style={styles.blockedNote}>{cancelBlockedMessage}</Text> : null}
+        </>
+      ) : null}
     </View>
   )
 }
@@ -82,6 +93,7 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   title: { fontSize: 18, fontWeight: '700', color: colors.onSurface },
   code: { fontSize: 15, color: colors.onSurfaceVariant, fontWeight: '500' },
+  blockedNote: { fontSize: 12, color: colors.onSurfaceVariant },
   banner: { backgroundColor: '#fff8e1', borderRadius: 10, padding: 12, gap: 2 },
   bannerTitle: { fontWeight: '700', color: '#664d03' },
   bannerText: { color: '#664d03', fontSize: 13 },
