@@ -113,7 +113,7 @@ describe('hasDebt', () => {
     expect(hasDebt(base)).toBe(false)
   })
   it('hay deuda con líneas, con bloqueo o con saldo mayor que cero', () => {
-    expect(hasDebt({ ...base, lines: [{ kind: 'SURCHARGE', id: 'a', orderId: '', reason: 'X', amount: '1.00', startedAt: '', dueAt: '' }] })).toBe(true)
+    expect(hasDebt({ ...base, lines: [{ kind: 'SURCHARGE', id: 'a', orderId: '', reason: 'X', amount: '1.00', startedAt: '', dueAt: '', disputeStatus: '', disputableUntil: '' }] })).toBe(true)
     expect(hasDebt({ ...base, blocked: true })).toBe(true)
     expect(hasDebt({ ...base, pendingSurcharge: '0.01' })).toBe(true)
   })
