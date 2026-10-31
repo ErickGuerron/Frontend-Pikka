@@ -34,6 +34,11 @@ describe('parseMyBalance', () => {
     expect(parseMyBalance({ ...body, lines: [extra] }).lines[0]?.orderId).toBe('')
   })
 
+  it('acepta la línea del cobro por reasignación, que sí trae pedido', () => {
+    const fee = { kind: 'REASSIGNMENT', id: 'a-1', orderId: 'o-9', reason: 'REASSIGNMENT', amount: '2.50', startedAt: line.startedAt, dueAt: line.dueAt }
+    expect(parseMyBalance({ ...body, lines: [fee] }).lines[0]).toMatchObject({ kind: 'REASSIGNMENT', orderId: 'o-9', amount: '2.50' })
+  })
+
   it('acepta una lista vacía', () => {
     expect(parseMyBalance({ ...body, pendingSurcharge: '0.00', accountStatus: 'ACTIVO', blocked: false, lines: [] }).lines).toEqual([])
   })
@@ -68,6 +73,7 @@ describe('textos', () => {
   it('traduce los motivos conocidos', () => {
     expect(balanceReasonLabel('CLIENT_REFUSED')).toBe('Rechazaste el pedido en la entrega')
     expect(balanceReasonLabel('RECIDIVISM')).toBe('Recargo por reincidencia')
+    expect(balanceReasonLabel('REASSIGNMENT')).toBe('Cobro por cambio de entrega')
   })
 
   it('un motivo desconocido no muestra el código crudo', () => {
