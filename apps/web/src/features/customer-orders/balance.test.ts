@@ -39,6 +39,20 @@ describe('parseMyBalance', () => {
     expect(parseMyBalance({ ...body, lines: [fee] }).lines[0]).toMatchObject({ kind: 'REASSIGNMENT', orderId: 'o-9', amount: '2.50' })
   })
 
+  it('lee el estado de la disputa y el plazo para disputar; sin ellos quedan vacíos', () => {
+    const disputed = { ...line, disputeStatus: 'OPEN' }
+    const open = { ...line, disputableUntil: '2026-10-01T10:00:00Z' }
+    const parsed = parseMyBalance({ ...body, lines: [line, disputed, open] }).lines
+    expect(parsed[0]).toMatchObject({ disputeStatus: '', disputableUntil: '' })
+    expect(parsed[1]).toMatchObject({ disputeStatus: 'OPEN', disputableUntil: '' })
+    expect(parsed[2]).toMatchObject({ disputeStatus: '', disputableUntil: '2026-10-01T10:00:00Z' })
+  })
+
+  it('un estado de disputa que esta versión no conoce no rompe el saldo: se ignora', () => {
+    const parsed = parseMyBalance({ ...body, lines: [{ ...line, disputeStatus: 'ESTADO_NUEVO' }] }).lines
+    expect(parsed[0]?.disputeStatus).toBe('')
+  })
+
   it('acepta una lista vacía', () => {
     expect(parseMyBalance({ ...body, pendingSurcharge: '0.00', accountStatus: 'ACTIVO', blocked: false, lines: [] }).lines).toEqual([])
   })
@@ -99,7 +113,7 @@ describe('hasDebt', () => {
     expect(hasDebt(base)).toBe(false)
   })
   it('hay deuda con líneas, con bloqueo o con saldo mayor que cero', () => {
-    expect(hasDebt({ ...base, lines: [{ kind: 'SURCHARGE', id: 'a', orderId: '', reason: 'X', amount: '1.00', startedAt: '', dueAt: '' }] })).toBe(true)
+    expect(hasDebt({ ...base, lines: [{ kind: 'SURCHARGE', id: 'a', orderId: '', reason: 'X', amount: '1.00', startedAt: '', dueAt: '', disputeStatus: '', disputableUntil: '' }] })).toBe(true)
     expect(hasDebt({ ...base, blocked: true })).toBe(true)
     expect(hasDebt({ ...base, pendingSurcharge: '0.01' })).toBe(true)
   })

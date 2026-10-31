@@ -23,7 +23,7 @@ import { CustomerCatalogView } from '../../../features/customer-catalog/Customer
 import { CustomerHeader } from '../../../features/customer-catalog/CustomerHeader'
 import type { CatalogProduct, CustomerTab } from '../../../features/customer-catalog/types'
 import { BalanceCard } from '../../../features/customer-orders/BalanceCard'
-import { useMyBalance, usePayBalance } from '../../../features/customer-orders/balance-hooks'
+import { useMyBalance, useOpenDispute, usePayBalance } from '../../../features/customer-orders/balance-hooks'
 import { useMyNotifications } from '../../../features/customer-orders/notifications-hooks'
 import { NotificationsPanel } from '../../../features/customer-orders/NotificationsPanel'
 import { CurrentOrderCard } from '../../../features/customer-orders/CurrentOrderCard'
@@ -49,6 +49,7 @@ export default function CustomerMainScreen() {
     reloadBalance()
     void load('refresh')
   })
+  const { open: openDispute } = useOpenDispute(reloadBalance)
   const blocked = balance?.blocked === true
   const { notifications } = useMyNotifications()
 
@@ -143,6 +144,7 @@ export default function CustomerMainScreen() {
               outcome={payment.outcome}
               onPay={() => { void payment.pay() }}
               onDismissOutcome={payment.dismiss}
+              onDispute={openDispute}
             />
 
             <Button

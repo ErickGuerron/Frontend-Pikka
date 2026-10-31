@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isDemoMode } from '../../api/config'
-import { getMyBalance, payMyBalance } from './api'
+import { getMyBalance, openDispute, payMyBalance } from './api'
+import { disputeErrorText } from './dispute'
 import type { MyBalance } from './balance'
 import { outcomeOfError, outcomeOfPayment, type Outcome } from './payment-outcome'
 
@@ -59,4 +60,25 @@ export function usePayBalance(onSettled: () => void): PayBalanceState {
 
   const dismiss = useCallback(() => { setOutcome(null) }, [])
   return { pay, paying, outcome, dismiss }
+}
+
+/**
+ * Opens a dispute. Resolves to null when it was opened, or to the message to show when it was not. Either way the balance
+ * may have changed (the line turns into "En disputa" or the window closed), so `onSettled` always runs.
+ */
+export function useOpenDispute(onSettled: () => void): { open: (surchargeId: string, reason: string) => Promise<string | null> } {
+  const open = useCallback(
+    async (surchargeId: string, reason: string) => {
+      try {
+        await openDispute(surchargeId, reason)
+        return null
+      } catch (error: unknown) {
+        return disputeErrorText(error)
+      } finally {
+        onSettled()
+      }
+    },
+    [onSettled],
+  )
+  return { open }
 }

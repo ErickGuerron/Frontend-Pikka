@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
 import { balanceReasonLabel, formatDueDate, formatMoney, hasDebt, type MyBalance } from './balance'
+import { DisputeControl } from './DisputeControl'
 import type { Outcome } from './payment-outcome'
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
   outcome: Outcome | null
   onPay: () => void
   onDismissOutcome: () => void
+  /** Sends a dispute over one surcharge; without it the card shows no dispute controls. */
+  onDispute?: (surchargeId: string, reason: string) => Promise<string | null>
 }
 
 /**
@@ -18,7 +21,7 @@ interface Props {
  * the whole balance with the simulated card. Presentational: the screen owns the data. With no debt and no
  * message to show it takes up no space. It asks for no card data, not even in simulation.
  */
-export function BalanceCard({ balance, paying, outcome, onPay, onDismissOutcome }: Props) {
+export function BalanceCard({ balance, paying, outcome, onPay, onDismissOutcome, onDispute }: Props) {
   const owes = balance !== null && hasDebt(balance)
   if (!owes && outcome === null) return null
 
@@ -57,6 +60,7 @@ export function BalanceCard({ balance, paying, outcome, onPay, onDismissOutcome 
             <Text style={styles.due}>{`Pagar antes del ${formatDueDate(line.dueAt)}`}</Text>
           </View>
           <Text style={styles.amount}>{formatMoney(line.amount)}</Text>
+          {onDispute === undefined ? null : <DisputeControl line={line} onDispute={onDispute} />}
         </View>
       ))}
 
@@ -89,7 +93,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#7f1d1d',
   },
-  line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: '#cce7ea', paddingTop: 10 },
+  line: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: '#cce7ea', paddingTop: 10 },
   lineText: { flex: 1, gap: 2 },
   reason: { fontSize: 14, fontWeight: '600', color: colors.primary },
   due: { fontSize: 12, color: '#557b7f' },

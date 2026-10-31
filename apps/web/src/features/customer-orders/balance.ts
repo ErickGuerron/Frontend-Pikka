@@ -11,6 +11,10 @@ export type AccountStatus = (typeof accountStatuses)[number]
 export const balanceLineKinds = ['SURCHARGE', 'RECIDIVISM', 'REASSIGNMENT'] as const
 export type BalanceLineKind = (typeof balanceLineKinds)[number]
 
+/** Estado de la disputa del cliente sobre una línea (ADR 0007, sección 6). Vacío cuando no hay. */
+export const disputeStatuses = ['OPEN', 'IN_FAVOR', 'AGAINST'] as const
+export type DisputeStatus = (typeof disputeStatuses)[number]
+
 export interface BalanceLine {
   kind: BalanceLineKind
   id: string
@@ -23,6 +27,10 @@ export interface BalanceLine {
   startedAt: string
   /** RFC 3339, UTC: último momento para pagar antes del bloqueo. */
   dueAt: string
+  /** Estado de la disputa sobre esta línea; vacío si no hay (o si es un estado que esta versión no conoce). */
+  disputeStatus: DisputeStatus | ''
+  /** RFC 3339, UTC: último momento para disputar; vacío si ya no se puede o nunca se pudo. */
+  disputableUntil: string
 }
 
 export interface MyBalance {
@@ -72,6 +80,9 @@ function parseLine(item: unknown): BalanceLine {
     amount: string(o, 'amount'),
     startedAt: string(o, 'startedAt'),
     dueAt: string(o, 'dueAt'),
+    // Un estado que esta versión no conoce se ignora: no debe llevarse el saldo consigo.
+    disputeStatus: disputeStatuses.find((s) => s === o.disputeStatus) ?? '',
+    disputableUntil: typeof o.disputableUntil === 'string' ? o.disputableUntil : '',
   }
 }
 
@@ -118,4 +129,9 @@ export const cancelBlockedMessage = 'Paga tu saldo pendiente para volver a cance
 
 export function hasDebt(balance: MyBalance): boolean {
   return balance.lines.length > 0 || balance.blocked || /[1-9]/.test(balance.pendingSurcharge)
+}
+
+/** El cliente todavía puede disputar la línea: el servidor la marcó y el plazo no terminó (el servidor lo vuelve a comprobar). */
+export function isDisputable(line: BalanceLine, now: number = Date.now()): boolean {
+  return line.disputableUntil !== '' && Date.parse(line.disputableUntil) > now
 }

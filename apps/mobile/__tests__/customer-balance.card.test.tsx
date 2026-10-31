@@ -12,8 +12,8 @@ const owing: MyBalance = {
   blocked: true,
   simulated: true,
   lines: [
-    { kind: 'SURCHARGE', id: 's-1', orderId: 'o-1', reason: 'CLIENT_REFUSED', amount: '3.00', startedAt: '2026-10-01T08:00:00Z', dueAt: '2026-10-15T08:00:00Z' },
-    { kind: 'RECIDIVISM', id: 'r-1', orderId: '', reason: 'RECIDIVISM', amount: '4.50', startedAt: '2026-10-03T08:00:00Z', dueAt: '2026-10-17T08:00:00Z' },
+    { kind: 'SURCHARGE', id: 's-1', orderId: 'o-1', reason: 'CLIENT_REFUSED', amount: '3.00', startedAt: '2026-10-01T08:00:00Z', dueAt: '2026-10-15T08:00:00Z', disputeStatus: '', disputableUntil: '' },
+    { kind: 'RECIDIVISM', id: 'r-1', orderId: '', reason: 'RECIDIVISM', amount: '4.50', startedAt: '2026-10-03T08:00:00Z', dueAt: '2026-10-17T08:00:00Z', disputeStatus: '', disputableUntil: '' },
   ],
 }
 const approved: BalancePayment = { status: 'SIMULATED_APPROVED', simulated: true, amount: '7.50', reference: 'SIM-1', unblocked: true, createdAt: '2026-10-29T09:00:00Z' }

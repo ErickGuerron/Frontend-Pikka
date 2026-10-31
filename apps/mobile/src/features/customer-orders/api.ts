@@ -3,6 +3,7 @@ import { isDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders, listDemoProducts } from './demo'
 import { parseProducts, type Product } from './products'
+import { object, string } from '../../api/parse'
 import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
 import { parseNotifications, type CustomerNotification } from './notifications'
 import { parseMyOrders, parseOrder, type CustomerOrder, type NewCustomerOrder } from './types'
@@ -81,4 +82,12 @@ export function payMyBalance(): Promise<BalancePayment> {
 export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotification[]> {
   if (isDemoMode()) return Promise.resolve([])
   return http.get('/api/v1/notifications/mine', parseNotifications, signal ? { signal } : {})
+}
+
+/**
+ * Opens the customer's dispute over one of their surcharges (ADR 0007, section 6). Only the reason is sent: the customer
+ * comes from the token. 422 out of time or already paid, 409 already disputed, 404 not theirs.
+ */
+export function openDispute(surchargeId: string, reason: string): Promise<{ id: string }> {
+  return http.post(`/api/v1/surcharges/${encodeURIComponent(surchargeId)}/dispute`, (data) => ({ id: string(object(data, 'dispute'), 'id') }), { body: { reason } })
 }

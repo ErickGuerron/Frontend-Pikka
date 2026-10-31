@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { balanceReasonLabel, formatDueDate, formatMoney, hasDebt } from './balance'
+import { DisputeControl } from './DisputeControl'
 import { useMyBalance, usePayBalance } from './hooks'
 import { outcomeOfError, outcomeOfPayment, type Outcome, type Tone } from './payment-outcome'
 
@@ -64,6 +65,9 @@ export function BalanceCard() {
                 <span className="font-mono text-xs text-[#557b7f]">{`Pagar antes del ${formatDueDate(line.dueAt)}`}</span>
               </div>
               <span className="font-mono font-bold text-[#004b4e]">{formatMoney(line.amount)}</span>
+              <div className="flex w-full justify-end">
+                <DisputeControl line={line} />
+              </div>
             </li>
           ))}
         </ul>
