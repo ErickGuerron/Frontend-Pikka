@@ -23,7 +23,7 @@ S4. Tras pagar se refresca el saldo y los pedidos.
 | ID | Specs | Estado | Evidencia |
 |---|---|---|---|
 | W1 | S1-S4 (web) | hecho | `BalanceCard`, `balance.ts`, `payment-outcome.ts`, hooks y `api.ts` en `apps/web/src/features/customer-orders`; `tsc -b --noEmit` limpio, `eslint .` sin errores, `vitest run` 56 archivos / 593 pruebas en verde |
-| M1 | S1-S4 (movil) | pendiente | `apps/mobile/src/features/customer-orders` |
+| M1 | S1-S4 (movil) | hecho | `BalanceCard` (presentacional), `balance.ts`, `balance-hooks.ts`, `payment-outcome.ts` y `api.ts` en `apps/mobile/src/features/customer-orders`, montado en la pestana Pedidos de `mis-pedidos/index.tsx`; `tsc --noEmit` limpio, `jest -w 1` 32 suites / 291 pruebas en verde |
 
 ## Fuera de alcance
 - La linea de saldo dentro de la respuesta de crear pedido (`pendingSurcharge`): la tarjeta de saldo de la misma pagina ya lo cubre.
@@ -32,3 +32,4 @@ S4. Tras pagar se refresca el saldo y los pedidos.
 ## Log
 L1: "Sí, T10 ahora" (tras T9 del backend: el cliente ya puede ver y pagar su saldo por API).
 L2: W1 hecho. Decisiones: (1) si la lectura del saldo falla (404/501/502/503/504, 500 o una respuesta que no cumple el contrato) la tarjeta no aparece y la pagina de pedidos sigue igual; (2) el boton "Hacer nuevo pedido" se deshabilita con la cuenta bloqueada, pero el cancelar NO se bloquea en la interfaz: si el servidor lo rechaza (403) se vera el error generico de cancelar; (3) el mensaje del pago sobrevive a la desaparicion de la tarjeta (tras un pago aprobado el saldo queda en cero); (4) en modo demo no se llama al servicio de saldo. El cliente HTTP manda `body: null` cuando no hay cuerpo; la prueba comprueba que no se envia monto.
+L3: M1 hecho, con la misma logica que la web (parseo, textos, resultados del pago) y la misma politica: si la lectura del saldo falla la tarjeta no aparece; "Hacer nuevo pedido" se deshabilita con la cuenta bloqueada; el mensaje del pago sobrevive a la desaparicion de la tarjeta; el modo demo no llama al servicio. Patron contenedor/presentacional: la pantalla posee los hooks y `BalanceCard` solo pinta. Se probo ademas que el pago hace POST sin cuerpo, que un segundo toque durante el pago se ignora y que la tarjeta no tiene ningun campo de texto (recorrido del arbol renderizado, con su prueba de sensibilidad). Limites honestos: no se probo contra el backend real (sus PRs #81 a #92 siguen abiertos) ni en un dispositivo; el cancelar un pedido no se bloquea en la interfaz, solo lo rechaza el servidor.

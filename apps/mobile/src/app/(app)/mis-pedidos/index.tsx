@@ -22,6 +22,8 @@ import { CustomerBottomNav } from '../../../features/customer-catalog/CustomerBo
 import { CustomerCatalogView } from '../../../features/customer-catalog/CustomerCatalogView'
 import { CustomerHeader } from '../../../features/customer-catalog/CustomerHeader'
 import type { CatalogProduct, CustomerTab } from '../../../features/customer-catalog/types'
+import { BalanceCard } from '../../../features/customer-orders/BalanceCard'
+import { useMyBalance, usePayBalance } from '../../../features/customer-orders/balance-hooks'
 import { CurrentOrderCard } from '../../../features/customer-orders/CurrentOrderCard'
 import { useMyOrders } from '../../../features/customer-orders/hooks'
 import { OrderHistory } from '../../../features/customer-orders/OrderHistory'
@@ -37,6 +39,15 @@ export default function CustomerMainScreen() {
   const updateUser = useSessionStore((s) => s.updateUser)
   const clear = useSessionStore((s) => s.clear)
   const current = pickCurrentOrder(orders)
+
+  // What the customer owes (ADR 0006). An account blocked for the balance cannot create orders; the server
+  // rejects it too. After paying, the balance and the orders are reloaded.
+  const { balance, reload: reloadBalance } = useMyBalance()
+  const payment = usePayBalance(() => {
+    reloadBalance()
+    void load('refresh')
+  })
+  const blocked = balance?.blocked === true
 
   // Account editing state
   const [isEditingContact, setIsEditingContact] = useState(false)
@@ -121,9 +132,17 @@ export default function CustomerMainScreen() {
               {isDemoMode() ? <Text style={styles.demoBadge}>DEMO</Text> : null}
             </View>
 
+            <BalanceCard
+              balance={balance}
+              paying={payment.paying}
+              outcome={payment.outcome}
+              onPay={() => { void payment.pay() }}
+              onDismissOutcome={payment.dismiss}
+            />
+
             <Button
               label="Hacer nuevo pedido"
-              disabled={unavailable}
+              disabled={unavailable || blocked}
               onPress={() => { router.push('/mis-pedidos/nuevo') }}
               rightIcon={<Ionicons name="add" size={18} color="#ffffff" />}
             />
