@@ -4,6 +4,7 @@ import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
 import { parseCustomerOrder, parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
 import { parseNotifications, type CustomerNotification } from './notifications'
 import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
+import { object, string } from '@/shared/api/parse'
 
 /**
  * Customer order endpoints.
@@ -63,4 +64,12 @@ export function getMyBalance(signal?: AbortSignal): Promise<MyBalance> {
  */
 export function payMyBalance(): Promise<BalancePayment> {
   return http.post('/api/v1/customers/me/balance/payment', parseBalancePayment)
+}
+
+/**
+ * Abre la disputa del cliente sobre uno de sus recargos (ADR 0007, sección 6). Solo se envía el motivo: el cliente sale del
+ * token. 422 fuera de plazo o ya pagado, 409 si ya hay una disputa, 404 si el recargo no es suyo.
+ */
+export function openDispute(surchargeId: string, reason: string): Promise<{ id: string }> {
+  return http.post(`/api/v1/surcharges/${encodeURIComponent(surchargeId)}/dispute`, (data) => ({ id: string(object(data, 'dispute'), 'id') }), { body: { reason } })
 }

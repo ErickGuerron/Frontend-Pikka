@@ -12,6 +12,10 @@ export type AccountStatus = (typeof accountStatuses)[number]
 export const balanceLineKinds = ['SURCHARGE', 'RECIDIVISM', 'REASSIGNMENT'] as const
 export type BalanceLineKind = (typeof balanceLineKinds)[number]
 
+/** State of the customer's dispute over a line (ADR 0007, section 6). Empty when there is none. */
+export const disputeStatuses = ['OPEN', 'IN_FAVOR', 'AGAINST'] as const
+export type DisputeStatus = (typeof disputeStatuses)[number]
+
 export interface BalanceLine {
   kind: BalanceLineKind
   id: string
@@ -24,6 +28,10 @@ export interface BalanceLine {
   startedAt: string
   /** RFC 3339, UTC: last moment to pay before the account is blocked. */
   dueAt: string
+  /** State of the dispute over this line; empty when none (or a state this version does not know). */
+  disputeStatus: DisputeStatus | ''
+  /** RFC 3339, UTC: last moment to dispute; empty when it can no longer (or never could) be disputed. */
+  disputableUntil: string
 }
 
 export interface MyBalance {
@@ -73,6 +81,9 @@ function parseLine(item: unknown): BalanceLine {
     amount: string(o, 'amount'),
     startedAt: string(o, 'startedAt'),
     dueAt: string(o, 'dueAt'),
+    // A state this version does not know is ignored: it must not take the whole balance down with it.
+    disputeStatus: disputeStatuses.find((s) => s === o.disputeStatus) ?? '',
+    disputableUntil: typeof o.disputableUntil === 'string' ? o.disputableUntil : '',
   }
 }
 
@@ -116,4 +127,9 @@ export function formatDueDate(iso: string): string {
 /** There is something to show: lines, a block or a balance above zero (never compared as a number). */
 export function hasDebt(balance: MyBalance): boolean {
   return balance.lines.length > 0 || balance.blocked || /[1-9]/.test(balance.pendingSurcharge)
+}
+
+/** The customer can still dispute the line: the server flagged it and the window has not closed (the server checks again). */
+export function isDisputable(line: BalanceLine, now: number = Date.now()): boolean {
+  return line.disputableUntil !== '' && Date.parse(line.disputableUntil) > now
 }

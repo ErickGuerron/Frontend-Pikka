@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { cancelOrder, createOrder, getMyBalance, isDemoMode, listMyNotifications, listMyOrders, payMyBalance } from './api'
+import { cancelOrder, createOrder, getMyBalance, isDemoMode, listMyNotifications, listMyOrders, openDispute, payMyBalance } from './api'
 import { isActiveTransit, type CustomerOrder } from './types'
 
 export const myOrdersKey = ['customer-orders'] as const
@@ -67,5 +67,14 @@ export function usePayBalance() {
         queryClient.invalidateQueries({ queryKey: myBalanceKey }),
         queryClient.invalidateQueries({ queryKey: myOrdersKey }),
       ]),
+  })
+}
+
+/** Disputa un recargo. Sea cual sea el resultado, el saldo se refresca: la línea pasa a «En disputa» o el plazo ya se cerró. */
+export function useOpenDispute() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { surchargeId: string; reason: string }) => openDispute(input.surchargeId, input.reason),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: myBalanceKey }),
   })
 }
