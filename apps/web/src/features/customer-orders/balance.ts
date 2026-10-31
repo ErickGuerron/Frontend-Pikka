@@ -8,7 +8,7 @@ import { boolean, object, oneOf, ParseError, string } from '@/shared/api/parse'
 export const accountStatuses = ['ACTIVO', 'BLOQUEADO_POR_SALDO', 'BLOQUEADO_POR_INCIDENCIAS'] as const
 export type AccountStatus = (typeof accountStatuses)[number]
 
-export const balanceLineKinds = ['SURCHARGE', 'RECIDIVISM'] as const
+export const balanceLineKinds = ['SURCHARGE', 'RECIDIVISM', 'REASSIGNMENT'] as const
 export type BalanceLineKind = (typeof balanceLineKinds)[number]
 
 export interface BalanceLine {
@@ -93,6 +93,7 @@ const reasonLabels: Record<string, string> = {
   OUT_OF_WINDOW: 'No estabas en la ventana de entrega',
   WRONG_ADDRESS: 'La dirección del pedido era incorrecta',
   RECIDIVISM: 'Recargo por reincidencia',
+  REASSIGNMENT: 'Cobro por cambio de entrega',
 }
 
 /** Texto legible del motivo. Un código nuevo se muestra genérico: nunca el código crudo. */
