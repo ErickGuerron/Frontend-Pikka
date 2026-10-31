@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { cancelOrder, createOrder, listMyNotifications, listMyOrders } from './api'
+import { cancelOrder, createOrder, getMyBalance, isDemoMode, listMyNotifications, listMyOrders, payMyBalance } from './api'
 import { isActiveTransit, type CustomerOrder } from './types'
 
 export const myOrdersKey = ['customer-orders'] as const
@@ -42,5 +42,30 @@ export function useCancelOrder() {
     mutationFn: cancelOrder,
     // A conflict means the status changed meanwhile; refresh in both outcomes.
     onSettled: () => queryClient.invalidateQueries({ queryKey: myOrdersKey }),
+  })
+}
+
+export const myBalanceKey = ['customer-balance'] as const
+
+/** El saldo del cliente. Sin reintentos: si el servicio no responde, la tarjeta simplemente no aparece. */
+export function useMyBalance() {
+  return useQuery({
+    queryKey: myBalanceKey,
+    queryFn: ({ signal }) => getMyBalance(signal),
+    enabled: !isDemoMode(),
+    retry: false,
+  })
+}
+
+export function usePayBalance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => payMyBalance(),
+    // Aprobado, rechazado o con error, el saldo y la cuenta pueden haber cambiado: se refrescan siempre.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: myBalanceKey }),
+        queryClient.invalidateQueries({ queryKey: myOrdersKey }),
+      ]),
   })
 }

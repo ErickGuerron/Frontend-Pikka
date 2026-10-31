@@ -2,9 +2,10 @@ import { useMemo, useRef, useState } from 'react'
 import { useCurrentUser } from '@/features/auth/hooks'
 import pikkaNutria from '@/assets/pikka.png'
 import { isDemoMode, isServiceUnavailable } from './api'
+import { BalanceCard } from './BalanceCard'
 import { CurrentOrderCard } from './CurrentOrderCard'
 import { GuaranteeBanner, QuickFavoritesSection } from './CustomerSections'
-import { useMyOrders } from './hooks'
+import { useMyBalance, useMyOrders } from './hooks'
 import { NewOrderDialog } from './NewOrderDialog'
 import { NoActiveDeliveryCard } from './NoActiveDeliveryCard'
 import { NotificationsPanel } from './NotificationsPanel'
@@ -13,6 +14,8 @@ import { isInProgress, isOnTheWay, pickCurrentOrder, type CustomerOrder } from '
 
 export function MyOrdersPage() {
   const orders = useMyOrders()
+  // Una cuenta bloqueada por saldo no puede crear pedidos (ADR 0006, sección 5); el servidor también lo rechaza.
+  const blocked = useMyBalance().data?.blocked === true
   const { data: user } = useCurrentUser()
   const [creating, setCreating] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -94,7 +97,8 @@ export function MyOrdersPage() {
           <button
             type="button"
             aria-label="Hacer nuevo pedido"
-            disabled={orders.isError}
+            disabled={orders.isError || blocked}
+            title={blocked ? 'Tu cuenta está bloqueada por saldo pendiente' : undefined}
             className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-[#004b4e] hover:bg-[#0a6568] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm border border-[#004b4e] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => { setCreating(true) }}
           >
@@ -105,6 +109,8 @@ export function MyOrdersPage() {
       </header>
 
       <NotificationsPanel />
+
+      <BalanceCard />
 
       {notice !== null ? (
         <p role="status" className="flex items-start justify-between gap-3 rounded-xl border border-[#cce7ea] bg-[#e8f7f9] px-4 py-3 text-sm text-[#004b4e] font-medium shadow-xs">
