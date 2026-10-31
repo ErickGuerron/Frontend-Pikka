@@ -112,6 +112,9 @@ export function formatDueDate(iso: string): string {
 }
 
 /** Hay algo que mostrar: líneas, un bloqueo o un saldo mayor que cero (sin comparar como número). */
+/** Lo que ve el cliente cuando la cuenta bloqueada por saldo le impide cancelar. */
+export const cancelBlockedMessage = 'Paga tu saldo pendiente para volver a cancelar pedidos.'
+
 export function hasDebt(balance: MyBalance): boolean {
   return balance.lines.length > 0 || balance.blocked || /[1-9]/.test(balance.pendingSurcharge)
 }

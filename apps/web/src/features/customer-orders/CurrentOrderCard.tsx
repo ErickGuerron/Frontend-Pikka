@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
 import { formatDate, formatWindow } from '@/features/orders/format'
+import { cancelBlockedMessage } from './balance'
 import { CancelOrderDialog } from './CancelOrderDialog'
+import { useMyBalance } from './hooks'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { OrderStepper } from './OrderStepper'
 import { canCancel, isInProgress, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
@@ -23,6 +25,7 @@ function getPin(id: string): string {
 export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
   const [cancelling, setCancelling] = useState(false)
   const [copied, setCopied] = useState(false)
+  const blocked = useMyBalance().data?.blocked === true
   const point = { latitude: order.latitude, longitude: order.longitude }
   const pin = getPin(order.id)
 
@@ -217,11 +220,13 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
             <div className="pt-1">
               <button
                 type="button"
-                className="cursor-pointer rounded-lg border border-error px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-error hover:bg-error-container transition-colors"
+                disabled={blocked}
+                className="cursor-pointer rounded-lg border border-error px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-error hover:bg-error-container transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => { setCancelling(true) }}
               >
                 Cancelar pedido
               </button>
+              {blocked ? <p className="mt-2 text-xs text-on-surface-variant">{cancelBlockedMessage}</p> : null}
             </div>
           ) : null}
         </div>
