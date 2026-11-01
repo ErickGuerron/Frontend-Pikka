@@ -7,6 +7,8 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // apps/shared lives outside this app: resolve its packages (e.g. @babel/runtime helpers) from this app's node_modules.
+  modulePaths: ['<rootDir>/node_modules'],
   testMatch: ['**/__tests__/**/*.test.(ts|tsx|js)'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

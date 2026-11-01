@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // apps/shared holds code used by both apps; the dev server must be allowed to serve it.
+      fs: { allow: ['.', '../shared'] },
       proxy: { '/api': toGateway, '/health': toGateway, '/ready': toGateway },
     },
     test: {
@@ -42,7 +44,10 @@ export default defineConfig(({ mode }) => {
         provider: 'v8',
         // lcov.info is what Sonar reads (see sonar-project.properties); text-summary is for humans.
         reporter: ['text-summary', 'lcov'],
-        include: ['src/**/*.{ts,tsx}'],
+        // Absolute, forward-slash glob: a "../" pattern is not matched against files outside the web root.
+        include: ['src/**/*.{ts,tsx}', fileURLToPath(new URL('../shared/**/*.ts', import.meta.url)).split('\\').join('/')],
+        // apps/shared lives outside the web root; without this, its coverage would be missing from lcov.
+        allowExternal: true,
         exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'],
       },
     },
