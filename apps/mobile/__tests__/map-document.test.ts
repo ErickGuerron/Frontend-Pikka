@@ -55,6 +55,7 @@ describe('buildMapDocument', () => {
   it('avisa al anfitrión por WebView nativo o, en web, por postMessage del iframe', () => {
     expect(html).toContain('ReactNativeWebView.postMessage')
     expect(html).toContain('parent.postMessage')
+  expect(html).not.toContain(`parent.postMessage(text, '*')`)
   })
 
   it('recibe el estado por una función global y por mensajes', () => {

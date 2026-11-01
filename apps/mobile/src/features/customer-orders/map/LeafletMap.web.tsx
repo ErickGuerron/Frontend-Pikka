@@ -10,7 +10,8 @@ import type { LeafletMapProps } from './types'
 export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   const frame = useRef<HTMLIFrameElement | null>(null)
   const [ready, setReady] = useState(false)
-  const html = useMemo(buildMapDocument, [])
+  // Sin ubicación de ventana (pruebas en Node) no hay origen padre: el documento no envía mensajes al anfitrión.
+  const html = useMemo(() => buildMapDocument(typeof window === 'undefined' ? undefined : window.location?.origin), [])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -26,9 +27,9 @@ export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   }, [onPick])
 
   useEffect(() => {
-    // NOSONAR(S2819): an opaque-origin iframe cannot be addressed by a targetOrigin other than '*'. The message
-    // goes only to this iframe's window (which runs our own srcDoc) and carries no credentials.
-    if (ready) frame.current?.contentWindow?.postMessage(stateMessage(state), '*')
+    // An opaque-origin (sandboxed, no allow-same-origin) iframe cannot be addressed by a specific targetOrigin.
+    // The message goes only to this iframe's window, which runs our own srcDoc, and carries no credentials.
+    if (ready) frame.current?.contentWindow?.postMessage(stateMessage(state), '*') // NOSONAR(S2819) opaque origin, see above
   }, [ready, state])
 
   return (
