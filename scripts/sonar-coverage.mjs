@@ -13,10 +13,11 @@ const root = process.cwd()
 const apps = process.argv.slice(2).length > 0 ? process.argv.slice(2) : ['apps/web', 'apps/mobile']
 
 const toRepoPath = (appDir, file) => {
-  // Already repo-relative (a previous run): keep it, so running the script twice is harmless.
+  // Already repo-relative (a previous run): keep it, so running the script twice is harmless. This covers
+  // the app's own prefix and any other app's (apps/shared is repo-relative once a previous run rewrote it).
   const normalized = file.split('\\').join('/')
   const prefix = `${appDir.split('\\').join('/')}/`
-  if (!isAbsolute(file) && normalized.startsWith(prefix)) return normalized
+  if (!isAbsolute(file) && (normalized.startsWith(prefix) || normalized.startsWith('apps/'))) return normalized
   const abs = isAbsolute(file) ? file : resolve(root, appDir, file)
   return relative(root, abs).split('\\').join('/')
 }
