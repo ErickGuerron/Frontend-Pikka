@@ -10,7 +10,8 @@ import type { LeafletMapProps } from './types'
 export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   const frame = useRef<HTMLIFrameElement | null>(null)
   const [ready, setReady] = useState(false)
-  const html = useMemo(() => buildMapDocument(window.location.origin), [])
+  // Sin ubicación de ventana (pruebas en Node) no hay origen padre: el documento no envía mensajes al anfitrión.
+  const html = useMemo(() => buildMapDocument(typeof window === 'undefined' ? undefined : window.location?.origin), [])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
