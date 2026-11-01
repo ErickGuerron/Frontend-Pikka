@@ -6,8 +6,15 @@ import { Platform } from 'react-native'
  * so the variable must be referenced literally and Metro restarted (`npx expo start -c`) after changes.
  */
 export function normalizeBaseUrl(raw: string | undefined): string {
-  const value = (raw ?? '').trim().replace(/\/+$/, '')
+  const value = trimTrailingSlashes((raw ?? '').trim())
   return value === '' ? 'http://localhost:8080' : value
+}
+
+/** Removes every trailing "/" without a backtracking regular expression. */
+function trimTrailingSlashes(text: string): string {
+  let end = text.length
+  while (end > 0 && text[end - 1] === '/') end--
+  return text.slice(0, end)
 }
 
 /**

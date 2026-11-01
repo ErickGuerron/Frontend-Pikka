@@ -20,6 +20,7 @@ export function ReviewDialog({ order, onDecided, onClose }: ReviewDialogProps) {
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-[60] flex items-end justify-center bg-[#002628]/60 backdrop-blur-xs sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) onClose()

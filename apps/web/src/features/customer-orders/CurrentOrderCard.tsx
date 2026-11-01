@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LazyMapCanvas } from '@/features/geo/LazyMapCanvas'
 import { formatDate, formatWindow } from '@/features/orders/format'
+import { toInt32 } from '@/shared/int32'
 import { cancelBlockedMessage } from './balance'
 import { CancelOrderDialog } from './CancelOrderDialog'
 import { useMyBalance } from './hooks'
@@ -16,7 +17,7 @@ function getPin(id: string): string {
   if (digits.length >= 4) {
     return `${digits.charAt(0)} ${digits.charAt(1)} ${digits.charAt(2)} ${digits.charAt(3)}`
   }
-  const hash = Math.abs(id.split('').reduce((acc, c) => ((acc << 5) - acc + c.charCodeAt(0)) | 0, 0))
+  const hash = Math.abs(id.split('').reduce((acc, c) => toInt32((acc << 5) - acc + c.charCodeAt(0)), 0))
   const pinStr = String(1000 + (hash % 9000))
   return `${pinStr.charAt(0)} ${pinStr.charAt(1)} ${pinStr.charAt(2)} ${pinStr.charAt(3)}`
 }
@@ -54,7 +55,7 @@ export function CurrentOrderCard({ order }: { order: CustomerOrder }) {
               {isInProgress(order.status)
                 ? (isAccepted ? 'DESPACHO ACTIVO' : 'PEDIDO RECIBIDO · ASIGNANDO')
                 : 'DETALLE DEL PEDIDO'}{' '}
-              // REF {orderCode(order.id)}
+              {'// REF '}{orderCode(order.id)}
             </span>
           </div>
           <span className="flex items-center gap-1 font-mono text-xs text-on-surface-variant">

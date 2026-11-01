@@ -77,6 +77,7 @@ export function ExpandedMapDialog({
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-[70] flex items-center justify-center bg-on-background/60 p-2 sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()

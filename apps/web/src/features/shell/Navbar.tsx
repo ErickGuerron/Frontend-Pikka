@@ -35,7 +35,7 @@ export function Navbar() {
         {/* Panel Label */}
         <div className="px-4 pt-4 pb-2">
           <span className="text-[10px] font-mono tracking-widest uppercase text-[#89d3d6] font-semibold block">
-            // CONSOLA CENTRAL
+            {'// CONSOLA CENTRAL'}
           </span>
         </div>
 

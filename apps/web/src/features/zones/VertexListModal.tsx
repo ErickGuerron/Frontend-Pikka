@@ -22,6 +22,7 @@ export function VertexListModal({ title, vertices, onRemove, onClose }: VertexLi
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >

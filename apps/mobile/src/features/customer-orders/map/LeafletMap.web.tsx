@@ -14,7 +14,8 @@ export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.source === null || event.source !== frame.current?.contentWindow) return
+      // A sandboxed srcDoc iframe without allow-same-origin has an opaque origin, which reports as "null".
+      if (event.origin !== 'null' || event.source === null || event.source !== frame.current?.contentWindow) return
       const message = parseMapEvent(event.data)
       if (message === null) return
       if (message.type === 'ready') setReady(true)
@@ -25,6 +26,8 @@ export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   }, [onPick])
 
   useEffect(() => {
+    // NOSONAR(S2819): an opaque-origin iframe cannot be addressed by a targetOrigin other than '*'. The message
+    // goes only to this iframe's window (which runs our own srcDoc) and carries no credentials.
     if (ready) frame.current?.contentWindow?.postMessage(stateMessage(state), '*')
   }, [ready, state])
 

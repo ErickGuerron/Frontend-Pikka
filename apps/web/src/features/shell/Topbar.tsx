@@ -65,7 +65,7 @@ export function Topbar() {
 
   return (
     <header className="fixed top-0 left-64 right-0 h-14 bg-[#f0fafb]/95 backdrop-blur-md border-b border-[#cce7ea] z-40 flex items-center justify-end px-6 font-mono text-xs">
-      <div className="relative" onKeyDown={onMenuKeyDown} ref={wrapRef}>
+      <div className="relative" ref={wrapRef}>
         <button
           aria-expanded={open}
           aria-haspopup="menu"
@@ -91,6 +91,7 @@ export function Topbar() {
           <div
             aria-label="Cuenta"
             className="absolute right-0 top-full mt-2 min-w-44 bg-white rounded-xl border border-[#cce7ea] shadow-[0_8px_24px_-4px_rgba(0,38,40,0.16)] p-1 animate-menu-in origin-top-right z-50"
+            onKeyDown={onMenuKeyDown}
             ref={menuRef}
             role="menu"
           >

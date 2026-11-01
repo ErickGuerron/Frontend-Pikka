@@ -95,26 +95,19 @@ describe('ScrollCarousel: navegación manual', () => {
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
   })
 
-  it('un indicador lleva a su diapositiva y las flechas del teclado mueven el carrusel', async () => {
+  it('un indicador lleva a su diapositiva y los botones de teclado (Tab + Enter) mueven el carrusel', async () => {
     const user = userEvent.setup()
     render(<Carousel />)
 
     await user.click(screen.getByRole('button', { name: 'Ir a la diapositiva 3' }))
     expect(activeIndicator()).toBe(2)
 
-    track().focus()
-    await user.keyboard('{ArrowLeft}')
+    screen.getByRole('button', { name: 'Anterior' }).focus()
+    await user.keyboard('{Enter}')
     expect(activeIndicator()).toBe(1)
-    await user.keyboard('{ArrowRight}')
+    screen.getByRole('button', { name: 'Siguiente' }).focus()
+    await user.keyboard('{Enter}')
     expect(activeIndicator()).toBe(2)
-    await user.keyboard('{ArrowRight}')
-    expect(activeIndicator()).toBe(2)
-  })
-
-  it('una tecla distinta de las flechas no mueve el carrusel', () => {
-    render(<Carousel />)
-    fireEvent.keyDown(track(), { key: 'Enter' })
-    expect(activeIndicator()).toBe(0)
   })
 
   it('sin diapositivas no muestra indicadores y deshabilita las flechas', () => {

@@ -49,6 +49,7 @@ export function OrderDetailDialog({ order, onClose, onReview }: OrderDetailDialo
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-[60] flex items-end justify-center bg-[#002628]/60 backdrop-blur-xs sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
