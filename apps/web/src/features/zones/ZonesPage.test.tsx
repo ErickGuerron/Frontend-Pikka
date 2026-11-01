@@ -1,5 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AddressPickerProps } from '@/features/geo/AddressPicker'
@@ -7,7 +6,8 @@ import type { Place } from '@/features/geo/photon'
 import { ApiError } from '@/shared/api/errors'
 import { classifyPoint, listZones } from './api'
 import { ZonesPage } from './ZonesPage'
-import type { Zone } from './types'
+import { buildZone as makeZone, buildZoneSettings, SQUARE_RING as ring } from './zones.fixtures'
+import { renderWithQueryClient } from './zones.test-utils'
 
 const session = vi.hoisted(() => ({
   user: { role: 'ADMIN' },
@@ -46,60 +46,14 @@ vi.mock('./DrawZonePanel', async () => {
 const placeWithAddress: Place = { name: 'Mall del Sol', address: 'Av. Naciones Unidas', latitude: -0.15, longitude: -78.45 }
 const placeWithoutAddress: Place = { name: 'Parque Metropolitano', address: '', latitude: -0.17, longitude: -78.47 }
 
-const settings: Zone['settings'] = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
+// Esta página opera los siete días de la semana.
+const weekSettings = buildZoneSettings({ serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] })
 
-const ring: Zone['ring'] = [
-  { latitude: -0.2, longitude: -78.5 },
-  { latitude: -0.2, longitude: -78.4 },
-  { latitude: -0.1, longitude: -78.4 },
-  { latitude: -0.1, longitude: -78.5 },
-  { latitude: -0.2, longitude: -78.5 },
-]
-
-function buildZone(overrides: Partial<Zone>): Zone {
-  return {
-    id: 'z-1',
-    code: 'CENTRO-001',
-    name: 'Centro Histórico',
-    ring,
-    holes: [],
-    status: 'ACTIVE',
-    statusReason: '',
-    createdAt: '2026-10-10T12:00:00Z',
-    settings,
-    version: 1,
-    updatedAt: '2026-10-10T12:00:00Z',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-    ...overrides,
-  }
-}
-
-const centro = buildZone({})
-const norte = buildZone({ id: 'z-2', code: 'NORTE-001', name: 'Norte Comercial', settings: { ...settings, depotName: '' } })
+const centro = makeZone({ settings: weekSettings })
+const norte = makeZone({ id: 'z-2', code: 'NORTE-001', name: 'Norte Comercial', settings: buildZoneSettings({ serviceDays: weekSettings.serviceDays, depotName: '' }) })
 
 function renderPage() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
-    <QueryClientProvider client={client}>
-      <ZonesPage />
-    </QueryClientProvider>,
-  )
+  renderWithQueryClient(<ZonesPage />)
 }
 
 beforeEach(() => {

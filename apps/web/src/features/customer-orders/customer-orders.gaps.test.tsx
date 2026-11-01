@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { apiError, customerUser, mockApi, renderApp } from '@/test/utils'
 import { resetDemoOrders } from './demo'
-import type { CustomerOrder } from './types'
+import { order } from './customer-orders.fixtures'
 
 // El mapa necesita un navegador; el diálogo de nuevo pedido tiene su propia suite. Aquí solo se observan sus callbacks.
 vi.mock('@/features/geo/LazyMapCanvas', () => ({ LazyMapCanvas: () => null }))
@@ -16,21 +16,6 @@ vi.mock('./NewOrderDialog', () => ({
     </div>
   ),
 }))
-
-const order = (over: Partial<CustomerOrder>): CustomerOrder => ({
-  id: 'aaaaaaaa-0000-4000-8000-000000000001',
-  address: 'Av. Central 123',
-  latitude: -0.2,
-  longitude: -78.5,
-  deliveryDate: '2099-12-31',
-  windowStart: '09:00',
-  windowEnd: '12:00',
-  status: 'PENDING',
-  reviewReasons: [],
-  createdAt: '2026-10-10T12:00:00Z',
-  queuePosition: 0,
-  ...over,
-})
 
 const surcharge = {
   kind: 'SURCHARGE',

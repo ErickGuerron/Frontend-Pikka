@@ -2,8 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Coordinate } from '@/features/geo/types'
 import { ClassifyPanel, type ClassifyPanelProps } from './ClassifyPanel'
-import type { ZoneSettings } from './settings'
-import type { Zone } from './types'
+import { buildZone, buildZoneSettings } from './zones.fixtures'
 
 // Lunes 2026-11-02 a las 10:00 UTC: en America/Guayaquil (UTC-5) son las 05:00 del lunes.
 const MONDAY_0500_LOCAL = new Date('2026-11-02T10:00:00Z')
@@ -14,23 +13,6 @@ const SUNDAY_1200_LOCAL = new Date('2026-11-01T17:00:00Z')
 
 const point: Coordinate = { latitude: -0.15, longitude: -78.45 }
 
-const settings: ZoneSettings = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
-
 const square = (lat: number, lng: number, size: number): Coordinate[] => [
   { latitude: lat, longitude: lng },
   { latitude: lat, longitude: lng + size },
@@ -38,25 +20,6 @@ const square = (lat: number, lng: number, size: number): Coordinate[] => [
   { latitude: lat + size, longitude: lng },
   { latitude: lat, longitude: lng },
 ]
-
-function buildZone(overrides: Partial<Zone> = {}): Zone {
-  return {
-    id: 'z-1',
-    code: 'CENTRO-001',
-    name: 'Centro Histórico',
-    ring: square(-0.2, -78.5, 0.1),
-    holes: [],
-    status: 'ACTIVE',
-    statusReason: '',
-    createdAt: '2026-10-10T12:00:00Z',
-    settings,
-    version: 1,
-    updatedAt: '2026-10-10T12:00:00Z',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-    ...overrides,
-  }
-}
 
 function renderPanel(overrides: Partial<ClassifyPanelProps> = {}) {
   const props: ClassifyPanelProps = {
@@ -137,7 +100,7 @@ describe('diagnóstico de cobertura de un punto', () => {
 
   it('muestra la prioridad, la descripción y la etiqueta de estado de la zona', () => {
     renderPanel({
-      zone: buildZone({ settings: { ...settings, description: 'Zona comercial' }, status: 'ACTIVE' }),
+      zone: buildZone({ settings: buildZoneSettings({ description: 'Zona comercial' }), status: 'ACTIVE' }),
     })
 
     expect(screen.getByText('Prioridad Normal')).toBeInTheDocument()
@@ -189,7 +152,7 @@ describe('diagnóstico de cobertura de un punto', () => {
   })
 
   it('avisa que la zona no tiene bodega asignada y no calcula distancia', () => {
-    renderPanel({ zone: buildZone({ settings: { ...settings, depotName: '' } }) })
+    renderPanel({ zone: buildZone({ settings: buildZoneSettings({ depotName: '' }) }) })
 
     expect(screen.getByText(/aún no tiene bodega asignada/)).toBeInTheDocument()
     expect(screen.queryByText(/km$/)).not.toBeInTheDocument()
@@ -221,7 +184,7 @@ describe('diagnóstico de cobertura de un punto', () => {
   })
 
   it('no puede leer la hora local cuando la zona horaria es inválida', () => {
-    renderPanel({ zone: buildZone({ settings: { ...settings, timezone: 'No/Existe' } }) })
+    renderPanel({ zone: buildZone({ settings: buildZoneSettings({ timezone: 'No/Existe' }) }) })
 
     expect(screen.getByText('No se pudo leer la hora local de la zona.')).toBeInTheDocument()
   })
@@ -275,7 +238,7 @@ describe('diagnóstico de cobertura de un punto', () => {
     })
 
     it('indica en la ficha copiada que la zona no tiene bodega asignada', () => {
-      renderPanel({ zone: buildZone({ settings: { ...settings, depotName: '' } }) })
+  renderPanel({ zone: buildZone({ settings: buildZoneSettings({ depotName: '' }) }) })
 
       fireEvent.click(screen.getByTitle('Copiar ficha de cobertura'))
 

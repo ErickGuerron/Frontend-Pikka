@@ -5,16 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/app/query-client'
 import { mockApi, sentBody } from '@/test/utils'
 import { SignupForm } from './SignupForm'
+import { signupReply } from './auth.fixtures'
 import { useSession } from './session-store'
-
-const customer = {
-  id: '33333333-3333-3333-3333-333333333333',
-  email: 'cliente@example.com',
-  fullName: 'Carla Cliente',
-  role: 'CUSTOMER',
-  active: true,
-  createdAt: '2026-10-11T00:00:00Z',
-}
 
 function renderForm() {
   const queryClient = createQueryClient()
@@ -38,10 +30,7 @@ describe('PLAN: signup with mandatory data only', () => {
   // In the current web form every field (name, surname, city, phone, email, password, confirmation)
   // is mandatory, so "mandatory-only" means exactly these seven inputs and nothing else.
   it('signup_mandatoryFieldsOnly_createsAccountAndSendsOnlyThoseFields', async () => {
-    const fetchMock = mockApi(() => ({
-      status: 201,
-      body: { accessToken: 'tok-min', tokenType: 'Bearer', expiresIn: 3600, user: customer },
-    }))
+    const fetchMock = mockApi(() => signupReply('tok-min'))
     const { user, onSuccess } = renderForm()
 
     await user.type(screen.getByLabelText('Nombre'), 'Carla')

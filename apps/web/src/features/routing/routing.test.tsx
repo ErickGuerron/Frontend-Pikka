@@ -5,23 +5,10 @@ import { useSession } from '@/features/auth/session-store'
 import { ApiError } from '@/shared/api/errors'
 import { adminUser, mockApi, renderApp } from '@/test/utils'
 import { routingErrorMessage } from './api'
+import { asBackend, buildRoutePlan, luisRoute } from './routing.fixtures'
 import { parseRoutePlan, type RoutePlan } from './types'
 
-const plan: RoutePlan = {
-  id: 'plan-1',
-  routes: [
-    {
-      id: 'route-1',
-      driverId: 'd-1',
-      driverName: 'Luis Andrade',
-      stops: [
-        { orderId: 'o-1', address: 'Av. Amazonas N24-03', sequence: 1 },
-        { orderId: 'o-2', address: 'Calle Juan León Mera 1224', sequence: 2 },
-      ],
-    },
-  ],
-  unassignedOrderIds: ['o-9'],
-}
+const plan = buildRoutePlan([luisRoute])
 
 function mockGenerate(response: { status: number; body: unknown }) {
   return mockApi((url, init) => {
@@ -35,21 +22,6 @@ function mockGenerate(response: { status: number; body: unknown }) {
 beforeEach(() => {
   useSession.getState().setToken('tok')
 })
-
-/** The Gateway response shape for POST /api/v1/routes/plan, built from an in-memory plan. */
-function asBackend(p: RoutePlan) {
-  return {
-    planId: p.id,
-    unassignedOrderIds: p.unassignedOrderIds,
-    routes: p.routes.map((r) => ({
-      routeId: r.id,
-      driverId: r.driverId,
-      driverName: r.driverName,
-      orderCount: r.stops.length,
-      stops: r.stops,
-    })),
-  }
-}
 
 describe('generar rutas', () => {
   it('genera el plan y muestra cada ruta con sus paradas en orden', async () => {

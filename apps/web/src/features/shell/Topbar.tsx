@@ -94,6 +94,7 @@ export function Topbar() {
             onKeyDown={onMenuKeyDown}
             ref={menuRef}
             role="menu"
+            tabIndex={-1}
           >
             <button
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs text-[#ba1a1a] hover:bg-[#ffdad6]/50 transition-colors cursor-pointer ${focusRing}`}

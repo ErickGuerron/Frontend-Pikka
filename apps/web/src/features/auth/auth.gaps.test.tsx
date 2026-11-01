@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { mockApi, renderApp } from '@/test/utils'
+import { customerAccount, signupReply } from './auth.fixtures'
 
 beforeEach(() => {
   useSession.getState().clear()
@@ -27,19 +28,9 @@ describe('inicio de sesión: mostrar y ocultar la contraseña', () => {
 
 describe('registro de cliente: éxito en la página de acceso', () => {
   it('un registro correcto navega fuera de la página de acceso', async () => {
-    const customer = {
-      id: '33333333-3333-3333-3333-333333333333',
-      email: 'cliente@example.com',
-      fullName: 'Carla Cliente',
-      role: 'CUSTOMER',
-      active: true,
-      createdAt: '2026-10-11T00:00:00Z',
-    }
     mockApi((url, init) => {
-      if (url.endsWith('/api/v1/auth/signup') && init.method === 'POST') {
-        return { status: 201, body: { accessToken: 'tok-nuevo', tokenType: 'Bearer', expiresIn: 3600, user: customer } }
-      }
-      if (url.endsWith('/auth/me')) return { status: 200, body: customer }
+      if (url.endsWith('/api/v1/auth/signup') && init.method === 'POST') return signupReply('tok-nuevo')
+      if (url.endsWith('/auth/me')) return { status: 200, body: customerAccount }
       return { status: 200, body: { status: 'ready' } }
     })
     const { router } = renderApp('/login?modo=registro')

@@ -2,38 +2,11 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
-import type { Order } from '@/features/orders/types'
-import { adminUser, mockApi, renderApp, sentBody } from '@/test/utils'
+import { sentBody, renderApp } from '@/test/utils'
+import { buildException, mockQueue } from './exceptions.fixtures'
+import { openReview } from './exceptions.test-utils'
 
-const exception: Order = {
-  id: 'o-9',
-  address: 'Av. Central 123, Col. Centro',
-  latitude: -0.2,
-  longitude: -78.5,
-  deliveryDate: '2099-12-31',
-  windowStart: '09:00',
-  windowEnd: '11:00',
-  status: 'PENDING_REVIEW',
-  reviewReasons: ['ZONE_NOT_COVERED', 'INVALID_WINDOW'],
-  createdAt: '2026-10-10T12:00:00Z',
-}
-
-/**
- * Simula el gateway: la cola devuelve `queue`, y una decisión la vacía (el pedido
- * sale de la cola). Registra las decisiones enviadas para comprobarlas.
- */
-function mockQueue(queue: Order[]) {
-  return mockApi((url, init) => {
-    if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
-    if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
-    if (url.endsWith('/api/v1/orders/exceptions')) return { status: 200, body: queue }
-    if (url.endsWith('/review') && init.method === 'POST') {
-      queue.splice(0, queue.length)
-      return { status: 200, body: { ...exception, status: 'PENDING' } }
-    }
-    return { status: 200, body: [] }
-  })
-}
+const exception = buildException()
 
 beforeEach(() => {
   useSession.getState().setToken('tok')
@@ -61,7 +34,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
     await user.click(screen.getByLabelText(/^Rechazar/))
     await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
 
@@ -75,7 +48,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
     await user.click(screen.getByLabelText(/^Rechazar/))
     await user.type(screen.getByLabelText('Motivo *'), '  Dirección fuera del área de cobertura  ')
     await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
@@ -93,7 +66,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
     await user.type(screen.getByLabelText('Motivo *'), 'Cliente frecuente, se acepta la ventana')
     await user.click(screen.getByRole('button', { name: 'Guardar decisión' }))
 
@@ -107,7 +80,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
     await user.click(screen.getByLabelText(/^Corregir/))
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '12:00' } })
     await user.type(screen.getByLabelText('Motivo *'), 'Se ajusta la ventana a lo acordado')
@@ -132,7 +105,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
     await user.click(screen.getByLabelText(/^Corregir/))
     fireEvent.change(screen.getByLabelText(/Fecha de entrega/), { target: { value: '2000-01-01' } })
     await user.type(screen.getByLabelText('Motivo *'), 'Fecha corregida a una fecha pasada')
@@ -149,7 +122,7 @@ describe('cola de excepciones', () => {
     renderApp('/exceptions')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Revisar' }, { timeout: 5000 }))
+    await openReview(user)
 
     expect(screen.getByLabelText(/^Confirmar/)).toBeDisabled()
     expect(screen.getByLabelText(/^Corregir/)).toBeChecked()

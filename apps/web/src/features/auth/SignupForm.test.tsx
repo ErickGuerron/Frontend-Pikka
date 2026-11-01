@@ -4,17 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/app/query-client'
 import { apiError, mockApi, renderApp, sentBody } from '@/test/utils'
+import { signupReply } from './auth.fixtures'
 import { SignupForm } from './SignupForm'
 import { useSession } from './session-store'
-
-const customer = {
-  id: '33333333-3333-3333-3333-333333333333',
-  email: 'cliente@example.com',
-  fullName: 'Carla Cliente',
-  role: 'CUSTOMER',
-  active: true,
-  createdAt: '2026-10-11T00:00:00Z',
-}
 
 const strongPassword = 'Clave-segura1'
 
@@ -164,7 +156,7 @@ describe('SignupForm', () => {
       await user.clear(screen.getByLabelText('Contraseña'))
       await user.clear(screen.getByLabelText('Confirmar contraseña'))
       await fill(user, { password: strongPassword, confirm: strongPassword })
-      mockApi(() => ({ status: 201, body: { accessToken: 't', tokenType: 'Bearer', expiresIn: 3600, user: customer } }))
+      mockApi(() => signupReply('t'))
       await user.click(submit())
       await waitFor(() => { expect(onSuccess).toHaveBeenCalledTimes(1) })
       expect(screen.queryByText(/^Falta: /)).not.toBeInTheDocument()
@@ -183,10 +175,7 @@ describe('SignupForm', () => {
   })
 
   it('crea la cuenta enviando fullName = "Nombre Apellido", guarda la sesión y avisa al éxito', async () => {
-    const fetchMock = mockApi(() => ({
-      status: 201,
-      body: { accessToken: 'tok-new', tokenType: 'Bearer', expiresIn: 3600, user: customer },
-    }))
+    const fetchMock = mockApi(() => signupReply('tok-new'))
     const { user, onSuccess } = renderForm()
 
     await fill(user, { ...valid, email: ' cliente@example.com ' })
@@ -204,10 +193,7 @@ describe('SignupForm', () => {
   })
 
   it('acepta letras con tilde y eñe en el payload', async () => {
-    const fetchMock = mockApi(() => ({
-      status: 201,
-      body: { accessToken: 'tok-new', tokenType: 'Bearer', expiresIn: 3600, user: customer },
-    }))
+    const fetchMock = mockApi(() => signupReply('tok-new'))
     const { user, onSuccess } = renderForm()
 
     await fill(user, { ...valid, nombre: 'María', apellido: 'Ñandú' })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mockApi, sentBody } from '@/test/utils'
 import { classifyPoint, createZone, deleteZone, getZone, listZones, setZoneStatus, updateZone } from './api'
-import type { ZoneSettings } from './settings'
+import { buildZoneSettings } from './zones.fixtures'
 import type { Coordinate } from './types'
 
 const s1: Coordinate = { latitude: -0.2, longitude: -78.5 }
@@ -22,22 +22,7 @@ const dartRing: Coordinate[] = [
 const zoneBody = { id: 'z-1', code: 'CENTRO', name: 'Centro', ring: closedRing, createdAt: '2026-10-10T12:00:00Z' }
 
 // Configuración válida que el formulario envía junto con la geometría.
-const settings: ZoneSettings = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
+const settings = buildZoneSettings()
 
 describe('getZone', () => {
   it('consulta la zona por id y devuelve el modelo validado', async () => {

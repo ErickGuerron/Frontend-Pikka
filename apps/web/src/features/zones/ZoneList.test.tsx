@@ -1,9 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/shared/api/errors'
 import { deleteZone, setZoneStatus } from './api'
+import { buildZone as makeZone, SQUARE_RING as square } from './zones.fixtures'
+import { renderWithQueryClient } from './zones.test-utils'
 import { ZoneList, type ZoneListProps } from './ZoneList'
 import type { Zone } from './types'
 
@@ -12,48 +13,8 @@ vi.mock('./api', () => ({
   setZoneStatus: vi.fn(),
 }))
 
-const settings: Zone['settings'] = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
-
-const square: Zone['ring'] = [
-  { latitude: -0.2, longitude: -78.5 },
-  { latitude: -0.2, longitude: -78.4 },
-  { latitude: -0.1, longitude: -78.4 },
-  { latitude: -0.1, longitude: -78.5 },
-  { latitude: -0.2, longitude: -78.5 },
-]
-
 function buildZone(overrides: Partial<Zone>): Zone {
-  return {
-    id: 'z-1',
-    code: 'NORTE-001',
-    name: 'Norte Comercial',
-    ring: square,
-    holes: [],
-    status: 'ACTIVE',
-    statusReason: '',
-    createdAt: '2026-10-10T12:00:00Z',
-    settings,
-    version: 1,
-    updatedAt: '2026-10-10T12:00:00Z',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-    ...overrides,
-  }
+  return makeZone({ id: 'z-1', code: 'NORTE-001', name: 'Norte Comercial', ...overrides })
 }
 
 const norte = buildZone({ id: 'z-1', code: 'NORTE-001', name: 'Norte Comercial' })
@@ -68,12 +29,7 @@ function renderList(overrides: Partial<ZoneListProps> = {}) {
     onCancelRedraw: vi.fn(),
     ...overrides,
   }
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
-    <QueryClientProvider client={client}>
-      <ZoneList {...props} />
-    </QueryClientProvider>,
-  )
+  renderWithQueryClient(<ZoneList {...props} />)
   return props
 }
 

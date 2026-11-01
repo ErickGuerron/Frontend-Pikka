@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { ApiError, userMessage } from '@/shared/api/errors'
 import { adminUser, apiError, customerUser, mockApi, renderApp, sentBody } from '@/test/utils'
+import { submitStockDelta } from './catalog.test-utils'
 
 // El diálogo real de pedidos tiene su propio flujo (cubierto en customer-orders): aquí solo se observan sus callbacks.
 vi.mock('@/features/customer-orders/NewOrderDialog', () => ({
@@ -158,9 +159,7 @@ describe('panel de stock', () => {
     renderApp('/productos')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Agregar stock de Jugo de naranja' }))
-    await user.type(screen.getByLabelText('Cantidad (+ suma, - resta)'), '5')
-    await user.click(screen.getByRole('button', { name: 'Registrar movimiento' }))
+    await submitStockDelta(user, '5')
 
     // El mismo mensaje puede aparecer también en otra parte de la pantalla: basta con que esté presente.
     const message = userMessage(new ApiError(500, 'INTERNAL', 'fallo'))
@@ -172,9 +171,7 @@ describe('panel de stock', () => {
     renderApp('/productos')
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Agregar stock de Jugo de naranja' }))
-    await user.type(screen.getByLabelText('Cantidad (+ suma, - resta)'), '5')
-    await user.click(screen.getByRole('button', { name: 'Registrar movimiento' }))
+    await submitStockDelta(user, '5')
 
     expect(await screen.findByText('El ajuste dejaría el stock en negativo. Revisa la cantidad.')).toBeInTheDocument()
     const post = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/stock-adjustments') && i?.method === 'POST')

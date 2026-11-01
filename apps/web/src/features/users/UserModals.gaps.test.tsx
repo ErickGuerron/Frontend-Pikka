@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { adminUser, customerUser, driverUser, mockApi, renderApp, sentBody } from '@/test/utils'
+import { backdropOf, openCreateDialog, openEditDialog } from './users.test-utils'
 
 beforeEach(() => {
   useSession.getState().setToken('tok')
@@ -24,20 +25,8 @@ function usersApi() {
   })
 }
 
-/** El fondo es el primer hijo del panel del diálogo: un clic ahí equivale a pulsar fuera del modal. */
-function backdropOf(dialog: HTMLElement): HTMLElement {
-  const backdrop = dialog.querySelector<HTMLElement>(':scope > [aria-hidden="true"]')
-  if (backdrop === null) throw new Error('el diálogo no tiene fondo')
-  return backdrop
-}
-
 function callsTo(fetchMock: ReturnType<typeof usersApi>, method: string, suffix: string) {
   return fetchMock.mock.calls.filter(([u, i]) => u.endsWith(suffix) && (i?.method ?? 'GET') === method)
-}
-
-async function openEdit(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
-  return screen.getByRole('dialog', { name: 'Editar Usuario' })
 }
 
 describe('modales de usuarios: cierre', () => {
@@ -45,8 +34,7 @@ describe('modales de usuarios: cierre', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+    const dialog = await openCreateDialog(user)
 
     await user.click(backdropOf(dialog))
 
@@ -70,8 +58,7 @@ describe('modales de usuarios: cierre', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+    const dialog = await openCreateDialog(user)
 
     within(dialog).getByRole('button', { name: 'Cerrar modal' }).focus()
     await user.keyboard('{Shift>}{Tab}{/Shift}')
@@ -83,8 +70,7 @@ describe('modales de usuarios: cierre', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+    const dialog = await openCreateDialog(user)
 
     // Se quita el foco del campo inicial: ya no hay un control del diálogo enfocado.
     const focused = document.activeElement
@@ -98,8 +84,7 @@ describe('modales de usuarios: cierre', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+    const dialog = await openCreateDialog(user)
 
     within(dialog).getByRole('button', { name: 'Crear usuario' }).focus()
     await user.tab()
@@ -113,7 +98,7 @@ describe('modal de edición: cambios sin guardar', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    const dialog = await openEdit(user)
+    const dialog = await openEditDialog(user)
 
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
 
@@ -125,7 +110,7 @@ describe('modal de edición: cambios sin guardar', () => {
     const fetchMock = usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    const dialog = await openEdit(user)
+    const dialog = await openEditDialog(user)
 
     await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
 
@@ -137,7 +122,7 @@ describe('modal de edición: cambios sin guardar', () => {
     const fetchMock = usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    const dialog = await openEdit(user)
+    const dialog = await openEditDialog(user)
 
     await user.type(within(dialog).getByLabelText('Nombre'), 'X')
     expect(within(dialog).getByLabelText('Nombre')).toHaveValue('DiegoX')
@@ -152,7 +137,7 @@ describe('modal de edición: cambios sin guardar', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    const dialog = await openEdit(user)
+    const dialog = await openEditDialog(user)
 
     await user.type(within(dialog).getByLabelText('Nombre'), 'X')
     await user.click(within(dialog).getByRole('button', { name: 'Cerrar modal' }))
@@ -166,7 +151,7 @@ describe('modal de edición: cambios sin guardar', () => {
     usersApi()
     renderApp('/users')
     const user = userEvent.setup()
-    const dialog = await openEdit(user)
+    const dialog = await openEditDialog(user)
 
     fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'A'.repeat(70) } })
     fireEvent.change(within(dialog).getByLabelText('Apellido'), { target: { value: 'B'.repeat(60) } })

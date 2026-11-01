@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { adminUser, apiError, driverUser, mockApi, renderApp, sentBody } from '@/test/utils'
+import { openCreateDialog, openEditDialog } from './users.test-utils'
 
 beforeEach(() => {
   useSession.getState().setToken('tok')
@@ -134,8 +135,7 @@ it('crea un usuario desde el modal, confirma en vivo y refresca la lista', async
   const fetchMock = usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
 
   await user.type(within(dialog).getByLabelText('Nombre'), 'Elena')
   await user.type(within(dialog).getByLabelText('Apellido'), 'Nueva')
@@ -155,8 +155,7 @@ it('el modal de creación: contraseña con mostrar/ocultar, autocompletado y val
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
 
   expect(within(dialog).getByLabelText('Nombre')).toHaveAttribute('autocomplete', 'given-name')
   expect(within(dialog).getByLabelText('Apellido')).toHaveAttribute('autocomplete', 'family-name')
@@ -182,8 +181,7 @@ it('la barra de contraseña empieza vacía y se completa al cumplir todas las re
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
   const fill = within(dialog).getByTestId('password-strength-fill')
 
   expect(fill).toHaveStyle({ width: '0%' })
@@ -197,8 +195,7 @@ it('anuncia en vivo, solo para lectores de pantalla, las reglas cumplidas', asyn
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
   const live = within(dialog).getByTestId('password-rules-live')
 
   expect(live).toHaveAttribute('aria-live', 'polite')
@@ -214,8 +211,7 @@ it('al enviar con errores enfoca el primer campo inválido', async () => {
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
 
   await user.type(within(dialog).getByLabelText('Nombre'), 'Elena')
   await user.type(within(dialog).getByLabelText('Apellido'), 'Pérez')
@@ -228,8 +224,7 @@ it('Tab no sale del diálogo de creación', async () => {
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
 
   for (let i = 0; i < 15; i++) {
     await user.tab()
@@ -241,8 +236,7 @@ it('el lápiz abre el modal de edición y guarda con PATCH solo de los campos ca
   const fetchMock = usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
-  const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
+  const dialog = await openEditDialog(user)
 
   expect(within(dialog).getByLabelText('Correo')).toHaveValue('diego@example.com')
   expect(within(dialog).getByLabelText('Correo')).toHaveAttribute('readonly')
@@ -261,8 +255,7 @@ it('al editar solo el nombre, el PATCH no envía el rol', async () => {
   const fetchMock = usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
-  const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
+  const dialog = await openEditDialog(user)
   await user.clear(within(dialog).getByLabelText('Apellido'))
   await user.type(within(dialog).getByLabelText('Apellido'), 'Solo Nombre')
   await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
@@ -497,8 +490,7 @@ it('al editar, cambiar el nombre y pulsar la X pide confirmación', async () => 
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Editar usuario Diego Driver' }))
-  const dialog = screen.getByRole('dialog', { name: 'Editar Usuario' })
+  const dialog = await openEditDialog(user)
   await user.type(within(dialog).getByLabelText('Apellido'), ' Nuevo')
   await user.click(within(dialog).getByRole('button', { name: 'Cerrar modal' }))
 
@@ -512,8 +504,7 @@ it('nombre y apellido son obligatorios y el error va junto al campo', async () =
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
   await user.click(within(dialog).getByRole('button', { name: 'Crear usuario' }))
 
   const nombre = within(dialog).getByLabelText('Nombre')
@@ -528,8 +519,7 @@ it('envía nombre y apellido concatenados con un solo espacio', async () => {
   const fetchMock = usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
   await user.type(within(dialog).getByLabelText('Nombre'), '  Ana  ')
   await user.type(within(dialog).getByLabelText('Apellido'), ' Pérez ')
   await user.type(within(dialog).getByLabelText('Correo'), 'ana@example.com')
@@ -554,8 +544,7 @@ it('la contraseña se puede mostrar y ocultar, y el tipo del input cambia', asyn
   usersApi()
   renderApp('/users')
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Nuevo Usuario' }))
-  const dialog = screen.getByRole('dialog', { name: 'Crear Nuevo Usuario' })
+  const dialog = await openCreateDialog(user)
   const password = within(dialog).getByLabelText('Contraseña provisional')
   await user.click(within(dialog).getByRole('button', { name: 'Mostrar contraseña' }))
   expect(password).toHaveAttribute('type', 'text')
