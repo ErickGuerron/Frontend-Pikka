@@ -26,7 +26,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: TypeScript
         run: npm run typecheck
       - name: ESLint
@@ -58,8 +58,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npm ci --ignore-scripts
+      - run: npx --no-install playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -80,7 +80,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: apps/mobile/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Jest (with coverage)
         run: npm run test:coverage
       - name: Coverage is Sonar-ready (repo-relative paths that exist)
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
