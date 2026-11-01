@@ -38,6 +38,13 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
       css: false,
+      coverage: {
+        provider: 'v8',
+        // lcov.info is what Sonar reads (see sonar-project.properties); text-summary is for humans.
+        reporter: ['text-summary', 'lcov'],
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'],
+      },
     },
   }
 })

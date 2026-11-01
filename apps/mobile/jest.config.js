@@ -12,4 +12,6 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
   ],
+  // lcov.info is what Sonar reads (see sonar-project.properties).
+  coverageReporters: ['text-summary', 'lcov'],
 };
