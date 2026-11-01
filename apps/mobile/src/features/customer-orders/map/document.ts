@@ -69,8 +69,12 @@ export function stateScript(state: MapState): string {
  * Documento HTML del mapa: el mismo Leaflet con teselas de OpenStreetMap que usa la web, con las zonas y el
  * punto elegido dibujados igual. No incrusta datos: el estado llega por mensajes y los nombres se muestran como
  * texto (textContent), nunca como HTML. Leaflet va con versión fija y SRI para que la CDN no pueda cambiarlo.
+ *
+ * `parentOrigin` es el origen de la página anfitriona (web). Se usa como targetOrigin de los mensajes al padre
+ * para que solo ese origen los reciba. Sin origen conocido, el mapa no envía mensajes al padre.
  */
-export function buildMapDocument(): string {
+export function buildMapDocument(parentOrigin?: string): string {
+  const targetOrigin = JSON.stringify(parentOrigin ?? '')
   return `<!doctype html>
 <html>
 <head>
@@ -88,8 +92,8 @@ export function buildMapDocument(): string {
     var text = JSON.stringify(message);
     if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
       window.ReactNativeWebView.postMessage(text);
-    } else if (window.parent && window.parent !== window) {
-      parent.postMessage(text, '*');
+    } else if (window.parent && window.parent !== window && ${targetOrigin}) {
+      parent.postMessage(text, ${targetOrigin});
     }
   }
   var map = L.map('map').setView([-0.1807, -78.4678], 13);
