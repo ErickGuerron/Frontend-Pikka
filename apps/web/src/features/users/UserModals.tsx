@@ -243,7 +243,7 @@ function RoleRadios({ value, onChange }: { value: Role; onChange: (role: Role) =
       <legend className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#557b7f] mb-1">Rol asignado</legend>
       <div className="grid grid-cols-3 gap-2.5">
         {assignableRoles.map((r) => (
-          <label key={r} className="cursor-pointer">
+          <label key={r} aria-label={roleLabels[r]} className="cursor-pointer">
             <input
               checked={value === r}
               className="peer sr-only"

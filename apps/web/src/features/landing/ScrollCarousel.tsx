@@ -1,4 +1,4 @@
-import { Children, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Children, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 
 const AUTOPLAY_MS = 5000
@@ -65,16 +65,6 @@ export function ScrollCarousel({ labelledBy, labels, autoplay = false, children 
     setAtEnd(track.scrollLeft + track.clientWidth >= track.scrollWidth - 2)
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowRight') {
-      e.preventDefault()
-      goTo(index + 1)
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault()
-      goTo(index - 1)
-    }
-  }
-
   const paused = hovered || focused || !playing
   useEffect(() => {
     if (!canAutoplay || paused) return
@@ -107,10 +97,8 @@ export function ScrollCarousel({ labelledBy, labels, autoplay = false, children 
       <div
         ref={trackRef}
         data-testid="carousel-track"
-        tabIndex={0}
         aria-live={paused ? 'polite' : 'off'}
         onScroll={onScroll}
-        onKeyDown={onKeyDown}
         className={`landing-track relative flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth rounded-2xl pb-2 ${focusRing}`}
       >
         {children}

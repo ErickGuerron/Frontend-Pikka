@@ -2,41 +2,11 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ZoneBrowser } from './ZoneBrowser'
+import { buildZone } from './zones.fixtures'
 import type { Zone } from './types'
 
-const settings: Zone['settings'] = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
-
 function zone(id: string, name: string, code: string, status: Zone['status'] = 'ACTIVE'): Zone {
-  return {
-    id,
-    code,
-    name,
-    ring: [],
-    holes: [],
-    status,
-    statusReason: '',
-    createdAt: '2026-10-10T12:00:00Z',
-    settings,
-    version: 1,
-    updatedAt: '2026-10-10T12:00:00Z',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-  }
+  return buildZone({ id, code, name, status, ring: [] })
 }
 
 const centro = zone('z-1', 'Centro Histórico', 'CENTRO-001', 'INACTIVE')

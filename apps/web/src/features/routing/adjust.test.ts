@@ -1,23 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { insertUnassignedOrder, moveStop } from './adjust'
-import type { RoutePlan } from './types'
-
-const plan: RoutePlan = {
-  id: 'plan-1',
-  routes: [
-    {
-      id: 'r-1',
-      driverId: 'd-1',
-      driverName: 'Luis',
-      stops: [
-        { orderId: 'o-1', address: 'A', sequence: 1 },
-        { orderId: 'o-2', address: 'B', sequence: 2 },
-      ],
-    },
-    { id: 'r-2', driverId: 'd-2', driverName: 'María', stops: [{ orderId: 'o-3', address: 'C', sequence: 1 }] },
-  ],
-  unassignedOrderIds: ['o-9'],
-}
+import { adjustPlan as plan } from './routing.fixtures'
 
 describe('pedido de último momento', () => {
   it('lo agrega al final de la ruta elegida y lo quita de los sin repartidor', () => {

@@ -1,6 +1,5 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MapCanvasProps } from '@/features/geo/MapCanvas'
 import type { PlaceSearchProps } from '@/features/geo/PlaceSearch'
@@ -9,6 +8,8 @@ import type { Coordinate } from '@/features/geo/types'
 import { ApiError } from '@/shared/api/errors'
 import { createZone, listZones, updateZone } from './api'
 import { DrawZonePanel } from './DrawZonePanel'
+import { buildZone } from './zones.fixtures'
+import { renderWithQueryClient, startRedrawFromList } from './zones.test-utils'
 import type { Zone } from './types'
 
 // El mapa de Leaflet necesita un navegador: el mock guarda las props que recibe para que cada prueba
@@ -75,50 +76,23 @@ const OUTSIDE: Coordinate[] = [
 const closedSquare: Coordinate[] = [SW, SE, NE, NW, SW]
 const closedHole: Coordinate[] = [...HOLE_A, HOLE_A[0] ?? SW]
 
-const settings: Zone['settings'] = {
-  description: '',
-  depotName: 'Hub Norte',
-  depotLatitude: -0.179,
-  depotLongitude: -78.483,
-  maxOrdersPerRoute: 4,
-  routeCapacityKg: 45,
-  timezone: 'America/Guayaquil',
-  serviceDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
-  deliveryWindowFrom: '08:00',
-  deliveryWindowTo: '20:00',
-  cutoffTime: '14:00',
-  dispatchTime: '15:30',
-  priority: 'NORMAL',
-  dailyOrderLimit: 250,
-}
-
+// Zona registrada de referencia: el anillo es el cuadrado de zones.fixtures, con un hueco y versión 3.
 function zoneFixture(overrides: Partial<Zone> = {}): Zone {
-  return {
-    id: 'z-1',
-    code: 'CENTRO-001',
-    name: 'Centro Histórico',
-    ring: closedSquare,
-    holes: [closedHole],
-    status: 'ACTIVE',
-    statusReason: '',
-    createdAt: '2026-10-10T12:00:00Z',
-    settings,
-    version: 3,
-    updatedAt: '2026-10-10T12:00:00Z',
-    createdBy: 'admin',
-    updatedBy: 'admin',
-    ...overrides,
-  }
+  return buildZone({ holes: [closedHole], version: 3, ...overrides })
 }
 
 function renderPanel() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  render(
-    <QueryClientProvider client={client}>
-      <DrawZonePanel />
-    </QueryClientProvider>,
-  )
-  return client
+  renderWithQueryClient(<DrawZonePanel />)
+}
+
+/** Redibuja la zona y guarda con un 409: deja visible el aviso de conflicto de versión. */
+async function saveWithVersionConflict(user: UserEvent) {
+  vi.mocked(listZones).mockResolvedValue([zoneFixture()])
+  vi.mocked(updateZone).mockRejectedValue(new ApiError(409, 'CONFLICT', 'version'))
+  renderPanel()
+  await startRedrawFromList(user)
+  await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+  await screen.findByRole('alert')
 }
 
 function map(): MapCanvasProps {
@@ -609,8 +583,7 @@ describe('redibujar una zona registrada', () => {
     vi.mocked(listZones).mockResolvedValue([zoneFixture({ statusReason: 'Reactivada por operaciones' })])
     renderPanel()
 
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
+    await startRedrawFromList(user)
 
     expect(screen.getByText('Redibujando CENTRO-001')).toBeInTheDocument()
     expect(nameField()).toHaveValue('Centro Histórico')
@@ -640,8 +613,7 @@ describe('redibujar una zona registrada', () => {
     const user = userEvent.setup({ delay: null })
     vi.mocked(listZones).mockResolvedValue([zoneFixture()])
     renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
+    await startRedrawFromList(user)
 
     await user.click(screen.getByRole('button', { name: 'Cancelar redibujo' }))
 
@@ -654,8 +626,7 @@ describe('redibujar una zona registrada', () => {
     vi.mocked(listZones).mockResolvedValue([zoneFixture()])
     vi.mocked(updateZone).mockResolvedValue(zoneFixture({ name: 'Centro Histórico Norte', version: 4 }))
     renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
+    await startRedrawFromList(user)
     await user.type(nameField(), ' Norte')
 
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
@@ -666,13 +637,8 @@ describe('redibujar una zona registrada', () => {
 
   it('si otra persona cambió la zona, ofrece recargarla y reemplaza el editor', async () => {
     const user = userEvent.setup({ delay: null })
-    vi.mocked(listZones).mockResolvedValue([zoneFixture()])
-    vi.mocked(updateZone).mockRejectedValue(new ApiError(409, 'CONFLICT', 'version'))
-    renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Otra persona modificó esta zona mientras la editabas.')
+    await saveWithVersionConflict(user)
+    expect(screen.getByRole('alert')).toHaveTextContent('Otra persona modificó esta zona mientras la editabas.')
 
     vi.mocked(listZones).mockResolvedValueOnce([zoneFixture({ name: 'Centro Nuevo', version: 4 })])
     await user.click(screen.getByRole('button', { name: 'Recargar zona' }))
@@ -683,13 +649,7 @@ describe('redibujar una zona registrada', () => {
 
   it('si la recarga tras el conflicto falla, lo informa', async () => {
     const user = userEvent.setup({ delay: null })
-    vi.mocked(listZones).mockResolvedValue([zoneFixture()])
-    vi.mocked(updateZone).mockRejectedValue(new ApiError(409, 'CONFLICT', 'version'))
-    renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await screen.findByRole('alert')
+    await saveWithVersionConflict(user)
 
     vi.mocked(listZones).mockRejectedValueOnce(new ApiError(500, 'INTERNAL', 'boom'))
     await user.click(screen.getByRole('button', { name: 'Recargar zona' }))
@@ -699,13 +659,7 @@ describe('redibujar una zona registrada', () => {
 
   it('si la zona ya no existe al recargar, sale del modo redibujo', async () => {
     const user = userEvent.setup({ delay: null })
-    vi.mocked(listZones).mockResolvedValue([zoneFixture()])
-    vi.mocked(updateZone).mockRejectedValue(new ApiError(409, 'CONFLICT', 'version'))
-    renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await screen.findByRole('alert')
+    await saveWithVersionConflict(user)
 
     vi.mocked(listZones).mockResolvedValueOnce([])
     await user.click(screen.getByRole('button', { name: 'Recargar zona' }))
@@ -715,13 +669,7 @@ describe('redibujar una zona registrada', () => {
 
   it('si la zona quedó inactiva mientras se editaba, la recarga la muestra como inactiva', async () => {
     const user = userEvent.setup({ delay: null })
-    vi.mocked(listZones).mockResolvedValue([zoneFixture()])
-    vi.mocked(updateZone).mockRejectedValue(new ApiError(409, 'CONFLICT', 'version'))
-    renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await screen.findByRole('alert')
+    await saveWithVersionConflict(user)
 
     vi.mocked(listZones).mockResolvedValueOnce([zoneFixture({ status: 'INACTIVE', statusReason: 'Sin cobertura' })])
     await user.click(screen.getByRole('button', { name: 'Recargar zona' }))
@@ -890,8 +838,7 @@ describe('pestañas del panel lateral', () => {
     const user = userEvent.setup({ delay: null })
     vi.mocked(listZones).mockResolvedValue([zoneFixture()])
     renderPanel()
-    await user.click(screen.getByRole('tab', { name: /Zonas registradas/ }))
-    await user.click(await screen.findByRole('button', { name: 'Redibujar CENTRO-001' }))
+    await startRedrawFromList(user)
 
     const editorTab = screen.getByRole('tab', { name: 'Editor de zona' })
     expect(editorTab.querySelector('.bg-primary')).not.toBeNull()

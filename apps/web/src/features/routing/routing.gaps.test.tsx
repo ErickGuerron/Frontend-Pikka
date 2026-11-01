@@ -6,40 +6,14 @@ import { userMessage } from '@/shared/api/errors'
 import { adminUser, mockApi, renderApp, sentBody } from '@/test/utils'
 import { routingErrorMessage } from './api'
 import { generateDemoRoutePlan } from './demo'
-import { parseRoutePlan, type RoutePlan } from './types'
+import { asBackend, buildRoutePlan, luisRoute } from './routing.fixtures'
+import { parseRoutePlan } from './types'
 
-const plan: RoutePlan = {
-  id: 'plan-1',
-  routes: [
-    {
-      id: 'route-1',
-      driverId: 'd-1',
-      driverName: 'Luis Andrade',
-      stops: [
-        { orderId: 'o-1', address: 'Av. Amazonas N24-03', sequence: 1 },
-        { orderId: 'o-2', address: 'Calle Juan León Mera 1224', sequence: 2 },
-      ],
-    },
-    { id: 'route-2', driverId: 'd-2', driverName: 'María Paredes', stops: [] },
-    { id: 'route-3', driverId: 'd-3', driverName: 'Jorge Vélez', stops: [] },
-  ],
-  unassignedOrderIds: ['o-9'],
-}
-
-/** Gateway shape of POST /api/v1/routes/plan. */
-function asBackend(p: RoutePlan) {
-  return {
-    planId: p.id,
-    unassignedOrderIds: p.unassignedOrderIds,
-    routes: p.routes.map((r) => ({
-      routeId: r.id,
-      driverId: r.driverId,
-      driverName: r.driverName,
-      orderCount: r.stops.length,
-      stops: r.stops,
-    })),
-  }
-}
+const plan = buildRoutePlan([
+  luisRoute,
+  { id: 'route-2', driverId: 'd-2', driverName: 'María Paredes', stops: [] },
+  { id: 'route-3', driverId: 'd-3', driverName: 'Jorge Vélez', stops: [] },
+])
 
 beforeEach(() => {
   useSession.getState().setToken('tok')

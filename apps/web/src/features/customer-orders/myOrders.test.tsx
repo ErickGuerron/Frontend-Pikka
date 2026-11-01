@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
 import { apiError, customerUser, mockApi, renderApp, sentBody } from '@/test/utils'
 import { resetDemoOrders } from './demo'
+import { order } from './customer-orders.fixtures'
 import type { CustomerOrder } from './types'
 
 // The real map needs a browser. Two buttons emit fixed points: one inside the covered area, one outside.
@@ -18,21 +19,6 @@ vi.mock('@/features/geo/LazyMapCanvas', async () => {
         createElement('button', { type: 'button', onClick: () => { onMapClick({ latitude: 40.4, longitude: -3.7 }) } }, 'Elegir punto fuera de zona'),
       ),
   }
-})
-
-const order = (over: Partial<CustomerOrder>): CustomerOrder => ({
-  id: 'aaaaaaaa-0000-4000-8000-000000000001',
-  address: 'Av. Central 123',
-  latitude: -0.2,
-  longitude: -78.5,
-  deliveryDate: '2099-12-31',
-  windowStart: '09:00',
-  windowEnd: '12:00',
-  status: 'PENDING',
-  reviewReasons: [],
-  createdAt: '2026-10-10T12:00:00Z',
-  queuePosition: 0,
-  ...over,
 })
 
 const water = {

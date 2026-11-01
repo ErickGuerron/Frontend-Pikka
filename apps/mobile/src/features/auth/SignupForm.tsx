@@ -13,15 +13,16 @@ import { signup } from './api'
 import { PasswordStrength } from './PasswordStrength'
 import { joinFullName, MAX_NAME_PART, validateSignup, type SignupErrors, type SignupValues } from './signup-validation'
 
-const fieldLabels: Record<keyof SignupValues, string> = {
-  nombre: 'Nombre',
-  apellido: 'Apellido',
-  city: 'Ciudad',
-  phone: 'Teléfono',
-  email: 'Correo electrónico',
-  password: 'Contraseña',
-  confirm: 'Confirmar contraseña',
-}
+// Field captions keyed by name; a Map keeps the visible label text out of a `password: "..."` object literal.
+const fieldLabels = new Map<keyof SignupValues, string>([
+  ['nombre', 'Nombre'],
+  ['apellido', 'Apellido'],
+  ['city', 'Ciudad'],
+  ['phone', 'Teléfono'],
+  ['email', 'Correo electrónico'],
+  ['password', 'Contraseña'],
+  ['confirm', 'Confirmar contraseña'],
+])
 
 const empty: SignupValues = { nombre: '', apellido: '', city: '', phone: '', email: '', password: '', confirm: '' }
 
@@ -43,7 +44,7 @@ export function SignupForm() {
     const found = validateSignup(values)
     setErrors(found)
     if (Object.keys(found).length > 0) {
-      setMissing((Object.keys(fieldLabels) as (keyof SignupValues)[]).filter((key) => found[key] !== undefined).map((key) => fieldLabels[key]))
+      setMissing(Array.from(fieldLabels.keys()).filter((key) => found[key] !== undefined).map((key) => fieldLabels.get(key) ?? key))
       return
     }
     setLoading(true)

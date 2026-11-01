@@ -15,9 +15,16 @@ export function nextReconnectDelay(attempt: number): number {
 
 /** Convierte la URL HTTP del Gateway en la URL del WebSocket de seguimiento. */
 export function trackingSocketUrl(apiBaseUrl: string): string {
-  const base = apiBaseUrl.replace(/\/+$/, '')
+  const base = trimTrailingSlashes(apiBaseUrl)
   const wsBase = base.replace(/^http/, 'ws')
   return `${wsBase}/api/v1/tracking/ws`
+}
+
+/** Removes every trailing "/" without a backtracking regular expression. */
+function trimTrailingSlashes(text: string): string {
+  let end = text.length
+  while (end > 0 && text[end - 1] === '/') end--
+  return text.slice(0, end)
 }
 
 /** Subconjunto del WebSocket del navegador que usa el cliente; permite simularlo en pruebas. */

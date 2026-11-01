@@ -1,23 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { moveStop, unassignedOrders } from './adjust'
+import { adjustPlan } from './routing.fixtures'
 import type { RoutePlan } from './types'
 
+// Igual que adjustPlan, con un tercer repartidor que no participa en los movimientos.
 const plan: RoutePlan = {
-  id: 'plan-1',
+  ...adjustPlan,
   routes: [
-    {
-      id: 'r-1',
-      driverId: 'd-1',
-      driverName: 'Luis',
-      stops: [
-        { orderId: 'o-1', address: 'A', sequence: 1 },
-        { orderId: 'o-2', address: 'B', sequence: 2 },
-      ],
-    },
-    { id: 'r-2', driverId: 'd-2', driverName: 'María', stops: [{ orderId: 'o-3', address: 'C', sequence: 1 }] },
+    ...adjustPlan.routes,
     { id: 'r-3', driverId: 'd-3', driverName: 'Jorge', stops: [{ orderId: 'o-4', address: 'D', sequence: 1 }] },
   ],
-  unassignedOrderIds: ['o-9'],
 }
 
 describe('ajustes del plan: pedidos sin repartidor', () => {
