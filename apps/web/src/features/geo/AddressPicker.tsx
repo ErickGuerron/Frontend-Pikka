@@ -1,0 +1,187 @@
+import { useEffect, useRef, useState } from 'react'
+import { Field, fieldLabelClass, inputClass } from '@/shared/ui/form'
+import { reverseStreetPlace } from './api'
+import { ExpandedMapDialog } from './ExpandedMapDialog'
+import { LazyMapCanvas } from './LazyMapCanvas'
+import type { MapZone } from './MapCanvas'
+import { PlaceSearch } from './PlaceSearch'
+import type { Place } from './photon'
+import type { Coordinate } from './types'
+
+const NO_ADDRESS_HINT = 'Sin dirección disponible para este punto. Puedes escribir el nombre igualmente.'
+
+export interface AddressPickerProps {
+  /** Lugar seleccionado, o null si no hay selección. Es un componente controlado. */
+  value: Place | null
+  onChange: (place: Place | null) => void
+  /** Zonas de cobertura a dibujar en el mapa. */
+  zones?: readonly MapZone[]
+  /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
+  highlight?: readonly Coordinate[] | null
+  /** Huecos de la zona resaltada (dona). */
+  highlightHoles?: readonly (readonly Coordinate[])[]
+  /** Puntos que el mapa debe mostrar completos; cada arreglo nuevo vuelve a encuadrar. */
+  fitBounds?: readonly Coordinate[] | null
+  /** Bodega de salida a mostrar en el mapa, con su nombre y la distancia al punto elegido. */
+  depot?: Coordinate | null
+  depotName?: string | null
+  depotDistanceLabel?: string | null
+  /** Clases del contenedor raíz, para que el padre le dé altura (por ejemplo, un área de trabajo fija). */
+  className?: string
+  /** Clases del mapa. Por defecto, 420 px de alto. */
+  mapClassName?: string
+  /** Ofrece "Ampliar mapa": abre el mismo mapa en un diálogo grande para ubicar el punto con precisión. */
+  expandable?: boolean
+  /**
+   * Muestra nombre, dirección, coordenadas y "Quitar selección" debajo del mapa. Con false, el padre
+   * muestra esos datos en otro lugar y el mapa ocupa todo el espacio que le den.
+   */
+  showSelection?: boolean
+}
+
+/**
+ * Ingreso de dirección con mapa: búsqueda de calles y lugares, clic para elegir un
+ * punto, y nombre editable. Reutilizable en cualquier formulario que necesite una
+ * ubicación (zonas hoy; pedidos cuando el contrato acepte coordenadas).
+ */
+export function AddressPicker({
+  value,
+  onChange,
+  zones = [],
+  highlight = null,
+  highlightHoles = [],
+  fitBounds = null,
+  depot = null,
+  depotName = null,
+  depotDistanceLabel = null,
+  className = '',
+  mapClassName = 'h-[420px] w-full rounded-xl z-0',
+  expandable = false,
+  showSelection = true,
+}: AddressPickerProps) {
+  const [focus, setFocus] = useState<Coordinate | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [addressPending, setAddressPending] = useState(false)
+  const lookup = useRef<AbortController | null>(null)
+
+  // Una búsqueda de dirección pendiente no debe llegar después de desmontar el componente.
+  useEffect(() => () => { lookup.current?.abort() }, [])
+
+  const select = (place: Place | null) => {
+    lookup.current?.abort()
+    setAddressPending(false)
+    onChange(place)
+  }
+
+  /** Clic en el mapa: el punto elegido es la fuente de verdad; la dirección llega después. */
+  const pickPoint = (point: Coordinate) => {
+    lookup.current?.abort()
+    const controller = new AbortController()
+    lookup.current = controller
+    onChange(placeAt(point))
+    setAddressPending(true)
+    reverseStreetPlace(point.latitude, point.longitude, controller.signal)
+      .then((found) => {
+        if (controller.signal.aborted) return
+        // Photon puede devolver un lugar cercano; conservamos las coordenadas exactas del clic.
+        onChange(found === null ? placeAt(point) : { ...found, latitude: point.latitude, longitude: point.longitude })
+        setAddressPending(false)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAddressPending(false)
+      })
+  }
+
+  const pickFromSearch = (found: Place) => {
+    setFocus({ latitude: found.latitude, longitude: found.longitude })
+    select(found)
+  }
+
+  const clear = () => {
+    setFocus(null)
+    select(null)
+  }
+
+  return (
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <PlaceSearch onSelect={pickFromSearch} variant="inline" />
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <LazyMapCanvas
+          className={mapClassName}
+          zones={zones}
+          picked={value === null ? null : { latitude: value.latitude, longitude: value.longitude }}
+          highlight={highlight}
+          highlightHoles={highlightHoles}
+          focus={focus}
+          fitBounds={fitBounds}
+          depot={depot}
+          depotName={depotName}
+          depotDistanceLabel={depotDistanceLabel}
+          onMapClick={pickPoint}
+        />
+        {expandable ? (
+          <button
+            className="absolute right-3 top-3 z-10 flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/25 bg-surface-container-lowest px-3 py-1.5 text-[12px] font-semibold text-primary shadow-md hover:bg-surface-container"
+            onClick={() => { setExpanded(true); }}
+            type="button"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">open_in_full</span>
+            Ampliar mapa
+          </button>
+        ) : null}
+      </div>
+      {expanded ? (
+        <ExpandedMapDialog
+          value={value}
+          zones={zones}
+          highlight={highlight}
+          highlightHoles={highlightHoles}
+          fitBounds={fitBounds}
+          depot={depot}
+          depotName={depotName}
+          depotDistanceLabel={depotDistanceLabel}
+          addressPending={addressPending}
+          onPick={pickPoint}
+          onSearchPick={pickFromSearch}
+          onClose={() => { setExpanded(false); }}
+        />
+      ) : null}
+
+      {showSelection && value !== null && (
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 text-[12px]">
+          <Field label="Nombre del lugar">
+            <input
+              aria-label="Nombre del lugar"
+              className={inputClass}
+              maxLength={120}
+              onChange={(e) => { onChange({ ...value, name: e.target.value }); }}
+              placeholder="Ej. Casa de la esquina"
+              value={value.name}
+            />
+          </Field>
+          <div className="flex flex-col gap-1">
+            <span className={fieldLabelClass}>Dirección</span>
+            <p className="text-on-surface">{addressPending ? 'Buscando dirección…' : value.address || NO_ADDRESS_HINT}</p>
+            <p className="text-[10px] text-on-surface-variant">
+              {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
+            </p>
+          </div>
+          <div>
+            <button
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer"
+              onClick={clear}
+              type="button"
+            >
+              Quitar selección
+            </button>
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+/** Lugar sin nombre ni dirección en el punto indicado. */
+function placeAt(point: Coordinate): Place {
+  return { name: '', address: '', latitude: point.latitude, longitude: point.longitude }
+}

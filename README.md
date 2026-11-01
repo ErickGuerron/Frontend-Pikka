@@ -20,6 +20,16 @@ npm install
 npm run dev          # http://localhost:5173, reenvía /api al Gateway
 ```
 
+Si el Gateway no está en el puerto 8080 (por ejemplo, `GATEWAY_PORT=8081` en el
+`.env` del backend), crea `apps/web/.env.local` con:
+
+```env
+VITE_DEV_GATEWAY_URL=http://localhost:8081
+```
+
+y reinicia `npm run dev`. Si el front no alcanza al Gateway, el login muestra
+"No se pudo conectar con el backend".
+
 Entra con el administrador inicial definido en el `.env` del backend
 (`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`).
 

@@ -1,7 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
+import './index.css'
 import './app/styles.css'
+import { installNoEmoji } from './shared/ui/no-emoji'
+
+installNoEmoji()
 
 const root = document.getElementById('root')
 if (!root) throw new Error('#root not found')

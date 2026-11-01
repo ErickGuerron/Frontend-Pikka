@@ -3,7 +3,11 @@ import { defineConfig, devices } from '@playwright/test'
 // Las pruebas E2E simulan el API Gateway con page.route, así corren sin backend.
 export default defineConfig({
   testDir: './e2e',
+  // La app movil tiene su propia config (playwright.mobile.config.ts) y servidor.
+  testIgnore: ['mobile/**'],
   fullyParallel: true,
+  // Limita el paralelismo: con muchas páginas a la vez, las pruebas con mapas (Leaflet) agotaban el tiempo.
+  workers: 2,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',

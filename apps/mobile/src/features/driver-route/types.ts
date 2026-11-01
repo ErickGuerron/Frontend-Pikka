@@ -1,0 +1,143 @@
+import { enumValue, number, object, oneOf, ParseError, string } from '../../api/parse'
+import type { DriverLocation } from './location'
+
+/**
+ * Progress of one stop. PENDING -> PICKED_UP -> IN_TRANSIT -> DELIVERED | NOT_DELIVERED.
+ * The last two are final; the driver never moves a stop backwards.
+ */
+export const stopStatuses = ['PENDING', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'NOT_DELIVERED'] as const
+export type StopStatus = (typeof stopStatuses)[number]
+
+/** Statuses the driver can set by advancing a stop (no result yet). */
+export type ProgressStatus = Extract<StopStatus, 'PICKED_UP' | 'IN_TRANSIT'>
+
+const nextProgress: Partial<Record<StopStatus, ProgressStatus>> = {
+  PENDING: 'PICKED_UP',
+  PICKED_UP: 'IN_TRANSIT',
+}
+
+/** The only status a stop may advance to next, or null when the stop has a result or no step left. */
+export function nextProgressStatus(stop: RouteStop): ProgressStatus | null {
+  return nextProgress[stop.status] ?? null
+}
+
+export function isFinal(status: StopStatus): boolean {
+  return status === 'DELIVERED' || status === 'NOT_DELIVERED'
+}
+
+/** Count of stops with a final result, for the progress line of the route. */
+export function completedCount(stops: readonly RouteStop[]): number {
+  return stops.filter((s) => isFinal(s.status)).length
+}
+
+/** Closed list from ADR 0007: the driver cannot type a free-text reason. */
+export const notDeliveredReasons = [
+  'CLIENT_REFUSED',
+  'CLIENT_ABSENT',
+  'OUT_OF_WINDOW',
+  'PRODUCT_DAMAGED',
+  'WRONG_ADDRESS',
+  'DUPLICATE_ORDER',
+] as const
+export type NotDeliveredReason = (typeof notDeliveredReasons)[number]
+
+export const reasonLabels: Record<NotDeliveredReason, string> = {
+  CLIENT_REFUSED: 'El cliente no quiso recibirlo',
+  CLIENT_ABSENT: 'El cliente no estaba',
+  OUT_OF_WINDOW: 'Fuera de la ventana horaria',
+  PRODUCT_DAMAGED: 'Producto dañado',
+  WRONG_ADDRESS: 'Dirección errónea',
+  DUPLICATE_ORDER: 'Pedido duplicado',
+}
+
+export interface RouteStop {
+  id: string
+  /** Order of the stop in the route, starting at 1. */
+  sequence: number
+  address: string
+  /** HH:mm */
+  windowStart: string
+  windowEnd: string
+  status: StopStatus
+  reason: NotDeliveredReason | null
+  /** Delivery point, when the backend sends it; otherwise the map looks the address up. */
+  latitude?: number
+  longitude?: number
+}
+
+export interface DriverRoute {
+  id: string
+  stops: RouteStop[]
+  /** Pedidos que caben en esta ruta (capacidad de su zona). Null cuando el servidor no la conoce. */
+  maxOrders: number | null
+}
+
+export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
+
+export interface StopResultInput {
+  outcome: StopOutcome
+  reason?: NotDeliveredReason
+  /** Driver position at registration (ADR 0007, section 4). Required by the backend. */
+  location: DriverLocation
+}
+
+/**
+ * Response of PATCH .../stops/{stopId}/status (gateway contract): only the stop id and the new status.
+ * The caller merges it into the stop it already has.
+ */
+export interface StopProgress {
+  stopId: string
+  status: StopStatus
+}
+
+export function parseStopProgress(data: unknown): StopProgress {
+  const o = object(data, 'stop progress')
+  return { stopId: string(o, 'stopId'), status: oneOf(o, 'status', stopStatuses) }
+}
+
+export function parseRouteStop(data: unknown): RouteStop {
+  const o = object(data, 'stop')
+  const rawReason = o.reason
+  return {
+    id: string(o, 'id'),
+    sequence: number(o, 'sequence'),
+    address: string(o, 'address'),
+    windowStart: string(o, 'windowStart'),
+    windowEnd: string(o, 'windowEnd'),
+    status: oneOf(o, 'status', stopStatuses),
+    reason: rawReason === null || rawReason === undefined ? null : enumValue(rawReason, notDeliveredReasons, 'reason'),
+    ...(typeof o.latitude === 'number' && typeof o.longitude === 'number' ? { latitude: o.latitude, longitude: o.longitude } : {}),
+  }
+}
+
+export function parseDriverRoute(data: unknown): DriverRoute {
+  const o = object(data, 'route')
+  if (!Array.isArray(o.stops)) throw new ParseError('stops: expected array')
+  const maxOrders = typeof o.max_orders === 'number' && o.max_orders > 0 ? o.max_orders : null
+  return { id: string(o, 'id'), stops: o.stops.map(parseRouteStop), maxOrders }
+}
+
+/** Stops in the order the driver must visit them. */
+export function orderedStops(stops: readonly RouteStop[]): RouteStop[] {
+  return [...stops].sort((a, b) => a.sequence - b.sequence)
+}
+
+/** Any stop without a final result accepts one; a registered stop is final. */
+export function canRegisterResult(stop: RouteStop): boolean {
+  return !isFinal(stop.status)
+}
+
+/** Returns the reason the input is invalid, or null when it can be sent. */
+export function validateStopResult(input: Omit<StopResultInput, 'location'>): string | null {
+  if (input.outcome === 'NOT_DELIVERED' && input.reason === undefined) {
+    return 'Elige el motivo por el que no se entregó.'
+  }
+  if (input.outcome === 'DELIVERED' && input.reason !== undefined) {
+    return 'Una entrega exitosa no lleva motivo.'
+  }
+  return null
+}
+
+export function remainingCount(stops: readonly RouteStop[]): number {
+  return stops.length - completedCount(stops)
+}

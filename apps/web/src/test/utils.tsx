@@ -41,6 +41,8 @@ export const adminUser = {
 
 export const driverUser = { ...adminUser, id: '22222222-2222-2222-2222-222222222222', fullName: 'Diego Driver', role: 'DRIVER' }
 
+export const customerUser = { ...adminUser, id: '33333333-3333-3333-3333-333333333333', email: 'cliente@example.com', fullName: 'Carla Cliente', role: 'CUSTOMER' }
+
 export function apiError(status: number, code: string, message = 'error') {
   return { status, body: { error: { code, message, requestId: 'req-1' } } }
 }

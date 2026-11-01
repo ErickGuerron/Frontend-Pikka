@@ -1,0 +1,335 @@
+@import "tailwindcss";
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
+@theme {
+  /* Marca Pikka (antes en tailwind.config.js, migrado a Tailwind v4). */
+  --color-pikka-dark: #082f32;
+  --color-pikka-deep: #0c3d40;
+  --color-pikka-teal: #0e7075;
+  --color-pikka-cyan: #1bb3b8;
+  --color-pikka-light: #3ec5c9;
+  --color-pikka-mint: #d4f2ee;
+  --font-brand: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-primary: #004b4e;
+  --color-background: #effcff;
+  --color-on-primary-fixed: #002021;
+  --color-inverse-on-surface: #dcf5fc;
+  --color-on-tertiary-fixed: #2f1500;
+  --color-inverse-primary: #89d3d6;
+  --color-on-error-container: #93000a;
+  --color-error-container: #ffdad6;
+  --color-outline-variant: #bec8c8;
+  --color-surface-variant: #cee7ed;
+  --color-primary-fixed: #a5eff2;
+  --color-secondary-container: #6bf9e4;
+  --color-inverse-surface: #1d3439;
+  --color-surface-container-lowest: #ffffff;
+  --color-secondary: #006b5f;
+  --color-primary-fixed-dim: #89d3d6;
+  --color-on-secondary: #ffffff;
+  --color-surface: #effcff;
+  --color-tertiary-fixed: #ffdcc3;
+  --color-error: #ba1a1a;
+  --color-tertiary-container: #8b4a00;
+  --color-tertiary-fixed-dim: #ffb77d;
+  --color-on-primary-fixed-variant: #004f52;
+  --color-surface-tint: #12696c;
+  --color-secondary-fixed-dim: #48dcc8;
+  --color-on-tertiary-fixed-variant: #6e3900;
+  --color-surface-dim: #c6dee5;
+  --color-on-secondary-container: #007165;
+  --color-surface-container-low: #dff8ff;
+  --color-on-tertiary: #ffffff;
+  --color-surface-container: #d9f2f9;
+  --color-on-tertiary-container: #ffc89e;
+  --color-on-background: #061f23;
+  --color-on-secondary-fixed: #00201c;
+  --color-on-surface: #061f23;
+  --color-on-surface-variant: #3f4949;
+  --color-on-error: #ffffff;
+  --color-surface-container-highest: #cee7ed;
+  --color-surface-container-high: #d4ecf3;
+  --color-primary-container: #0a6568;
+  --color-on-primary: #ffffff;
+  --color-secondary-fixed: #6bf9e4;
+  --color-tertiary: #693600;
+  --color-surface-bright: #effcff;
+  --color-on-primary-container: #96dfe2;
+  --color-on-secondary-fixed-variant: #005047;
+  --color-outline: #6f7979;
+
+  --spacing-space-xl: 2.25rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-gutter-desktop: 1.5rem;
+  --spacing-margin: 1rem;
+  --spacing-gutter: 1rem;
+  --spacing-margin-desktop: 2.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-margin-tablet: 1.5rem;
+  --spacing-space-sm: 0.5rem;
+
+  --font-family-body-md: 'Plus Jakarta Sans', sans-serif;
+  --font-family-headline-lg: 'Plus Jakarta Sans', sans-serif;
+  --font-family-label-badge: 'Plus Jakarta Sans', sans-serif;
+  --font-family-label-code: 'JetBrains Mono', monospace;
+  --font-family-headline-md: 'Plus Jakarta Sans', sans-serif;
+  --font-family-headline-xl: 'Plus Jakarta Sans', sans-serif;
+}
+
+@layer components {
+  /* Auth screen: light mobile layout below lg, dark split layout from lg. Page scrolls instead of clipping. */
+  .login-split-container {
+    @apply bg-[#f0fafb] min-h-screen flex items-start justify-center px-4 py-6 sm:py-8 lg:items-center lg:p-8;
+  }
+
+  .login-main {
+    @apply w-full max-w-md flex flex-col relative lg:max-w-[1280px] lg:flex-row lg:bg-white lg:rounded-2xl lg:shadow-xl lg:border lg:border-[#cce7ea] lg:min-h-[640px];
+  }
+
+  .login-left {
+    @apply w-full text-[#061f23] flex flex-col gap-5 relative z-10 lg:w-[48%] xl:w-[46%] lg:text-white lg:p-6 xl:p-7 lg:justify-between lg:overflow-hidden lg:rounded-l-2xl lg:bg-gradient-to-br lg:from-[#003638] lg:via-[#002628] lg:to-[#00181a];
+    --auth-label: #004b4e;
+    --auth-muted: #557b7f;
+    --auth-icon: #004b4e;
+    --auth-link: #004b4e;
+    --auth-input-bg: #ffffff;
+    --auth-input-border: #cce7ea;
+    --auth-input-border-hover: #004b4e;
+    --auth-input-text: #061f23;
+    --auth-placeholder: #8ba7ab;
+    --auth-ok: #006b5f;
+    --auth-error: #ba1a1a;
+    --auth-error-bg: #ffdad6;
+    --auth-divider: #cce7ea;
+    --auth-btn-bg: #004b4e;
+    --auth-btn-text: #ffffff;
+  }
+
+  @media (min-width: 1024px) {
+    .login-left {
+      --auth-label: #e8f7f9;
+      --auth-muted: #89d3d6;
+      --auth-icon: #14b8a6;
+      --auth-link: #2dd4bf;
+      --auth-input-bg: rgba(0, 24, 26, 0.85);
+      --auth-input-border: rgba(20, 184, 166, 0.35);
+      --auth-input-border-hover: #14b8a6;
+      --auth-input-text: #ffffff;
+      --auth-placeholder: #557b7f;
+      --auth-ok: #2dd4bf;
+      --auth-error: #f87171;
+      --auth-error-bg: rgba(239, 68, 68, 0.15);
+      --auth-divider: rgba(20, 184, 166, 0.25);
+      --auth-btn-bg: #004b4e;
+      --auth-btn-text: #ffffff;
+    }
+  }
+
+  /* White card holding the form on mobile; transparent on the dark desktop panel. */
+  .auth-card {
+    @apply bg-white rounded-2xl p-5 shadow-sm border border-[#cce7ea] lg:border-none lg:bg-transparent lg:rounded-none lg:p-0 lg:shadow-none lg:my-auto;
+  }
+
+  .auth-label {
+    @apply block text-[10px] font-bold uppercase tracking-wider;
+    color: var(--auth-label);
+  }
+
+  .auth-muted {
+    color: var(--auth-muted);
+  }
+
+  .auth-link {
+    @apply font-semibold hover:underline transition-colors;
+    color: var(--auth-link);
+  }
+
+  .auth-icon {
+    @apply w-3.5 h-3.5;
+    color: var(--auth-icon);
+  }
+
+  .auth-input {
+    @apply w-full text-sm lg:text-xs rounded-xl lg:rounded-lg pl-11 lg:pl-9 pr-3 py-3 lg:py-2.5 border transition-colors focus:outline-none focus:ring-2 focus:ring-[#14b8a6]/30;
+    background: var(--auth-input-bg);
+    border-color: var(--auth-input-border);
+    color: var(--auth-input-text);
+  }
+
+  .auth-input::placeholder {
+    color: var(--auth-placeholder);
+  }
+
+  .auth-input:hover,
+  .auth-input:focus {
+    border-color: var(--auth-input-border-hover);
+  }
+
+  .auth-input[aria-invalid='true'] {
+    border-color: var(--auth-error);
+  }
+
+  .auth-error {
+    @apply text-[11px];
+    color: var(--auth-error);
+  }
+
+  .auth-alert {
+    @apply rounded-xl lg:rounded-lg p-2.5 text-xs border;
+    color: var(--auth-error);
+    background: var(--auth-error-bg);
+    border-color: var(--auth-error);
+  }
+
+  .auth-submit {
+    @apply w-full py-3 px-5 rounded-xl lg:rounded-lg font-bold text-sm lg:text-xs tracking-wide shadow-sm transition-colors duration-200 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60 hover:bg-[#0a6568] border border-[#004b4e];
+    background: var(--auth-btn-bg);
+    color: var(--auth-btn-text);
+  }
+
+  .auth-divider {
+    border-color: var(--auth-divider);
+  }
+
+  .login-right {
+    @apply hidden lg:flex lg:w-[52%] xl:w-[54%] bg-white lg:p-6 xl:p-7 flex-col justify-between relative overflow-hidden lg:rounded-r-2xl;
+    background-image: radial-gradient(circle, rgba(0, 75, 78, 0.08) 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
+  }
+
+  .panel-inner-glow {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .ambient-cyan {
+    @apply absolute rounded-full pointer-events-none;
+    background: rgba(20, 184, 166, 0.15);
+    filter: blur(60px);
+    width: 320px;
+    height: 320px;
+  }
+
+  .ambient-teal {
+    @apply absolute rounded-full pointer-events-none;
+    background: rgba(0, 75, 78, 0.25);
+    filter: blur(60px);
+    width: 320px;
+    height: 320px;
+  }
+
+  .brand-glow {
+    box-shadow: 0 0 25px rgba(20, 184, 166, 0.28);
+  }
+
+  .role-btn-active {
+    @apply text-white bg-[#0e7075] shadow-md border border-[#1bb3b8]/40;
+  }
+
+  .role-btn-inactive {
+    @apply text-slate-300 hover:text-white hover:bg-white/5;
+  }
+
+  .submit-btn {
+    @apply w-full py-3.5 px-6 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 transform active:scale-[0.99];
+    background: linear-gradient(to right, #1bb3b8, #13a2a7, #0e7075);
+    box-shadow: 0 10px 25px rgba(27, 179, 184, 0.25);
+  }
+
+  .submit-btn:hover {
+    box-shadow: 0 10px 25px rgba(27, 179, 184, 0.4);
+  }
+
+  .quick-access-btn {
+    @apply flex items-center justify-center gap-2 py-2.5 px-3 bg-[#082b2e]/80 hover:bg-[#0c383c] border border-[#1a5457] hover:border-[#1bb3b8]/50 text-slate-200 text-xs font-semibold rounded-xl transition duration-150;
+  }
+
+  .input-bg {
+    background: rgba(7, 36, 39, 0.9);
+  }
+
+  .mascot-glow {
+    @apply absolute rounded-full -z-10;
+    background: linear-gradient(to top right, rgba(212, 242, 238, 0.8), rgba(200, 250, 245, 0.4));
+    filter: blur(60px);
+    width: 460px;
+    height: 460px;
+  }
+
+  .mascot-ring {
+    @apply absolute rounded-full border border-teal-200/50 -z-10;
+    animation: pulse-subtle 4s ease-in-out infinite;
+  }
+
+  .floating-pill {
+    @apply bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-white;
+  }
+
+  .info-pill-active {
+    @apply bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-white;
+  }
+
+  .value-badge {
+    @apply inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full;
+    background: rgba(14, 112, 117, 0.05);
+    color: #0e7075;
+    border: 1px solid rgba(14, 112, 117, 0.2);
+  }
+
+  .color-swatch {
+    @apply w-3 h-3 rounded-full;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.04); }
+}
+
+.animate-float-slow {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
+
+/* Menú de cuenta: solo opacidad y transform, desactivado con reduced-motion. */
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-menu-in {
+  animation: menu-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-menu-in {
+    animation: none;
+  }
+}
