@@ -1,3 +1,4 @@
+import type { DeliveryEdit } from '../../../../shared/customer-orders/edit'
 import { http } from '../../api/client'
 import { isDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
@@ -90,4 +91,8 @@ export function listMyNotifications(signal?: AbortSignal): Promise<CustomerNotif
  */
 export function openDispute(surchargeId: string, reason: string): Promise<{ id: string }> {
   return http.post(`/api/v1/surcharges/${encodeURIComponent(surchargeId)}/dispute`, (data) => ({ id: string(object(data, 'dispute'), 'id') }), { body: { reason } })
+}
+
+export function editOrder(id: string, body: DeliveryEdit): Promise<CustomerOrder> {
+  return http.patch(`/api/v1/orders/${encodeURIComponent(id)}`, parseOrder, { body })
 }

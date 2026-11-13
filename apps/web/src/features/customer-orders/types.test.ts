@@ -67,10 +67,11 @@ describe('reglas de estado', () => {
     expect(progressIndex('CANCELLED')).toBe(-1)
   })
 
-  it('consulta cada 10 s solo con pedidos en tránsito', () => {
+  it('consulta los pedidos pendientes con menor frecuencia', () => {
     expect(isActiveTransit('IN_TRANSIT')).toBe(true)
     expect(pollInterval([order('a', 'IN_TRANSIT')])).toBe(10_000)
-    expect(pollInterval([order('a', 'PENDING'), order('b', 'DELIVERED')])).toBe(false)
+    expect(pollInterval([order('a', 'PENDING'), order('b', 'DELIVERED')])).toBe(30_000)
+    expect(pollInterval([order('b', 'DELIVERED')])).toBe(false)
     expect(pollInterval(undefined)).toBe(false)
   })
 

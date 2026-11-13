@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSessionStore } from '../../store/session-store'
+import { isOnTheWay } from './types'
 import { parseTrackingSnapshot, TRACKING_SUBPROTOCOL, trackingSocketUrl, type TrackingSnapshot } from './tracking'
 
 export interface OrderTrackingState {
@@ -31,7 +32,12 @@ export function useOrderTracking(orderId: string): OrderTrackingState {
     socket.onmessage = (event) => {
       try {
         const snapshot = parseTrackingSnapshot(JSON.parse(String(event.data)))
+        if (snapshot.orderId !== orderId) return
         setState({ snapshot, unavailable: false })
+        if (!isOnTheWay(snapshot.status)) {
+          closedByUs = true
+          socket.close()
+        }
       } catch {
         setState((prev) => ({ ...prev, unavailable: true }))
       }
@@ -49,5 +55,5 @@ export function useOrderTracking(orderId: string): OrderTrackingState {
     }
   }, [orderId])
 
-  return state
+  return state.snapshot !== null && state.snapshot.orderId !== orderId ? { snapshot: null, unavailable: false } : state
 }

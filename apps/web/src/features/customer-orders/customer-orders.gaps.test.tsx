@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
@@ -38,11 +38,11 @@ const owing = (over: Record<string, unknown> = {}) => ({
 
 type Reply = { status: number; body: unknown }
 
-function serve(opts: { orders: Reply; cancel?: Reply; balance?: Reply; pay?: Reply }) {
+function serve(opts: { orders: Reply; cancel?: Reply; balance?: Reply; pay?: Reply; products?: unknown[] }) {
   return mockApi((url, init) => {
     if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
     if (url.endsWith('/api/v1/notifications/mine')) return { status: 200, body: { notifications: [] } }
-    if (url.endsWith('/api/v1/products')) return { status: 200, body: { products: [] } }
+    if (url.endsWith('/api/v1/products')) return { status: 200, body: { products: opts.products ?? [] } }
     if (url.endsWith('/api/v1/orders/mine')) return opts.orders
     if (url.endsWith('/cancel') && init.method === 'POST') return opts.cancel ?? { status: 200, body: order({ status: 'CANCELLED' }) }
     if (url.endsWith('/customers/me/balance/payment') && init.method === 'POST') {
@@ -116,15 +116,15 @@ describe('Mis Pedidos: acciones sin pedido en curso', () => {
   })
 })
 
-describe('Mis Pedidos: favoritos', () => {
-  it('Pedir de nuevo abre el diálogo de nuevo pedido', async () => {
-    serve({ orders: { status: 200, body: { orders: [] } } })
+describe('Mis Pedidos: acceso al catálogo', () => {
+  it('permite abrir un nuevo pedido desde un producto del catálogo', async () => {
+    serve({
+      orders: { status: 200, body: { orders: [] } },
+      products: [{ id: 'p-1', name: 'Agua', unitPrice: '2.50', active: true, stockQuantity: 10, createdAt: '', updatedAt: '' }],
+    })
     renderApp('/mis-pedidos')
     const user = userEvent.setup()
-
-    const [favorite] = await screen.findAllByRole('button', { name: /Pedir de nuevo/ })
-    await user.click(favorite as HTMLElement)
-
+    await user.click(await screen.findByRole('button', { name: 'Pedir Agua' }))
     expect(screen.getByRole('dialog', { name: 'Nuevo pedido de prueba' })).toBeInTheDocument()
   })
 })
@@ -157,24 +157,6 @@ describe('Mis Pedidos: cancelación con errores del servidor', () => {
 
     await user.click(within(dialog).getByRole('button', { name: 'Volver' }))
     expect(screen.queryByRole('dialog')).toBeNull()
-  })
-})
-
-describe('Mis Pedidos: tarjeta del pedido en curso', () => {
-  it('con el pedido aceptado muestra un PIN de 4 dígitos que se puede copiar y el texto se restablece', async () => {
-    serve({ orders: { status: 200, body: { orders: [order({ id: 'pedido-xyz', status: 'ROUTE_ASSIGNED' })] } } })
-    renderApp('/mis-pedidos')
-    // userEvent.setup() instala su propio portapapeles: se espía después de crearlo.
-    const user = userEvent.setup()
-    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
-
-    const pin = (await screen.findByText(/^\d \d \d \d$/)).textContent
-    expect(pin).toMatch(/^\d \d \d \d$/)
-    await user.click(screen.getByRole('button', { name: 'Copiar código' }))
-
-    expect(writeText).toHaveBeenCalledWith(pin.replace(/\s/g, ''))
-    expect(screen.getByRole('button', { name: '¡Copiado!' })).toBeInTheDocument()
-    await waitFor(() => { expect(screen.getByRole('button', { name: 'Copiar código' })).toBeInTheDocument() }, { timeout: 3000 })
   })
 })
 

@@ -13,6 +13,8 @@ jest.mock('../src/features/customer-orders/api', () => ({
 // The tracking section needs a native WebView; it is not under test here.
 jest.mock('../src/features/customer-orders/OrderTrackingSection', () => ({ OrderTrackingSection: () => null }))
 
+jest.mock('../src/features/customer-orders/map/AddressMapPicker', () => ({ AddressMapPicker: () => null }))
+
 const order: CustomerOrder = {
   id: 'aaaaaaaa-0000-4000-8000-000000000001',
   address: 'Av. Central 123',
@@ -57,4 +59,12 @@ describe('CurrentOrderCard: cancel with the account blocked for the balance', ()
 
     await waitFor(() => { expect(alert).toHaveBeenCalledWith('No se pudo cancelar', message) })
   })
+})
+
+it('muestra la fecha programada y conserva el aviso de cupo cuando hay cola', async () => {
+  const card = await render(<CurrentOrderCard order={order} />)
+  expect(screen.getByText(/Pedido programado para entregarse el 2099-12-31 entre/)).toBeTruthy()
+  await card.rerender(<CurrentOrderCard order={{ ...order, queuePosition: 2 }} />)
+  expect(screen.getByText(/Tu pedido es el #2 en espera/)).toBeTruthy()
+  expect(screen.queryByText(/Pedido programado para entregarse/)).toBeNull()
 })

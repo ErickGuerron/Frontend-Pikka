@@ -1,14 +1,17 @@
+import type { DeliveryEdit } from '../../../../shared/customer-orders/edit'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { cancelOrder, createOrder, getMyBalance, isDemoMode, listMyNotifications, listMyOrders, openDispute, payMyBalance } from './api'
-import { isActiveTransit, type CustomerOrder } from './types'
+import { cancelOrder, createOrder, editOrder, getMyBalance, getOrderTracking, isDemoMode, listMyNotifications, listMyOrders, openDispute, payMyBalance } from './api'
+import { isActiveTransit, isInProgress, isOnTheWay, type CustomerOrder } from './types'
 
 export const myOrdersKey = ['customer-orders'] as const
 
 const POLL_MS = 10_000
+const PENDING_POLL_MS = 30_000
 
-/** Polls every 10 s only while some order is moving; otherwise the list is static. */
+/** Polls active deliveries and checks pending orders for changes from planning or the queue. */
 export function pollInterval(orders: readonly CustomerOrder[] | undefined): number | false {
-  return orders?.some((order) => isActiveTransit(order.status)) === true ? POLL_MS : false
+  if (orders?.some((order) => isActiveTransit(order.status))) return POLL_MS
+  return orders?.some((order) => isInProgress(order.status)) ? PENDING_POLL_MS : false
 }
 
 export function useMyOrders() {
@@ -76,5 +79,27 @@ export function useOpenDispute() {
   return useMutation({
     mutationFn: (input: { surchargeId: string; reason: string }) => openDispute(input.surchargeId, input.reason),
     onSettled: () => queryClient.invalidateQueries({ queryKey: myBalanceKey }),
+  })
+}
+
+export function useOrderTracking(order: CustomerOrder) {
+  return useQuery({
+    queryKey: ['customer-order-tracking', order.id],
+    queryFn: ({ signal }) => getOrderTracking(order.id, signal),
+    enabled: isOnTheWay(order.status) && !isDemoMode(),
+    refetchInterval: (query) => query.state.data && !isOnTheWay(query.state.data.status) ? false : 5_000,
+    retry: false,
+  })
+}
+
+export function useEditOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, changes }: { id: string; changes: DeliveryEdit }) => editOrder(id, changes),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<CustomerOrder[]>(myOrdersKey, (current) =>
+        current?.map((order) => order.id === updated.id ? updated : order))
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: myOrdersKey }),
   })
 }

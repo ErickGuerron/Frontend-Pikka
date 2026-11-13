@@ -38,6 +38,11 @@ export const reviewReasonLabels: Record<ReviewReason, string> = {
 export interface CustomerOrder {
   id: string
   address: string
+  latitude?: number
+  longitude?: number
+  addressReference?: string
+  postalCode?: string
+  contactPhone?: string
   /** YYYY-MM-DD */
   deliveryDate: string
   /** HH:mm */
@@ -101,7 +106,7 @@ export function isInProgress(status: OrderStatus): boolean {
   return status === 'PENDING' || status === 'PENDING_REVIEW' || isActiveTransit(status)
 }
 
-function isOnTheWay(status: OrderStatus): boolean {
+export function isOnTheWay(status: OrderStatus): boolean {
   return status === 'PICKED_UP' || status === 'IN_TRANSIT'
 }
 
@@ -136,10 +141,13 @@ function parseQueuePosition(o: Record<string, unknown>): number {
 
 export function parseOrder(data: unknown): CustomerOrder {
   const o = object(data, 'order')
-  // Coordinates sent by the future API are ignored: this client has no map.
   return {
     id: string(o, 'id'),
     address: string(o, 'address'),
+    ...(typeof o.latitude === 'number' && typeof o.longitude === 'number' ? { latitude: o.latitude, longitude: o.longitude } : {}),
+    ...(typeof o.addressReference === 'string' ? { addressReference: o.addressReference } : {}),
+    ...(typeof o.postalCode === 'string' ? { postalCode: o.postalCode } : {}),
+    ...(typeof o.contactPhone === 'string' ? { contactPhone: o.contactPhone } : {}),
     deliveryDate: string(o, 'deliveryDate'),
     windowStart: string(o, 'windowStart'),
     windowEnd: string(o, 'windowEnd'),

@@ -1,14 +1,17 @@
+import type { DeliveryEdit } from '../../../../shared/customer-orders/edit'
 import { create } from 'zustand'
 import { userMessage } from '../../api/errors'
-import { cancelOrder, createOrder, isServiceUnavailable, listMyOrders } from './api'
-import { isActiveTransit, type CustomerOrder, type NewCustomerOrder } from './types'
+import { cancelOrder, createOrder, editOrder, isServiceUnavailable, listMyOrders } from './api'
+import { isActiveTransit, isInProgress, type CustomerOrder, type NewCustomerOrder } from './types'
 
 export const POLL_MS = 10_000
+const PENDING_POLL_MS = 30_000
 export const UNAVAILABLE_MESSAGE = 'El servicio de pedidos aún no está disponible'
 
-/** Polls every 10 s only while some order is moving; otherwise the list is static. */
+/** Polls active deliveries and checks pending orders for changes from planning or the queue. */
 export function pollInterval(orders: readonly CustomerOrder[]): number | false {
-  return orders.some((order) => isActiveTransit(order.status)) ? POLL_MS : false
+  if (orders.some((order) => isActiveTransit(order.status))) return POLL_MS
+  return orders.some((order) => isInProgress(order.status)) ? PENDING_POLL_MS : false
 }
 
 interface OrdersState {
@@ -20,6 +23,7 @@ interface OrdersState {
   unavailable: boolean
   load: (mode?: 'initial' | 'refresh' | 'poll') => Promise<void>
   create: (input: NewCustomerOrder) => Promise<CustomerOrder>
+  edit: (id: string, changes: DeliveryEdit) => Promise<void>
   cancel: (id: string) => Promise<void>
   reset: () => void
 }
@@ -45,6 +49,14 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
     const order = await createOrder(input)
     await get().load('poll')
     return order
+  },
+  edit: async (id, changes) => {
+    try {
+      const edited = await editOrder(id, changes)
+      set((state) => ({ orders: state.orders.map((order) => order.id === id ? edited : order) }))
+    } finally {
+      await get().load('poll')
+    }
   },
   cancel: async (id) => {
     try {

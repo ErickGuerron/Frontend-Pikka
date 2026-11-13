@@ -6,6 +6,7 @@ import { LeafletMap } from './map/LeafletMap'
 import type { Coordinate } from './map/geo'
 import { type TrackingSnapshot } from './tracking'
 import { trackingMapState, type FitRequest } from './tracking-map'
+import { isOnTheWay } from './types'
 import { useOrderTracking } from './use-order-tracking'
 
 const noop = () => undefined
@@ -20,9 +21,10 @@ export function OrderTrackingSection({ orderId }: { orderId: string }) {
   const { snapshot, unavailable } = useOrderTracking(orderId)
   const [follow, setFollow] = useState(false)
   const [fit, setFit] = useState<FitRequest | null>(null)
-  const driver = snapshot?.driverPosition ?? null
-  const delivery = snapshot?.deliveryPoint ?? null
-  const road = snapshot?.road ?? NO_ROAD
+  const live = snapshot !== null && isOnTheWay(snapshot.status) ? snapshot : null
+  const driver = live?.driverPosition ?? null
+  const delivery = live?.deliveryPoint ?? null
+  const road = live?.road ?? NO_ROAD
   const driverPoint = useMemo<Coordinate | null>(
     () => (driver === null ? null : { latitude: driver.latitude, longitude: driver.longitude }),
     [driver],
@@ -37,18 +39,20 @@ export function OrderTrackingSection({ orderId }: { orderId: string }) {
     setFit((previous) => ({ points, key: String((previous === null ? 0 : Number(previous.key)) + 1) }))
   }
 
+  if (snapshot !== null && live === null) return null
+
   if (unavailable) {
     return <Text style={styles.muted}>Seguimiento no disponible en este momento.</Text>
   }
-  if (snapshot === null) {
+  if (live === null) {
     return <Text style={styles.muted}>Conectando con el seguimiento...</Text>
   }
   return (
     <View accessibilityLabel="Seguimiento en vivo" style={styles.box}>
       <Text style={styles.label}>Seguimiento</Text>
-      <Text style={styles.value}>{etaText(snapshot)}</Text>
-      {snapshot.stopsBefore !== null ? <Text style={styles.text}>{stopsText(snapshot.stopsBefore)}</Text> : null}
-      {driver !== null && snapshot.eta === null ? (
+      <Text style={styles.value}>{etaText(live)}</Text>
+      {live.stopsBefore !== null ? <Text style={styles.text}>{stopsText(live.stopsBefore)}</Text> : null}
+      {driver !== null && live.eta === null ? (
         <Text style={styles.text}>Repartidor en camino. Sin tiempo estimado por ahora.</Text>
       ) : null}
       {driver !== null || delivery !== null ? (

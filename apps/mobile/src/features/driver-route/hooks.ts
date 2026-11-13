@@ -55,7 +55,8 @@ export function useDriverRoute() {
         setRoute((current) => current?.id === route.id
           ? { ...current, stops: current.stops.map((s) => (s.id === updated.stopId ? { ...s, status: updated.status, reason: input.reason ?? null } : s)) }
           : current)
-        setError(null)
+        // A closed stop can admit a waiting order on this route or another in the zone.
+        await load()
       } catch (e) {
         if (e instanceof ApiError && e.code === 'OUTSIDE_WINDOW_REASON_REQUIRED') {
           setError(null)

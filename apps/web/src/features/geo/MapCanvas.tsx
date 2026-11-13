@@ -22,6 +22,8 @@ export interface MapCanvasProps {
   zones?: readonly MapZone[]
   /** Punto seleccionado, marcado en rojo. */
   picked?: Coordinate | null
+  driverPosition?: Coordinate | null
+  road?: readonly Coordinate[]
   /** Polígono a resaltar, por ejemplo la zona que contiene el punto. */
   highlight?: readonly Coordinate[] | null
   /** Huecos del polígono resaltado. */
@@ -57,6 +59,8 @@ export function MapCanvas({
   drawing = [],
   zones = [],
   picked = null,
+  driverPosition = null,
+  road = [],
   highlight = null,
   highlightHoles = [],
   focus = null,
@@ -130,6 +134,18 @@ export function MapCanvas({
           }}
         />
       ))}
+      {road.length > 1 && (
+        <Polyline positions={toLatLngTuples(road)} pathOptions={{ color: '#0369a1', weight: 4 }} />
+      )}
+      {driverPosition !== null && (
+        <CircleMarker
+          center={[driverPosition.latitude, driverPosition.longitude]}
+          radius={8}
+          pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#0369a1', fillOpacity: 1 }}
+        >
+          <Tooltip direction="top">Repartidor</Tooltip>
+        </CircleMarker>
+      )}
       {picked !== null && (
         <CircleMarker center={[picked.latitude, picked.longitude]} radius={7} pathOptions={{ color: '#b42318' }} />
       )}

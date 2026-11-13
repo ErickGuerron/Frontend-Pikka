@@ -1,13 +1,15 @@
+import { scheduledOrderNotice } from '../../../../shared/customer-orders/schedule'
 import { useState } from 'react'
 import { Alert, StyleSheet, Text, View } from 'react-native'
 import { isDemoMode } from '../../api/config'
 import { ApiError, userMessage } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
+import { EditOrderForm } from './EditOrderForm'
 import { OrderStepper, StatusPill } from './OrderParts'
 import { OrderTrackingSection } from './OrderTrackingSection'
 import { useOrdersStore } from './orders-store'
-import { canCancel, formatWindow, isInProgress, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
+import { canCancel, formatWindow, isInProgress, isOnTheWay, localToday, orderCode, pendingDriverNotice, reviewReasonLabels, type CustomerOrder } from './types'
 
 /** What the customer sees when an account blocked for the balance cannot cancel (ADR 0006). */
 export const cancelBlockedMessage = 'Paga tu saldo pendiente para volver a cancelar pedidos.'
@@ -19,6 +21,11 @@ export const cancelBlockedMessage = 'Paga tu saldo pendiente para volver a cance
 export function CurrentOrderCard({ order, cancelBlocked = false }: { order: CustomerOrder; cancelBlocked?: boolean }) {
   const cancel = useOrdersStore((s) => s.cancel)
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+
+  const notice = order.status === 'PENDING' && order.queuePosition === 0 && order.deliveryDate > localToday()
+    ? scheduledOrderNotice(order.deliveryDate, formatWindow(order.windowStart, order.windowEnd))
+    : pendingDriverNotice(order.status, order.queuePosition)
 
   const confirmCancel = () => {
     Alert.alert('Cancelar pedido', `¿Seguro que quieres cancelar el pedido ${orderCode(order.id)}?`, [
@@ -49,9 +56,9 @@ export function CurrentOrderCard({ order, cancelBlocked = false }: { order: Cust
         <StatusPill status={order.status} />
       </View>
 
-      {pendingDriverNotice(order.status, order.queuePosition) !== null ? (
-        <View accessibilityRole="summary" style={styles.banner} accessibilityLabel="Pedido en espera de repartidor">
-          <Text style={styles.bannerText}>{pendingDriverNotice(order.status, order.queuePosition)}</Text>
+      {notice !== null ? (
+        <View accessibilityRole="summary" style={styles.banner}>
+          <Text style={styles.bannerText}>{notice}</Text>
         </View>
       ) : null}
 
@@ -77,9 +84,16 @@ export function CurrentOrderCard({ order, cancelBlocked = false }: { order: Cust
         <Text style={styles.label}>Dirección de entrega</Text>
         <Text style={styles.text}>{order.address}</Text>
       </View>
-      {isInProgress(order.status) && !isDemoMode() ? <OrderTrackingSection orderId={order.id} /> : null}
+      {order.status === 'ROUTE_ASSIGNED' ? (
+        <Text style={styles.bannerText}>Tu pedido está asignado a un repartidor; aún no sale del local.</Text>
+      ) : null}
+      {isOnTheWay(order.status) && !isDemoMode() ? <OrderTrackingSection orderId={order.id} /> : null}
       {canCancel(order.status) ? (
         <>
+          {!isDemoMode() ? (
+            editing ? <EditOrderForm key={order.id} order={order} onClose={() => { setEditing(false) }} />
+              : <Button label="Editar pedido" variant="outline" onPress={() => { setEditing(true) }} />
+          ) : null}
           <Button label="Cancelar pedido" variant="danger" onPress={confirmCancel} loading={busy} disabled={cancelBlocked} />
           {cancelBlocked ? <Text style={styles.blockedNote}>{cancelBlockedMessage}</Text> : null}
         </>

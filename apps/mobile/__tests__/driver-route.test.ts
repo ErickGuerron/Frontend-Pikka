@@ -159,3 +159,12 @@ describe('parseDriverRoute: capacidad de la ruta', () => {
     expect(parseDriverRoute(validRoute).maxOrders).toBeNull()
   })
 })
+it('lee el cupo de la zona y permite cero pedidos activos', () => {
+  const route = parseDriverRoute({
+    ...validRoute,
+    max_orders: 10,
+    zone_occupancy: { active_orders: 0, daily_order_limit: 25, delivery_date: '2030-04-12' },
+  })
+  expect(route.zoneOccupancy).toEqual({ activeOrders: 0, dailyOrderLimit: 25, deliveryDate: '2030-04-12' })
+  expect(parseDriverRoute(validRoute).zoneOccupancy).toBeNull()
+})

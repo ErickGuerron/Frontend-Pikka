@@ -57,10 +57,11 @@ describe('order rules', () => {
     expect(validateNewOrder({ ...ok, windowStart: '10:00' }, '2026-10-11').window).toBeDefined()
   })
 
-  it('polls only while an order is in active transit', async () => {
+  it('polls pending orders less frequently than active deliveries', async () => {
     const orders = await listDemoOrders()
     expect(pollInterval(orders)).toBe(10_000)
-    expect(pollInterval(orders.filter((o) => o.status === 'DELIVERED' || o.status === 'PENDING'))).toBe(false)
+    expect(pollInterval(orders.filter((o) => o.status === 'DELIVERED' || o.status === 'PENDING'))).toBe(30_000)
+    expect(pollInterval(orders.filter((o) => o.status === 'DELIVERED'))).toBe(false)
   })
 
   it('picks the order on the way as current and filters by text and status', async () => {

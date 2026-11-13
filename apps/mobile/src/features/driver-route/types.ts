@@ -1,4 +1,4 @@
-import { enumValue, number, object, oneOf, ParseError, string } from '../../api/parse'
+import { enumValue, isRecord, number, object, oneOf, ParseError, string } from '../../api/parse'
 import type { DriverLocation } from './location'
 
 /**
@@ -70,6 +70,21 @@ export interface DriverRoute {
   stops: RouteStop[]
   /** Pedidos que caben en esta ruta (capacidad de su zona). Null cuando el servidor no la conoce. */
   maxOrders: number | null
+  zoneOccupancy: ZoneOccupancy | null
+}
+
+interface ZoneOccupancy {
+  activeOrders: number
+  dailyOrderLimit: number
+  deliveryDate: string
+}
+
+function parseZoneOccupancy(raw: unknown): ZoneOccupancy | null {
+  if (!isRecord(raw)) return null
+  const { active_orders: active, daily_order_limit: limit, delivery_date: date } = raw
+  if (typeof active !== 'number' || !Number.isInteger(active) || active < 0 ||
+      typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || typeof date !== 'string') return null
+  return { activeOrders: active, dailyOrderLimit: limit, deliveryDate: date }
 }
 
 export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
@@ -115,7 +130,7 @@ export function parseDriverRoute(data: unknown): DriverRoute {
   const o = object(data, 'route')
   if (!Array.isArray(o.stops)) throw new ParseError('stops: expected array')
   const maxOrders = typeof o.max_orders === 'number' && o.max_orders > 0 ? o.max_orders : null
-  return { id: string(o, 'id'), stops: o.stops.map(parseRouteStop), maxOrders }
+  return { id: string(o, 'id'), stops: o.stops.map(parseRouteStop), maxOrders, zoneOccupancy: parseZoneOccupancy(o.zone_occupancy) }
 }
 
 /** Stops in the order the driver must visit them. */

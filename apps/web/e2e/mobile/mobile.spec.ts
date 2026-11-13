@@ -153,8 +153,12 @@ test('el cliente centra el mapa en su repartidor y lo sigue', async ({ page }) =
     road: [],
     updated_at: '2026-10-24T10:00:00Z',
   }
+  let closeOrder: (() => void) | undefined
   await page.routeWebSocket(/\/api\/v1\/orders\/order-1\/tracking\/ws/, (ws) => {
     ws.send(JSON.stringify(snapshot))
+    closeOrder = () => {
+      ws.send(JSON.stringify({ ...snapshot, status: 'DELIVERED', driver_position: null, eta: null, stops_before: null }))
+    }
   })
 
   await page.goto('/login')
@@ -169,6 +173,8 @@ test('el cliente centra el mapa en su repartidor y lo sigue', async ({ page }) =
   await expect(follow).toBeChecked()
   await page.getByLabel('Centrar en mi punto').click()
   await expect(page.getByLabel('Centrar en mi punto')).toBeVisible()
+  closeOrder?.()
+  await expect(page.getByLabel('Centrar en repartidor')).toHaveCount(0)
 })
 
 test('el repartidor busca y pagina sus paradas', async ({ page }) => {
@@ -184,12 +190,12 @@ test('el repartidor busca y pagina sus paradas', async ({ page }) => {
     status: 'PENDING',
     reason: null,
   }))
-  await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: { id: 'route-1', stops, max_orders: 10 } }))
+  await page.route('**/api/v1/drivers/me/route', (route) => route.fulfill({ json: { id: 'route-1', stops, max_orders: 10, zone_occupancy: { active_orders: 12, daily_order_limit: 25, delivery_date: '2026-11-13' } } }))
 
   await page.goto('/login')
   await login(page, driver.email, 'repartidor-password')
   await expect(page.getByText('Página 1 de 2')).toBeVisible()
-  await expect(page.getByText('Cupo: 7 de 10 pedidos')).toBeVisible()
+  await expect(page.getByText('Cupo: 12 de 25 pedidos')).toBeVisible()
 
   await page.getByLabel('Página siguiente').click()
   await expect(page.getByText('Página 2 de 2')).toBeVisible()
@@ -212,14 +218,14 @@ test.describe('registro de entrega del repartidor', () => {
     // El mock de la ruta refleja el estado: tras registrar el resultado, la parada ya esta entregada.
     await page.route('**/api/v1/drivers/me/route', (route) =>
       route.fulfill({
-        json: { ...driverRoute, stops: [{ ...driverRoute.stops[0], status: delivered ? 'DELIVERED' : 'PENDING' }] },
+        json: { ...driverRoute, stops: [{ ...driverRoute.stops[0], status: delivered ? 'DELIVERED' : 'IN_TRANSIT' }] },
       }),
     )
     await page.route('**/api/v1/drivers/me/routes/route-1/stops/stop-1/result', async (route) => {
       resultBody = route.request().postDataJSON()
       delivered = true
       await route.fulfill({
-        json: { ...driverRoute.stops[0], status: 'DELIVERED', reason: null },
+        json: { stopId: 'stop-1', status: 'DELIVERED' },
       })
     })
 

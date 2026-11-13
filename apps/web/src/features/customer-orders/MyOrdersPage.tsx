@@ -4,7 +4,7 @@ import pikkaNutria from '@/assets/pikka.png'
 import { isDemoMode, isServiceUnavailable } from './api'
 import { BalanceCard } from './BalanceCard'
 import { CurrentOrderCard } from './CurrentOrderCard'
-import { GuaranteeBanner, QuickFavoritesSection } from './CustomerSections'
+import { CustomerCatalogSection } from './CustomerSections'
 import { useMyBalance, useMyOrders } from './hooks'
 import { NewOrderDialog } from './NewOrderDialog'
 import { NoActiveDeliveryCard } from './NoActiveDeliveryCard'
@@ -18,6 +18,7 @@ export function MyOrdersPage() {
   const blocked = useMyBalance().data?.blocked === true
   const { data: user } = useCurrentUser()
   const [creating, setCreating] = useState(false)
+  const [initialProductId, setInitialProductId] = useState<string>()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const topRef = useRef<HTMLDivElement>(null)
@@ -66,12 +67,6 @@ export function MyOrdersPage() {
 
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#e8f7f9] border border-[#cce7ea] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#006b5f]">
-                TELEMETRÍA EN DIRECTO
-              </span>
-              <span className="font-mono text-[11px] text-[#557b7f]">
-                Sincronizado: tiempo real
-              </span>
               {onTheWay > 0 ? (
                 <span className="rounded-full font-mono px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#e8f7f9] text-[#006b5f] border border-[#cce7ea]">
                   {onTheWay} {onTheWay === 1 ? 'pedido en camino' : 'pedidos en camino'}
@@ -88,7 +83,7 @@ export function MyOrdersPage() {
               Mis Pedidos
             </h1>
             <p className="text-xs sm:text-sm text-[#557b7f] max-w-2xl leading-relaxed">
-              Hola, <span className="font-semibold text-[#004b4e]">{firstName}</span>. Gestiona tus entregas express, rastrea pedidos en curso con control de frío o solicita un nuevo despacho con empaque isotérmico inteligente.
+              Hola, <span className="font-semibold text-[#004b4e]">{firstName}</span>. Revisa tus pedidos y sigue las entregas en camino.
             </p>
           </div>
         </div>
@@ -100,7 +95,7 @@ export function MyOrdersPage() {
             disabled={orders.isError || blocked}
             title={blocked ? 'Tu cuenta está bloqueada por saldo pendiente' : undefined}
             className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-[#004b4e] hover:bg-[#0a6568] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm border border-[#004b4e] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={() => { setCreating(true) }}
+            onClick={() => { setInitialProductId(undefined); setCreating(true) }}
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add_circle</span>
             <span>Hacer nuevo pedido</span>
@@ -134,7 +129,7 @@ export function MyOrdersPage() {
             <CurrentOrderCard key={current.id} order={current} />
           ) : (
             <NoActiveDeliveryCard
-              onNewOrder={() => { setCreating(true) }}
+              onNewOrder={() => { setInitialProductId(undefined); setCreating(true) }}
               onViewHistory={() => { historyRef.current?.scrollIntoView({ behavior: 'smooth' }) }}
               hasAnyOrders={(list ?? []).length > 0}
             />
@@ -151,15 +146,11 @@ export function MyOrdersPage() {
             />
           </div>
 
-          {/* SECCIÓN RÁPIDA: FAVORITOS RECURRENTES */}
-          <QuickFavoritesSection onNewOrder={() => { setCreating(true) }} />
-
-          {/* BANNER TÉCNICO INFERIOR: GARANTÍA & SOPORTE HUMANO */}
-          <GuaranteeBanner />
+          <CustomerCatalogSection onOrder={(productId) => { setInitialProductId(productId); setCreating(true) }} />
         </>
       )}
 
-      {creating ? <NewOrderDialog onClose={() => { setCreating(false) }} onCreated={onCreated} /> : null}
+      {creating ? <NewOrderDialog {...(initialProductId === undefined ? {} : { initialProductId })} onClose={() => { setCreating(false) }} onCreated={onCreated} /> : null}
     </div>
   )
 }

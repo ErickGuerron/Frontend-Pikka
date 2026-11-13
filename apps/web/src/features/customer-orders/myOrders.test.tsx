@@ -42,12 +42,27 @@ const ring = [
 ]
 const coverage = { status: 200, body: { zones: [{ id: 'z1', code: 'Z-1', name: 'Zona Centro', ring }] } }
 
-function serve(orders: CustomerOrder[] | { status: number; body: unknown }) {
+function serve(orders: CustomerOrder[] | { status: number; body: unknown }, trackingStatus?: string) {
   return mockApi((url, init) => {
     if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
     if (url.includes('/api/v1/products')) return catalog
     if (url.endsWith('/api/v1/coverage/zones')) return coverage
     if (url.endsWith('/api/v1/orders/mine')) return Array.isArray(orders) ? { status: 200, body: { orders } } : orders
+    if (url.endsWith('/tracking') && trackingStatus) {
+      return { status: 200, body: {
+        order_id: 'aaaaaaaa-0000-4000-8000-000000000001',
+        status: trackingStatus,
+        delivery_address: 'Av. Central 123',
+        delivery_window: { start: '09:00', end: '12:00' },
+        eta: { duration_seconds: 720, distance_meters: 1500 },
+        stops_before: 2,
+        driver_position: { latitude: -0.2, longitude: -78.5, recorded_at: '2026-11-13T12:00:00Z' },
+        updated_at: '2026-11-13T12:00:00Z',
+      } }
+    }
+    if (url.endsWith('/aaaaaaaa-0000-4000-8000-000000000001') && init.method === 'PATCH') {
+      return { status: 200, body: order({ status: 'ROUTE_ASSIGNED', postalCode: '170150' }) }
+    }
     if (url.endsWith('/cancel') && init.method === 'POST') return { status: 200, body: order({ status: 'CANCELLED' }) }
     return { status: 200, body: { status: 'ready' } }
   })
@@ -136,6 +151,40 @@ describe('Mis Pedidos: pedido en curso', () => {
     renderApp('/mis-pedidos')
     expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('muestra el aviso de programado para un pedido futuro sin cola', async () => {
+    serve([order({ status: 'PENDING', deliveryDate: '2099-12-31' })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Pedido programado para entregarse el .* entre 09:00–12:00/)).toBeInTheDocument()
+  })
+
+  it('en un pedido asignado permite editar el contacto y envía solo el campo cambiado', async () => {
+    const mock = serve([order({ status: 'ROUTE_ASSIGNED', contactPhone: '0991234567' })])
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Editar pedido' }))
+    const dialog = screen.getByRole('dialog', { name: 'Editar pedido' })
+    expect(within(dialog).queryByLabelText('Dirección de entrega')).toBeNull()
+    await user.type(within(dialog).getByLabelText(/Código postal/), '170150')
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByRole('button', { name: 'Editar pedido' })).toBeInTheDocument()
+    const patch = mock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(sentBody(patch?.[1])).toEqual({ postalCode: '170150' })
+  })
+
+  it('antes de la recogida muestra el aviso y omite telemetría', async () => {
+    serve([order({ status: 'ROUTE_ASSIGNED' })], 'ROUTE_ASSIGNED')
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/aún no sale del local/)).toBeInTheDocument()
+    expect(screen.queryByText(/Llegada estimada en/)).not.toBeInTheDocument()
+  })
+
+  it.each(['PICKED_UP', 'IN_TRANSIT'] as const)('presenta la ETA y las paradas del Gateway en %s', async (status) => {
+    serve([order({ status })], status)
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('Llegada estimada en 12 min')).toBeInTheDocument()
+    expect(screen.getByText('Paradas antes de tu entrega: 2')).toBeInTheDocument()
   })
 
   it('pedido PENDING en cola muestra su posición de espera', async () => {

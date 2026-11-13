@@ -1,7 +1,9 @@
+import type { DeliveryEdit } from '../../../../shared/customer-orders/edit'
+import { parseTrackingSnapshot } from '../../../../shared/customer-orders/tracking'
 import { http } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/errors'
 import { cancelDemoOrder, createDemoOrder, listDemoOrders } from './demo'
-import { parseCustomerOrder, parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
+import { orderStatuses, parseCustomerOrder, parseMyOrders, type CustomerOrder, type NewCustomerOrder } from './types'
 import { parseNotifications, type CustomerNotification } from './notifications'
 import { parseBalancePayment, parseMyBalance, type BalancePayment, type MyBalance } from './balance'
 import { object, string } from '@/shared/api/parse'
@@ -72,4 +74,16 @@ export function payMyBalance(): Promise<BalancePayment> {
  */
 export function openDispute(surchargeId: string, reason: string): Promise<{ id: string }> {
   return http.post(`/api/v1/surcharges/${encodeURIComponent(surchargeId)}/dispute`, (data) => ({ id: string(object(data, 'dispute'), 'id') }), { body: { reason } })
+}
+
+export function getOrderTracking(id: string, signal?: AbortSignal) {
+  return http.get(
+    `/api/v1/orders/${encodeURIComponent(id)}/tracking`,
+    (data) => parseTrackingSnapshot(data, orderStatuses),
+    { signal },
+  )
+}
+
+export function editOrder(id: string, body: DeliveryEdit): Promise<CustomerOrder> {
+  return http.patch(`/api/v1/orders/${encodeURIComponent(id)}`, parseCustomerOrder, { body })
 }
