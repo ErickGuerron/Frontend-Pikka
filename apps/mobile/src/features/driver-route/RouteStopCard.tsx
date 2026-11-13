@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ApiError } from '../../api/errors'
 import { Button } from '../../components/Button'
 import { colors } from '../../theme/colors'
 import { captureDriverLocation, LOCATION_DENIED_MESSAGE, type DriverLocation } from './location'
@@ -36,16 +37,20 @@ interface Props {
   total?: number
   /** The stop being worked on shows its actions; the next ones stay muted. */
   current?: boolean
+  atRisk?: boolean
   onSubmit: (stopId: string, input: StopResultInput) => Promise<void>
   onAdvance: (stopId: string, to: ProgressStatus) => Promise<void>
 }
 
 /** One stop: address, window, progress buttons and the result buttons while it is not final. */
-export function RouteStopCard({ stop, total, current = true, onSubmit, onAdvance }: Props) {
+export function RouteStopCard({ stop, total, current = true, atRisk = false, onSubmit, onAdvance }: Props) {
   const [choosingReason, setChoosingReason] = useState(false)
   const [reason, setReason] = useState<NotDeliveredReason | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [outsideWindow, setOutsideWindow] = useState(false)
+  const [outsideWindowReason, setOutsideWindowReason] = useState('')
   const pending = canRegisterResult(stop) && current
+  const canClose = stop.status === 'IN_TRANSIT'
   const next = nextProgressStatus(stop)
 
   /** Registers a result. The GPS position is taken now, at the moment of the result. */
@@ -63,7 +68,16 @@ export function RouteStopCard({ stop, total, current = true, onSubmit, onAdvance
       setLocalError(e instanceof Error ? e.message : LOCATION_DENIED_MESSAGE)
       return
     }
-    await onSubmit(stop.id, { ...input, location })
+    try {
+      await onSubmit(stop.id, { ...input, location })
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'OUTSIDE_WINDOW_REASON_REQUIRED') {
+        setOutsideWindow(true)
+        return
+      }
+      setLocalError(error instanceof Error ? error.message : 'No se pudo registrar el resultado de la parada.')
+      return
+    }
     setChoosingReason(false)
     setReason(null)
   }
@@ -88,14 +102,39 @@ export function RouteStopCard({ stop, total, current = true, onSubmit, onAdvance
       </View>
 
       {stop.reason !== null ? <Text style={styles.info}>Motivo: {reasonLabels[stop.reason]}</Text> : null}
+      {atRisk ? <Text style={styles.info}>La llegada estimada queda fuera de la ventana.</Text> : null}
 
-      {pending && !choosingReason ? (
+      {pending && !choosingReason && !outsideWindow ? (
         <View style={styles.actions}>
           {next !== null ? (
             <Button label={advanceLabel[next]} onPress={() => { void onAdvance(stop.id, next) }} />
           ) : null}
-          <Button label="Entregado" onPress={() => { void send({ outcome: 'DELIVERED' }) }} />
-          <Button label="No entregado" variant="outline" onPress={() => { setChoosingReason(true) }} />
+          {canClose ? (
+            <>
+              <Button label="Entregado" onPress={() => { void send({ outcome: 'DELIVERED' }) }} />
+              <Button label="No entregado" variant="outline" onPress={() => { setChoosingReason(true) }} />
+            </>
+          ) : null}
+        </View>
+      ) : null}
+
+      {pending && outsideWindow ? (
+        <View style={styles.actions}>
+          <Text accessibilityRole="alert" style={styles.info}>Estás fuera de la ventana de entrega. Indica el motivo para registrarla.</Text>
+          <TextInput
+            accessibilityLabel="Motivo de entrega fuera de horario"
+            value={outsideWindowReason}
+            onChangeText={setOutsideWindowReason}
+            maxLength={300}
+            multiline
+            style={styles.reason}
+          />
+          <Button
+            label="Confirmar entrega"
+            disabled={outsideWindowReason.trim() === ''}
+            onPress={() => { void send({ outcome: 'DELIVERED', outsideWindowReason: outsideWindowReason.trim() }) }}
+          />
+          <Button label="Volver" variant="outline" onPress={() => { setOutsideWindow(false); setOutsideWindowReason('') }} />
         </View>
       ) : null}
 

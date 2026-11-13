@@ -90,7 +90,7 @@ export type ReviewAction = (typeof reviewActionValues)[number]
 
 /** Decisión del operador sobre un pedido en revisión (OrderReviewRequest). */
 export interface OrderReviewInput {
-  action: ReviewAction
+  action: ReviewAction | 'REASSIGN_WRONG_ADDRESS'
   reason: string
   /** Solo para CORRECT: los campos que el operador ajusta. */
   correction?: {

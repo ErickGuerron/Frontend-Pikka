@@ -5,7 +5,7 @@ import { isDriverDemoMode } from '../../../api/config'
 import { useSessionStore } from '../../../store/session-store'
 import { colors } from '../../../theme/colors'
 import type { Coordinate } from '../../../features/customer-orders/map/geo'
-import { attendOrder, focusPoints } from '../../../features/driver-route/attend'
+import { focusPoints } from '../../../features/driver-route/attend'
 import { DriverHeader } from '../../../features/driver-route/DriverHeader'
 import { useDriverRoute } from '../../../features/driver-route/hooks'
 import { useDriverLocationReporter } from '../../../features/driver-route/location-reporter'
@@ -21,7 +21,7 @@ type Tab = 'active' | 'done'
 const NO_ROAD: Coordinate[] = []
 
 export default function DriverRouteScreen() {
-  const { route, loading, error, unavailable, reload, submit, advance } = useDriverRoute()
+  const { route, loading, error, unavailable, reload, submit, advance, reorder } = useDriverRoute()
   const user = useSessionStore((s) => s.user)
   const clear = useSessionStore((s) => s.clear)
   const [tab, setTab] = useState<Tab>('active')
@@ -29,7 +29,9 @@ export default function DriverRouteScreen() {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
-  const [pinnedId, setPinnedId] = useState<string | null>(null)
+  const [firstStopId, setFirstStopId] = useState<string | null>(null)
+  const [reorderReason, setReorderReason] = useState('')
+  const [reordering, setReordering] = useState(false)
   const [picking, setPicking] = useState(false)
   // Pedido de encuadre: ids de los pedidos a mostrar en el mapa. Cada petición tiene su propio número.
   const [fitRequest, setFitRequest] = useState<{ ids: string[]; n: number } | null>(null)
@@ -42,11 +44,10 @@ export default function DriverRouteScreen() {
   const { tracking, position } = useDriverLocationReporter(hasRoute && active.length > 0)
   const activeKey = active.map((s) => s.id).join(',')
   const { plan, error: planError } = useRoutePlan(position, activeKey, hasRoute && active.length > 0)
-  // Orden de atención: el pedido fijado primero, el resto por la ruta óptima del plan.
+  const currentPlan = plan?.order.join(',') === activeKey ? plan : null
+  // El orden de atención es la secuencia que devuelve el servidor.
   const byId = new Map(active.map((s) => [s.id, s] as const))
-  const attended: RouteStop[] = attendOrder(plan?.order ?? [], pinnedId, active.map((s) => s.id))
-    .map((id) => byId.get(id))
-    .filter((s): s is RouteStop => s !== undefined)
+  const attended = active
   const list = pageStops(tab === 'active' ? attended : done, query, page)
   const shown = list.items
   const searching = query.trim() !== ''
@@ -70,6 +71,20 @@ export default function DriverRouteScreen() {
   // Re-encuadrar abre el selector: el repartidor elige qué pedido encuadrar.
   const recenterCurrent = () => { setPicking(true) }
   const focusOrder = (id: string) => { requestFit([id]) }
+  const selectFirst = (id: string) => {
+    setReorderReason('')
+    setFirstStopId(id)
+  }
+  const saveOrder = async () => {
+    if (firstStopId === null || reordering) return
+    setReordering(true)
+    try {
+      await reorder(firstStopId, reorderReason.trim())
+    } finally {
+      setReordering(false)
+      setFirstStopId(null)
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -104,14 +119,14 @@ export default function DriverRouteScreen() {
           stops={stops}
           driver={position}
           ordered={attended}
-          road={plan?.geometry ?? NO_ROAD}
+          road={currentPlan?.geometry ?? NO_ROAD}
           fit={fit}
           onRecenter={recenterCurrent}
         />
 
         {tab === 'active' && planError !== null ? (
           <Text accessibilityRole="alert" style={styles.error}>
-            No se pudo calcular la ruta óptima: {planError}. Revisa que el servicio de rutas esté levantado (make osrm-up).
+            No se pudo calcular el recorrido de la ruta: {planError}.
           </Text>
         ) : null}
 
@@ -171,6 +186,7 @@ export default function DriverRouteScreen() {
             stop={stop}
             total={stops.length}
             current={stop.id === currentId || isFinal(stop.status)}
+            atRisk={currentPlan?.atRisk?.includes(stop.id) ?? false}
             onSubmit={submit}
             onAdvance={advance}
           />
@@ -226,8 +242,32 @@ export default function DriverRouteScreen() {
         driver={position}
         onClose={() => { setPicking(false) }}
         onFocus={focusOrder}
-        onAttend={setPinnedId}
+        onAttend={selectFirst}
       />
+      <Modal visible={firstStopId !== null} transparent onRequestClose={() => { if (!reordering) setFirstStopId(null) }}>
+        <View style={[styles.screen, { justifyContent: 'center', padding: 24 }]}>
+          <Text style={styles.name}>Cambiar la primera parada</Text>
+          <Text style={styles.info}>Indica el motivo para que quede registrado.</Text>
+          <TextInput
+            accessibilityLabel="Motivo del cambio de orden"
+            value={reorderReason}
+            onChangeText={setReorderReason}
+            maxLength={300}
+            editable={!reordering}
+            style={styles.searchInput}
+          />
+          <Pressable
+            accessibilityRole="button"
+            disabled={reordering || reorderReason.trim().length < 5}
+            onPress={() => { void saveOrder() }}
+          >
+            <Text style={styles.info}>{reordering ? 'Guardando…' : 'Guardar orden'}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" disabled={reordering} onPress={() => { setFirstStopId(null) }}>
+            <Text style={styles.info}>Cancelar</Text>
+          </Pressable>
+        </View>
+      </Modal>
 
       <Modal transparent animationType="fade" visible={confirmingLogout} onRequestClose={() => { setConfirmingLogout(false) }}>
         <View style={styles.overlay}>

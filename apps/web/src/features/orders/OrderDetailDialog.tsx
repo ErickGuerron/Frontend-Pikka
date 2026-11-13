@@ -124,13 +124,13 @@ export function OrderDetailDialog({ order, onClose, onReview }: OrderDetailDialo
           >
             Cerrar
           </button>
-          {order.status === 'PENDING_REVIEW' ? (
+          {order.status === 'PENDING_REVIEW' || order.status === 'PENDING' ? (
             <button
               className="cursor-pointer rounded-lg border border-[#004b4e] bg-[#004b4e] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-[#0a6568]"
               onClick={() => { onReview(order); }}
               type="button"
             >
-              Revisar pedido
+              {order.status === 'PENDING' ? 'Corregir antes del despacho' : 'Revisar pedido'}
             </button>
           ) : null}
         </div>

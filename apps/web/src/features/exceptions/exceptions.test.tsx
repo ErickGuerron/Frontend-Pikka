@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSession } from '@/features/auth/session-store'
-import { sentBody, renderApp } from '@/test/utils'
+import { adminUser, mockApi, sentBody, renderApp } from '@/test/utils'
 import { buildException, mockQueue } from './exceptions.fixtures'
 import { openReview } from './exceptions.test-utils'
 
@@ -13,6 +13,31 @@ beforeEach(() => {
 })
 
 describe('cola de excepciones', () => {
+  it('confirma un recargo por dirección incorrecta con un motivo', async () => {
+    let pending = [{ id: 's-1', orderId: 'o-9' }]
+    const fetchMock = mockApi((url, init) => {
+      if (url.endsWith('/auth/me')) return { status: 200, body: adminUser }
+      if (url.endsWith('/ready')) return { status: 200, body: { status: 'ready' } }
+      if (url.endsWith('/pending-verification')) return { status: 200, body: pending }
+      if (url.endsWith('/s-1/verification') && init.method === 'POST') {
+        pending = []
+        return { status: 200, body: {} }
+      }
+      return { status: 200, body: [] }
+    })
+    renderApp('/exceptions')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Ver recargos por dirección incorrecta' }))
+    const save = await screen.findByRole('button', { name: 'Guardar decisión' })
+    expect(save).toBeDisabled()
+    await user.type(screen.getByLabelText('Motivo de la decisión'), 'Cliente confirmó la dirección')
+    await user.click(save)
+
+    expect(await screen.findByText('No hay recargos por verificar.')).toBeInTheDocument()
+    const call = fetchMock.mock.calls.find(([url, init]) => url.endsWith('/s-1/verification') && init?.method === 'POST')
+    expect(sentBody(call?.[1])).toEqual({ decision: 'CONFIRM', reason: 'Cliente confirmó la dirección' })
+  })
+
   it('lista los pedidos en revisión con sus motivos', async () => {
     mockQueue([exception])
     renderApp('/exceptions')

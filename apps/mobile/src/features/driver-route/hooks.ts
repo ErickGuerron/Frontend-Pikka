@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, userMessage } from '../../api/errors'
-import { advanceStopStatus, getMyRoute, isRouteUnavailable, registerStopResult } from './api'
+import { advanceStopStatus, getMyRoute, isRouteUnavailable, moveStopFirst, registerStopResult } from './api'
+import { captureDriverLocation } from './location'
 import type { DriverRoute, ProgressStatus, StopResultInput } from './types'
 
 export const UNAVAILABLE_MESSAGE = 'El servicio de rutas aún no está disponible'
@@ -51,9 +52,23 @@ export function useDriverRoute() {
       if (route === null) return
       try {
         const updated = await registerStopResult(route.id, stopId, input)
-        setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? updated : s)) })
+        setRoute((current) => current?.id === route.id
+          ? { ...current, stops: current.stops.map((s) => (s.id === updated.stopId ? { ...s, status: updated.status, reason: input.reason ?? null } : s)) }
+          : current)
         setError(null)
       } catch (e) {
+        if (e instanceof ApiError && e.code === 'OUTSIDE_WINDOW_REASON_REQUIRED') {
+          setError(null)
+          throw e
+        }
+        if (e instanceof ApiError && e.code === 'OUTSIDE_ARRIVAL_RADIUS') {
+          setError('Acércate al punto de entrega antes de marcar el pedido como entregado.')
+          return
+        }
+        if (e instanceof ApiError && e.code === 'FAILED_PRECONDITION') {
+          setError('La parada debe estar en camino para registrar su resultado.')
+          return
+        }
         if (e instanceof ApiError && e.status === 409) {
           await load()
           return
@@ -83,5 +98,26 @@ export function useDriverRoute() {
     [route, load],
   )
 
-  return { route, loading, error, unavailable, reload: () => load(), submit, advance }
+  const reorder = async (stopId: string, reason: string) => {
+    if (route === null) return false
+    setError(null)
+    try {
+      const location = await captureDriverLocation()
+      await moveStopFirst(route.id, stopId, reason, location)
+      await load()
+      return true
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        await load()
+        setError('La ruta cambió. Revisa las paradas antes de volver a intentarlo.')
+      } else if (e instanceof ApiError && e.code === 'FAILED_PRECONDITION') {
+        setError('No se pudo cambiar el orden sin comprometer la ruta o una ventana de entrega.')
+      } else {
+        setError(e instanceof ApiError ? actionError('No pudimos reordenar la ruta.', e) : 'Activa tu ubicación para reordenar la ruta.')
+      }
+      return false
+    }
+  }
+
+  return { route, loading, error, unavailable, reload: () => load(), submit, advance, reorder }
 }

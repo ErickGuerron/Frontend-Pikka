@@ -3,14 +3,12 @@ import { isDriverDemoMode } from '../../api/config'
 import { ApiError } from '../../api/errors'
 import type { DriverLocation } from './location'
 import { parseRoutePlan, type RoutePlan } from './plan'
-import { advanceDemoStatus, getDemoRoute, registerDemoResult } from './demo'
+import { advanceDemoStatus, getDemoRoute, moveDemoStopFirst, registerDemoResult } from './demo'
 import {
   parseDriverRoute,
-  parseRouteStop,
   parseStopProgress,
   type DriverRoute,
   type ProgressStatus,
-  type RouteStop,
   type StopProgress,
   type StopResultInput,
 } from './types'
@@ -18,9 +16,7 @@ import {
 /**
  * Driver route endpoints.
  *
- * NOT IMPLEMENTED: the API Gateway does not serve GET /api/v1/drivers/me/route nor the stop
- * result below (both answer 501). Until then EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true swaps in an
- * in-memory demo. The stop status PATCH is served.
+ * EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true uses the in-memory demo.
  *
  * GPS: the result carries the driver's location (ADR 0007, section 4), captured with
  * expo-location at the moment of registration.
@@ -57,10 +53,15 @@ export function getMyRoute(signal?: AbortSignal): Promise<DriverRoute> {
   return http.get('/api/v1/drivers/me/route', parseDriverRoute, signal ? { signal } : {})
 }
 
+export function moveStopFirst(routeId: string, firstStopId: string, reason: string, location: DriverLocation): Promise<void> {
+  if (isDriverDemoMode()) return moveDemoStopFirst(routeId, firstStopId)
+  return http.patch(`/api/v1/drivers/me/routes/${encodeURIComponent(routeId)}/order`, () => undefined, {
+    body: { firstStopId, reason, latitude: location.latitude, longitude: location.longitude },
+  })
+}
+
 /**
- * Advances a stop to PICKED_UP or IN_TRANSIT. The Gateway serves this route (PATCH) and answers
- * {stopId, status}; the route itself (GET /drivers/me/route) is still not served, so the stop
- * can only be reached through the demo or once that route exists.
+ * Advances a stop to PICKED_UP or IN_TRANSIT. The Gateway returns {stopId, status}.
  */
 export function advanceStopStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<StopProgress> {
   if (isDriverDemoMode()) {
@@ -70,8 +71,13 @@ export function advanceStopStatus(routeId: string, stopId: string, to: ProgressS
   return http.patch(path, parseStopProgress, { body: { status: to } })
 }
 
-export function registerStopResult(routeId: string, stopId: string, input: StopResultInput): Promise<RouteStop> {
-  if (isDriverDemoMode()) return registerDemoResult(routeId, stopId, input)
+export function registerStopResult(routeId: string, stopId: string, input: StopResultInput): Promise<StopProgress> {
+  if (isDriverDemoMode()) {
+    return registerDemoResult(routeId, stopId, input).then((stop) => ({ stopId: stop.id, status: stop.status }))
+  }
   const path = `/api/v1/drivers/me/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}/result`
-  return http.post(path, parseRouteStop, { body: input })
+  const { location, ...result } = input
+  return http.post(path, parseStopProgress, {
+    body: { ...result, latitude: location.latitude, longitude: location.longitude },
+  })
 }

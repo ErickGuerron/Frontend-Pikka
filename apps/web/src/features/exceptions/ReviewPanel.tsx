@@ -39,16 +39,18 @@ export interface ReviewPanelProps {
   embedded?: boolean
   /** Avisa si hay una decisión en curso, para que el contenedor no se cierre a mitad de envío. */
   onBusyChange?: (busy: boolean) => void
+  reassignWrongAddress?: boolean
 }
 
 /**
  * Decisión del operador sobre un pedido en revisión (ADR 0007, sección 3):
  * confirmar, corregir o rechazar, siempre con motivo.
  */
-export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBusyChange }: ReviewPanelProps) {
+export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBusyChange, reassignWrongAddress = false }: ReviewPanelProps) {
   const queryClient = useQueryClient()
   const spatial = isSpatialReview(order)
-  const [action, setAction] = useState<ReviewAction>(spatial ? 'CORRECT' : 'CONFIRM')
+  const correctionOnly = order.status === 'PENDING' || reassignWrongAddress
+  const [action, setAction] = useState<ReviewAction>(spatial || correctionOnly ? 'CORRECT' : 'CONFIRM')
   const [reason, setReason] = useState('')
   const [fields, setFields] = useState<OrderFields>({
     address: order.address,
@@ -60,9 +62,9 @@ export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBu
 
   const mutation = useMutation({
     mutationFn: (input: OrderReviewInput) => reviewOrder(order.id, input),
-    onSuccess: (_updated, input) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['orders'] })
-      onDecided(input.action)
+      onDecided(action)
     },
   })
 
@@ -88,13 +90,16 @@ export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBu
     if (trimmedReason.length < MIN_REASON_LENGTH) {
       found.reason = `Escribe el motivo de la decisión (mínimo ${String(MIN_REASON_LENGTH)} caracteres).`
     }
+    if (reassignWrongAddress && fields.deliveryDate <= order.deliveryDate) {
+      found.deliveryDate = 'Selecciona una fecha posterior a la entrega original.'
+    }
     setErrors(found)
     if (Object.keys(found).length > 0) return
 
     mutation.mutate(
       action === 'CORRECT'
         ? {
-            action,
+            action: reassignWrongAddress ? 'REASSIGN_WRONG_ADDRESS' : action,
             reason: trimmedReason,
             correction: {
               address: fields.address.trim(),
@@ -122,7 +127,7 @@ export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBu
             rate_review
           </span>
           <h2 id="review-title" className="text-sm font-bold text-[#004b4e] font-sans">
-            Revisar pedido
+            {reassignWrongAddress ? 'Reprogramar entrega' : correctionOnly ? 'Corregir antes del despacho' : 'Revisar pedido'}
           </h2>
         </div>
         <p className="mt-1 text-xs font-mono text-[#557b7f]">
@@ -151,7 +156,7 @@ export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBu
       </div>
 
       <form className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 pt-4" noValidate onSubmit={onSubmit}>
-        <fieldset className="lg:col-span-2 flex flex-col gap-2">
+        {!correctionOnly ? <fieldset className="lg:col-span-2 flex flex-col gap-2">
           <legend className={fieldLabelClass}>Decisión *</legend>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {reviewActionValues.map((value) => {
@@ -191,7 +196,7 @@ export function ReviewPanel({ order, onDecided, onCancel, embedded = false, onBu
               )
             })}
           </div>
-        </fieldset>
+        </fieldset> : null}
 
         <div className="lg:col-span-2 flex flex-col gap-1">
           <label className={fieldLabelClass} htmlFor="review-reason">Motivo *</label>

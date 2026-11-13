@@ -77,6 +77,7 @@ export type StopOutcome = Extract<StopStatus, 'DELIVERED' | 'NOT_DELIVERED'>
 export interface StopResultInput {
   outcome: StopOutcome
   reason?: NotDeliveredReason
+  outsideWindowReason?: string
   /** Driver position at registration (ADR 0007, section 4). Required by the backend. */
   location: DriverLocation
 }

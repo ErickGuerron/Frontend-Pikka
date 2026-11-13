@@ -30,8 +30,10 @@ VITE_DEV_GATEWAY_URL=http://localhost:8081
 y reinicia `npm run dev`. Si el front no alcanza al Gateway, el login muestra
 "No se pudo conectar con el backend".
 
-Entra con el administrador inicial definido en el `.env` del backend
-(`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`).
+En una base de desarrollo recién migrada, entra con `admin@pikka.com` y
+`Password123`. El backend usa `BOOTSTRAP_ADMIN_EMAIL` y
+`BOOTSTRAP_ADMIN_PASSWORD` cuando la tabla de usuarios está vacía después de
+las migraciones.
 
 ## Web: comandos
 

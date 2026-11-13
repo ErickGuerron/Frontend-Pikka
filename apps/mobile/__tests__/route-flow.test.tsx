@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import * as Location from 'expo-location'
 
 import DriverRouteScreen from '../src/app/(app)/ruta/index'
+import { ApiError } from '../src/api/errors'
 import { resetDemoRoute } from '../src/features/driver-route/demo'
 import { RouteStopCard } from '../src/features/driver-route/RouteStopCard'
 import { LOCATION_DENIED_MESSAGE } from '../src/features/driver-route/location'
@@ -42,12 +43,12 @@ beforeEach(() => {
 })
 
 describe('RouteStopCard', () => {
-  it('offers the next progress step and both results for a pending stop', async () => {
+  it('offers only the next progress step for a pending stop', async () => {
     await render(<RouteStopCard stop={stop()} onSubmit={jest.fn()} onAdvance={jest.fn()} />)
 
     expect(screen.getByText('Marcar recogido')).toBeTruthy()
-    expect(screen.getByText('Entregado')).toBeTruthy()
-    expect(screen.getByText('No entregado')).toBeTruthy()
+    expect(screen.queryByText('Entregado')).toBeNull()
+    expect(screen.queryByText('No entregado')).toBeNull()
   })
 
   it('advances a pending stop to recogido without asking for a result', async () => {
@@ -66,6 +67,21 @@ describe('RouteStopCard', () => {
     await fireEvent.press(screen.getByText('Entregado'))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('stop-1', { outcome: 'DELIVERED', location: here }))
+  })
+
+  it('asks for a reason when the server reports an arrival outside the window', async () => {
+    const onSubmit = jest.fn()
+      .mockRejectedValueOnce(new ApiError(422, 'OUTSIDE_WINDOW_REASON_REQUIRED', 'reason required'))
+      .mockResolvedValueOnce(undefined)
+    await render(<RouteStopCard stop={stop({ status: 'IN_TRANSIT' })} onSubmit={onSubmit} onAdvance={jest.fn()} />)
+
+    await fireEvent.press(screen.getByText('Entregado'))
+    const reason = await screen.findByLabelText('Motivo de entrega fuera de horario')
+    await fireEvent.changeText(reason, 'El cliente pidió esperar.')
+    await fireEvent.press(screen.getByText('Confirmar entrega'))
+    await waitFor(() => expect(onSubmit).toHaveBeenLastCalledWith('stop-1', {
+      outcome: 'DELIVERED', outsideWindowReason: 'El cliente pidió esperar.', location: here,
+    }))
   })
 
   it('requires a closed reason before a failed delivery can be confirmed', async () => {

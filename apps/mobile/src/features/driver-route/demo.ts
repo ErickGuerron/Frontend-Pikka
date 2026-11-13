@@ -38,6 +38,15 @@ export function getDemoRoute(): Promise<DriverRoute> {
   return Promise.resolve(clone(route))
 }
 
+export async function moveDemoStopFirst(routeId: string, stopId: string): Promise<void> {
+  const first = findStop(routeId, stopId)
+  if (isFinal(first.status)) throw new ApiError(409, 'CONFLICT', 'stop already closed')
+  const active = route.stops.filter((stop) => !isFinal(stop.status)).sort((a, b) => a.sequence - b.sequence)
+  const order = [first, ...active.filter((stop) => stop.id !== stopId)]
+  const sequences = new Map(order.map((stop, index) => [stop.id, active[index]?.sequence ?? stop.sequence]))
+  route = { ...route, stops: route.stops.map((stop) => ({ ...stop, sequence: sequences.get(stop.id) ?? stop.sequence })) }
+}
+
 /** Moves a stop to the next progress step only; any other jump is a conflict. */
 export function advanceDemoStatus(routeId: string, stopId: string, to: ProgressStatus): Promise<RouteStop> {
   try {

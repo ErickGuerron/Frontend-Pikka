@@ -8,12 +8,13 @@ export interface RoutePlan {
   distanceMeters: number
   durationSeconds: number
   geometry: Coordinate[]
+  atRisk?: string[]
 }
 
 /** Lee la respuesta del gateway. Un cuerpo que no es un plan lanza error; nunca se inventa una ruta. */
 export function parseRoutePlan(data: unknown): RoutePlan {
   if (!isRecord(data)) throw new Error('route plan: expected object')
-  const { order, distanceMeters, durationSeconds, geometry } = data
+  const { order, distanceMeters, durationSeconds, geometry, atRisk } = data
   if (!Array.isArray(order) || !order.every((id) => typeof id === 'string')) {
     throw new Error('route plan: order must be a list of stop ids')
   }
@@ -21,10 +22,14 @@ export function parseRoutePlan(data: unknown): RoutePlan {
     throw new Error('route plan: totals must be numbers')
   }
   if (!Array.isArray(geometry)) throw new Error('route plan: geometry must be a list')
+  if (atRisk !== undefined && (!Array.isArray(atRisk) || !atRisk.every((id) => typeof id === 'string'))) {
+    throw new Error('route plan: atRisk must be a list of stop ids')
+  }
   return {
     order,
     distanceMeters,
     durationSeconds,
+    ...(atRisk === undefined ? {} : { atRisk }),
     geometry: geometry.map((pair) => {
       if (!Array.isArray(pair) || typeof pair[0] !== 'number' || typeof pair[1] !== 'number') {
         throw new Error('route plan: geometry point must be [lat, lon]')

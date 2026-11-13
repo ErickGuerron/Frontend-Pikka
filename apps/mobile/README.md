@@ -67,13 +67,14 @@ The order form does not collect coordinates (no map/geocoder) and order notes ar
 
 ## Driver route backend status
 
-The Gateway still has **no driver route endpoints**: `GET /api/v1/drivers/me/route` and `POST /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/result`
-answer 501. `src/features/driver-route/api.ts` targets them. With
-`EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true` the screen runs on a demo route. Each result captures the driver's GPS position with `expo-location` (ADR 0007) at the moment it is
-registered, using foreground permission only. If the driver refuses, the result is not sent.
-The driver can mark each stop "recogido" and "en camino" before the result. Those two steps call
-`PATCH /api/v1/drivers/me/routes/{routeId}/stops/{stopId}/status`, which the Gateway serves and answers with `{stopId, status}`.
-The stop is reachable only once the route endpoint exists.
+For an assigned driver, the Gateway serves `GET /api/v1/drivers/me/route`.
+The driver marks each stop "recogido" and "en camino" before recording a
+result. The app sends foreground GPS with each result and requests a reason
+for a delivery outside the time window.
+
+The driver can move an active stop to the front with an audited reason. The
+Gateway uses OSRM to check delivery windows and draw the saved order. With
+`EXPO_PUBLIC_MOCK_DRIVER_ROUTE=true`, the screen runs on a demo route.
 
 ## Scripts
 

@@ -8,6 +8,7 @@ import { KpiGrid } from '@/shared/ui/kpi'
 import { Pagination, usePagination } from '@/shared/ui/pagination'
 import { decisionMessages } from './review'
 import { ReviewDialog } from './ReviewDialog'
+import { SurchargeVerification } from './SurchargeVerification'
 
 /** Cola de excepciones: pedidos cuya validación automática no se cumplió (ADR 0007, sección 3). */
 export function ExceptionsPage() {
@@ -134,6 +135,7 @@ export function ExceptionsPage() {
           </div>
         )}
       </section>
+      <SurchargeVerification />
     </div>
   )
 }
