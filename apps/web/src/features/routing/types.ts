@@ -65,6 +65,19 @@ export function parseRoutePlan(data: unknown): RoutePlan {
  * planId, routes[{routeId, driverId, driverName, orderCount, stops}], unassignedOrderIds.
  * The plan id is derived by the backend and is not persisted; it is only a label.
  */
+/** Respuesta de POST /api/v1/routes/{routeId}/orders: la parada nueva al final de la ruta. */
+export interface AddedStop {
+  routeId: string
+  stop: PlannedStop
+}
+
+export function parseAddedStop(data: unknown): AddedStop {
+  const o = record(data, 'added stop')
+  const s = record(o.stop, 'stop')
+  if (typeof s.sequence !== 'number') throw new RangeError('sequence: se esperaba número')
+  return { routeId: text(o, 'routeId'), stop: { orderId: text(s, 'orderId'), address: text(s, 'address'), sequence: s.sequence } }
+}
+
 export function parseGeneratedRoutePlan(data: unknown): RoutePlan {
   const o = record(data, 'generated route plan')
   return {

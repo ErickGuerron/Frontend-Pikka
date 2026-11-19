@@ -16,9 +16,19 @@ export interface TrackedStop {
   status: DeliveryStatus
 }
 
+/** Última posición fresca del repartidor de la ruta. */
+export interface DriverPosition {
+  latitude: number
+  longitude: number
+  /** RFC 3339. */
+  recordedAt: string
+}
+
 export interface TrackedRoute {
   id: string
   driverName: string
+  /** Ausente cuando el repartidor no tiene una posición reciente. */
+  driverPosition?: DriverPosition
   stops: TrackedStop[]
 }
 
@@ -33,6 +43,14 @@ function text(obj: Record<string, unknown>, key: string): string {
   return value
 }
 
+/** La posición es opcional: sin ella el mapa solo muestra las paradas. */
+function parseDriverPosition(data: unknown): { driverPosition?: DriverPosition } {
+  if (data === undefined || data === null) return {}
+  const p = record(data, 'driverPosition')
+  if (typeof p.latitude !== 'number' || typeof p.longitude !== 'number') throw new RangeError('driverPosition: se esperaban coordenadas')
+  return { driverPosition: { latitude: p.latitude, longitude: p.longitude, recordedAt: text(p, 'recordedAt') } }
+}
+
 export function parseTrackedRoutes(data: unknown): TrackedRoute[] {
   if (!Array.isArray(data)) throw new RangeError('routes: se esperaba una lista')
   return data.map((item) => {
@@ -42,6 +60,7 @@ export function parseTrackedRoutes(data: unknown): TrackedRoute[] {
     return {
       id: text(r, 'id'),
       driverName: text(r, 'driverName'),
+      ...parseDriverPosition(r.driverPosition),
       stops: stops.map((stop) => {
         const s = record(stop, 'stop')
         const status = text(s, 'status')
