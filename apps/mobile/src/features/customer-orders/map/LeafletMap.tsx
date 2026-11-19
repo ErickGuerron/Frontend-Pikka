@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ForwardRefExoticComponent, t
 import { StyleSheet, View } from 'react-native'
 import { WebView as WebViewComponent, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview'
 import { buildMapDocument, parseMapEvent, stateScript } from './document'
+import { mapTileSource } from './tiles'
 import type { LeafletMapProps } from './types'
 
 /** Metodos del WebView nativo que usa el mapa. react-native-webview 14 no los expone en su tipo generico. */
@@ -22,7 +23,7 @@ const BASE_URL = 'https://localhost/'
 export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   const webView = useRef<MapWebView>(null)
   const [ready, setReady] = useState(false)
-  const html = useMemo(buildMapDocument, [])
+  const html = useMemo(() => buildMapDocument(undefined, mapTileSource(process.env.EXPO_PUBLIC_MAP_TILE_KEY)), [])
 
   useEffect(() => {
     if (ready) webView.current?.injectJavaScript(stateScript(state))

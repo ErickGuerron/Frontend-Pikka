@@ -1,6 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo } from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { MAP_TILE_SOURCE } from '../geo/tiles'
 import { agoLabel } from '@/features/tracking/ago'
 
 export interface MapStop {
@@ -56,8 +57,9 @@ export function RouteMap({
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-[360px] w-full rounded-xl z-0">
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution={MAP_TILE_SOURCE.attribution}
+        url={MAP_TILE_SOURCE.url}
+        referrerPolicy="strict-origin-when-cross-origin"
       />
       <Fit points={points} />
       {routes.map((route) => (

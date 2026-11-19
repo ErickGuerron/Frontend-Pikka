@@ -1,6 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 import { useEffect } from 'react'
 import { CircleMarker, MapContainer, Polygon, Polyline, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import { MAP_TILE_SOURCE } from './tiles'
 import { toLatLngTuples } from './latlng'
 import type { Coordinate } from './types'
 
@@ -74,8 +75,9 @@ export function MapCanvas({
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className={className}>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution={MAP_TILE_SOURCE.attribution}
+        url={MAP_TILE_SOURCE.url}
+        referrerPolicy="strict-origin-when-cross-origin"
       />
       <ClickListener onMapClick={onMapClick} />
       <FocusController target={focus} />
