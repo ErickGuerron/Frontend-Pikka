@@ -80,6 +80,7 @@ export function buildMapDocument(parentOrigin?: string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="referrer" content="origin">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>html,body,#map{height:100%;margin:0;padding:0}.leaflet-container{font-family:system-ui,sans-serif}.stop-n{background:none;border:0;box-shadow:none;color:#fff;font-weight:700;padding:0}.stop-n:before{display:none}.pin-wrap{background:none;border:0}.pin{position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;box-sizing:border-box;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)}.pin b{position:absolute;top:-7px;right:-7px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:#fff;color:#004b4e;font:700 10px/16px system-ui,sans-serif;text-align:center;box-shadow:0 0 2px rgba(0,0,0,.5)}</style>
 </head>
@@ -97,8 +98,11 @@ export function buildMapDocument(parentOrigin?: string): string {
     }
   }
   var map = L.map('map').setView([-0.1807, -78.4678], 13);
+  // OpenStreetMap exige que las teselas lleguen con el origen de la app en el Referer: si la pagina anfitriona lo recorta
+  // (Referrer-Policy: no-referrer, proxys, extensiones), bloquea con "Access blocked ... tile usage policy".
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
+    referrerPolicy: 'origin',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
   var zonesLayer = L.layerGroup().addTo(map);
