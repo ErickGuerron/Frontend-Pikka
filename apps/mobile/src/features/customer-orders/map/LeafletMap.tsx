@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ForwardRefExoticComponent, type RefAttributes } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { WebView, type WebViewMessageEvent } from 'react-native-webview'
+import { WebView as WebViewComponent, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview'
 import { buildMapDocument, parseMapEvent, stateScript } from './document'
 import type { LeafletMapProps } from './types'
+
+/** Metodos del WebView nativo que usa el mapa. react-native-webview 14 no los expone en su tipo generico. */
+interface MapWebView {
+  injectJavaScript: (script: string) => void
+}
+
+/** El WebView nativo acepta ref; su tipo generico de la 14 no lo declara, asi que se tipa aqui una sola vez. */
+const WebView = WebViewComponent as unknown as ForwardRefExoticComponent<WebViewProps & RefAttributes<MapWebView>>
 
 /** URL base del documento: con ella las teselas de OpenStreetMap reciben un origen válido. */
 const BASE_URL = 'https://localhost/'
@@ -12,7 +20,7 @@ const BASE_URL = 'https://localhost/'
  * con un iframe y el mismo documento y los mismos mensajes.
  */
 export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
-  const webView = useRef<WebView>(null)
+  const webView = useRef<MapWebView>(null)
   const [ready, setReady] = useState(false)
   const html = useMemo(buildMapDocument, [])
 
