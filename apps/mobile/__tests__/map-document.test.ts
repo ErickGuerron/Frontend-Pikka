@@ -39,6 +39,11 @@ describe('buildMapDocument', () => {
     expect(html).toContain('OpenStreetMap')
   })
 
+  it('manda el origen como Referer en las teselas aunque la pagina anfitriona lo recorte, que es lo que OSM exige', () => {
+    expect(html).toContain('<meta name="referrer" content="origin">')
+    expect(html).toContain("referrerPolicy: 'origin'")
+  })
+
   it('dibuja las zonas con los mismos colores que la web y la zona resaltada', () => {
     expect(html).toContain('#047857')
     expect(html).toContain('#10b981')

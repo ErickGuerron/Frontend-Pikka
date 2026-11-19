@@ -1,5 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { getOrders } from '@/features/orders/api'
+import { toMapRoutes } from '@/features/routing/mapRoutes'
+import type { MapDriver } from '@/features/routing/RouteMap'
 import { apiBaseUrl } from '@/shared/config/env'
 import { userMessage } from '@/shared/api/errors'
 import { isTrackingDemoMode, isTrackingLiveEnabled, listActiveRoutes, SNAPSHOT_INTERVAL_MS } from './api'
@@ -7,6 +10,9 @@ import { LiveTrackingClient, trackingSocketUrl, type LiveStatus, type SocketLike
 import { deliveryStatusLabels, openStops, type TrackedRoute } from './types'
 
 const queryKey = ['tracking', 'active-routes'] as const
+
+// Leaflet se descarga solo cuando hay algo que dibujar.
+const RouteMap = lazy(() => import('@/features/routing/RouteMap').then((m) => ({ default: m.RouteMap })))
 
 const liveLabels: Record<LiveStatus, string> = {
   live: 'En vivo',
@@ -21,12 +27,33 @@ const liveLabels: Record<LiveStatus, string> = {
 export function TrackingPage() {
   const queryClient = useQueryClient()
   const [live, setLive] = useState<LiveStatus | null>(null)
+  // La posición del repartidor envejece entre consultas: se renueva la hora cada 30 s para que "hace X" sea verdad.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => { setNow(Date.now()); }, 30_000)
+    return () => { clearInterval(id); }
+  }, [])
 
   const { data: routes = [], isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey,
     queryFn: listActiveRoutes,
     refetchInterval: SNAPSHOT_INTERVAL_MS,
   })
+
+  // Las coordenadas de las paradas salen de la lista de pedidos: el seguimiento solo trae dirección y estado.
+  const orders = useQuery({ queryKey: ['orders'], queryFn: getOrders })
+  // Con una ruta elegida (clic en su repartidor o en una parada) solo se ve esa. Si termina y deja de existir, vuelven todas.
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = routes.find((r) => r.id === selectedId) ?? null
+  const shownRoutes = useMemo(() => (selected === null ? routes : [selected]), [routes, selected])
+
+  // Los colores se calculan con todas las rutas para que cada una conserve el suyo al elegirla.
+  const allMapRoutes = useMemo(() => toMapRoutes(routes, new Map((orders.data ?? []).map((o) => [o.id, o]))), [routes, orders.data])
+  const mapRoutes = useMemo(() => (selected === null ? allMapRoutes : allMapRoutes.filter((r) => r.id === selected.id)), [allMapRoutes, selected])
+  const mapDrivers = useMemo<MapDriver[]>(
+    () => shownRoutes.flatMap((r) => (r.driverPosition ? [{ routeId: r.id, name: r.driverName, ...r.driverPosition }] : [])),
+    [shownRoutes],
+  )
 
   useEffect(() => {
     if (!isTrackingLiveEnabled()) return undefined
@@ -65,7 +92,7 @@ export function TrackingPage() {
               ) : null}
             </div>
             <p className="text-xs font-mono text-[#557b7f]">
-              Estado de cada parada de las rutas en curso. Se actualiza cada {SNAPSHOT_INTERVAL_MS / 1000} segundos.
+              Estado de cada parada y posición de cada repartidor en las rutas en curso. Se actualiza cada {SNAPSHOT_INTERVAL_MS / 60_000} minutos o cuando pulses Actualizar.
             </p>
           </div>
 
@@ -95,9 +122,38 @@ export function TrackingPage() {
                 Última actualización: {new Date(dataUpdatedAt).toLocaleTimeString('es-EC')}
               </span>
             ) : null}
+            <button
+              className="px-3 py-1 rounded border border-[#004b4e] text-[#004b4e] bg-white hover:bg-[#e8f7f9] text-[11px] font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 transition-colors"
+              disabled={isFetching}
+              onClick={() => { void Promise.all([refetch(), orders.refetch()]); }}
+              type="button"
+            >
+              {isFetching ? 'Actualizando…' : 'Actualizar'}
+            </button>
           </div>
         </div>
       </div>
+
+      {selected !== null ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#e8f7f9] rounded-xl border border-[#cce7ea] px-4 py-3 font-mono text-xs text-[#004b4e]">
+          <span>Mostrando solo la ruta de <strong>{selected.driverName}</strong>.</span>
+          <button
+            className="px-3 py-1 rounded border border-[#004b4e] text-[#004b4e] bg-white hover:bg-white/70 text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+            onClick={() => { setSelectedId(null); }}
+            type="button"
+          >
+            Ver todas las rutas
+          </button>
+        </div>
+      ) : null}
+
+      {mapRoutes.length > 0 || mapDrivers.length > 0 ? (
+        <section className="bg-white rounded-xl border border-[#cce7ea] p-3 shadow-sm" aria-label="Mapa de seguimiento">
+          <Suspense fallback={<p className="px-4 py-8 text-center text-xs font-mono text-[#557b7f]">Cargando mapa…</p>}>
+            <RouteMap drivers={mapDrivers} latestOrderId={null} now={now} onSelectRoute={setSelectedId} routes={mapRoutes} />
+          </Suspense>
+        </section>
+      ) : null}
 
       {isLoading ? (
         <div role="status" className="bg-white rounded-xl border border-[#cce7ea] p-12 text-center font-mono text-xs text-[#557b7f]">
@@ -121,7 +177,7 @@ export function TrackingPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {routes.map((route) => (
+          {shownRoutes.map((route) => (
             <article key={route.id} className="bg-white rounded-xl border border-[#cce7ea] p-5 shadow-sm">
               <div className="flex items-center justify-between border-b border-[#cce7ea] pb-3 mb-3">
                 <div className="flex items-center gap-2.5">
@@ -138,9 +194,21 @@ export function TrackingPage() {
                     </span>
                   </div>
                 </div>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#004b4e] bg-[#e8f7f9] px-2.5 py-0.5 rounded border border-[#cce7ea] font-semibold">
-                  {openStops(route)} paradas abiertas
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#004b4e] bg-[#e8f7f9] px-2.5 py-0.5 rounded border border-[#cce7ea] font-semibold">
+                    {openStops(route)} paradas abiertas
+                  </span>
+                  {selected === null ? (
+                    <button
+                      aria-label={`Ver solo la ruta de ${route.driverName}`}
+                      className="px-2 py-0.5 rounded border border-[#004b4e] text-[#004b4e] bg-white hover:bg-[#e8f7f9] text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                      onClick={() => { setSelectedId(route.id); }}
+                      type="button"
+                    >
+                      Ver solo esta
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
               <ol className="flex flex-col divide-y divide-[#cce7ea]/60 text-xs">
