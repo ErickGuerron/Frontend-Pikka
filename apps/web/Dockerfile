@@ -19,6 +19,9 @@ RUN npm ci --ignore-scripts
 COPY web/ ./
 COPY shared/ /app/shared/
 # VITE_API_BASE_URL queda vacío: el navegador llama a /api en el mismo origen y Nginx lo reenvía al gateway.
+# Clave de MapTiler para los mapas (VITE_MAP_TILE_KEY). Vacía = OpenStreetMap, solo desarrollo.
+ARG VITE_MAP_TILE_KEY=
+ENV VITE_MAP_TILE_KEY=${VITE_MAP_TILE_KEY}
 RUN npm run build
 
 # ---- Etapa 2: servir ----

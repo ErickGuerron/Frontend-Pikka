@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { WebView, type WebViewMessageEvent } from 'react-native-webview'
 import { buildMapDocument, parseMapEvent, stateScript } from './document'
+import { mapTileSource } from './tiles'
 import type { LeafletMapProps } from './types'
 
 /** URL base del documento: con ella las teselas de OpenStreetMap reciben un origen válido. */
@@ -14,7 +15,7 @@ const BASE_URL = 'https://localhost/'
 export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   const webView = useRef<WebView>(null)
   const [ready, setReady] = useState(false)
-  const html = useMemo(buildMapDocument, [])
+  const html = useMemo(() => buildMapDocument(undefined, mapTileSource(process.env.EXPO_PUBLIC_MAP_TILE_KEY)), [])
 
   useEffect(() => {
     if (ready) webView.current?.injectJavaScript(stateScript(state))
