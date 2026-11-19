@@ -14,6 +14,22 @@ function actionError(prefix: string, e: unknown): string {
   return `${prefix} ${userMessage(e)}`
 }
 
+/**
+ * A 409 or 422 on a stop means the screen is out of date: another tap or device already moved the stop
+ * (for example the delivery was registered but the screen still showed "En camino"). The route is reloaded.
+ */
+export function isStopOutOfDate(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 409 || e.status === 422)
+}
+
+/** What the driver reads after an out-of-date stop: only a 422 needs an explanation, a 409 just refreshes. */
+export function outOfDateMessage(e: unknown, prefix: string): string | null {
+  if (e instanceof ApiError && e.status === 422) {
+    return `${prefix} La parada ya había cambiado de estado (quizá ya se registró). Actualizamos tu ruta.`
+  }
+  return null
+}
+
 /** Loads the driver's route and lets the driver register the result of a stop. */
 export function useDriverRoute() {
   const [route, setRoute] = useState<DriverRoute | null>(null)
@@ -54,8 +70,9 @@ export function useDriverRoute() {
         setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? updated : s)) })
         setError(null)
       } catch (e) {
-        if (e instanceof ApiError && e.status === 409) {
+        if (isStopOutOfDate(e)) {
           await load()
+          setError(outOfDateMessage(e, 'No pudimos registrar la entrega.'))
           return
         }
         setError(actionError('No pudimos registrar la entrega.', e))
@@ -73,8 +90,9 @@ export function useDriverRoute() {
         setRoute({ ...route, stops: route.stops.map((s) => (s.id === stopId ? { ...s, status: progress.status } : s)) })
         setError(null)
       } catch (e) {
-        if (e instanceof ApiError && e.status === 409) {
+        if (isStopOutOfDate(e)) {
           await load()
+          setError(outOfDateMessage(e, 'No pudimos actualizar la parada.'))
           return
         }
         setError(actionError('No pudimos actualizar la parada.', e))
