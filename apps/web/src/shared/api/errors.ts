@@ -23,11 +23,17 @@ const messages: Record<string, string> = {
   NETWORK: 'No se pudo conectar con el servidor.',
 }
 
-/** Mensaje para mostrar al usuario a partir de cualquier error. */
+/**
+ * Mensaje para mostrar al usuario a partir de cualquier error. Un error sin traducción que trae requestId
+ * muestra una referencia corta: con ella el equipo encuentra la causa exacta en los logs del API Gateway.
+ */
 export function userMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'INVALID_ARGUMENT') return `Datos inválidos: ${error.message}.`
-    return messages[error.code] ?? 'Ocurrió un error inesperado.'
+    const known = messages[error.code]
+    if (known !== undefined) return known
+    const reference = error.requestId?.trim().slice(0, 8)
+    return reference ? `Ocurrió un error inesperado (referencia ${reference}).` : 'Ocurrió un error inesperado.'
   }
   return 'Ocurrió un error inesperado.'
 }
