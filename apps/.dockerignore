@@ -1,0 +1,11 @@
+# Contexto de build = apps/. Solo se necesita web/ y shared/.
+mobile
+**/node_modules
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+# Variables locales: no deben quedar dentro de la imagen
+**/.env
+**/.env.local

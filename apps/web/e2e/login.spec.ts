@@ -10,6 +10,10 @@ const admin = {
 }
 
 async function mockGateway(page: Page) {
+  // Catch-all registrado primero (menor prioridad): cualquier /api no mockeado queda aislado aquí.
+  // Sin esto, la petición llega al gateway de VITE_DEV_GATEWAY_URL; si hay un backend local,
+  // su 401 real cierra la sesión simulada y la prueba vuelve a /login.
+  await page.route('**/api/**', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/v1/auth/login', async (route) => {
     const body: unknown = route.request().postDataJSON()
     const ok = typeof body === 'object' && body !== null && 'password' in body && body.password === 'admin-password'
@@ -24,21 +28,28 @@ async function mockGateway(page: Page) {
 test('login, navegación y cierre de sesión', async ({ page }) => {
   await mockGateway(page)
   await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Lo mejor de la ciudad/ })).toBeVisible()
+  await page.goto('/orders')
   await expect(page).toHaveURL(/\/login$/)
 
-  await page.getByLabel('Correo').fill('admin@example.com')
-  await page.getByLabel('Contraseña').fill('mala-clave')
-  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await page.getByLabel(/^Correo/).fill('admin@example.com')
+  await page.getByLabel('Contraseña', { exact: true }).fill('mala-clave')
+  await page.getByRole('button', { name: 'Iniciar Sesión en Pikka' }).click()
   await expect(page.getByRole('alert')).toHaveText('Correo o contraseña incorrectos.')
 
-  await page.getByLabel('Contraseña').fill('admin-password')
-  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await page.getByLabel('Contraseña', { exact: true }).fill('admin-password')
+  await page.getByRole('button', { name: 'Iniciar Sesión en Pikka' }).click()
+  await expect(page).toHaveURL(/\/orders$/)
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Hola, Ana Admin' })).toBeVisible()
   await expect(page.getByTestId('system-status')).toHaveText('Backend disponible')
 
   await page.getByRole('link', { name: 'Rutas' }).click()
   await expect(page.getByRole('heading', { name: 'Rutas' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+  await page.getByRole('button', { name: 'Menú de cuenta de Ana Admin' }).click()
+  await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
   await expect(page).toHaveURL(/\/login$/)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Lo mejor de la ciudad/ })).toBeVisible()
 })

@@ -10,19 +10,24 @@ export interface HttpClientOptions {
 
 export interface RequestOptions {
   body?: unknown
-  signal?: AbortSignal
+  signal?: AbortSignal | undefined
+  /** `false` para endpoints públicos: no envía la sesión ni la cierra ante un 401. */
+  auth?: boolean
 }
 
 export interface HttpClient {
   get<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
   post<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  put<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  patch<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
+  delete<T>(path: string, parse: Parser<T>, options?: RequestOptions): Promise<T>
 }
 
 /** Único punto del front que habla HTTP con el API Gateway. */
 export function createHttpClient({ baseUrl, getToken, onUnauthorized }: HttpClientOptions): HttpClient {
   async function request<T>(method: string, path: string, parse: Parser<T>, options: RequestOptions = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' }
-    const token = getToken()
+    const token = options.auth === false ? null : getToken()
     if (token) headers.Authorization = `Bearer ${token}`
     if (options.body !== undefined) headers['Content-Type'] = 'application/json'
 
@@ -52,6 +57,9 @@ export function createHttpClient({ baseUrl, getToken, onUnauthorized }: HttpClie
   return {
     get: (path, parse, options) => request('GET', path, parse, options),
     post: (path, parse, options) => request('POST', path, parse, options),
+    put: (path, parse, options) => request('PUT', path, parse, options),
+    patch: (path, parse, options) => request('PATCH', path, parse, options),
+    delete: (path, parse, options) => request('DELETE', path, parse, options),
   }
 }
 
@@ -64,6 +72,11 @@ function toApiError(status: number, data: unknown): ApiError {
       typeof message === 'string' ? message : 'error',
       typeof requestId === 'string' ? requestId : undefined,
     )
+  }
+  // Sin cuerpo del Gateway: lo más probable es que no esté corriendo o que un
+  // proxy intermedio no lo alcance.
+  if (status === 502 || status === 503 || status === 504) {
+    return new ApiError(status, 'UPSTREAM_UNAVAILABLE', `HTTP ${String(status)}`)
   }
   return new ApiError(status, 'ERROR', `HTTP ${String(status)}`)
 }

@@ -24,7 +24,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/shared/api/http.ts', 'src/**/*.test.{ts,tsx}', 'src/test/**'],
+    // src/features/geo/api.ts es la única excepción: llama a Photon, un servicio externo sin token.\n    files: ['src/shared/api/http.ts', 'src/features/geo/api.ts', 'src/**/*.test.{ts,tsx}', 'src/test/**'],
     rules: { 'no-restricted-globals': 'off', '@typescript-eslint/consistent-type-assertions': 'off' },
   },
 )

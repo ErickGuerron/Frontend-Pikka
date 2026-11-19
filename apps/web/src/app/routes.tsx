@@ -1,40 +1,47 @@
 import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
-import { RequireAuth, RequireRole } from '@/features/auth/guards'
+import { PublicIndexOrAuth, RequireSection } from '@/features/auth/guards'
+import { MyOrdersPage } from '@/features/customer-orders/MyOrdersPage'
+import { CreateDriverPage } from '@/features/drivers/CreateDriverPage'
 import { DriversPage } from '@/features/drivers/DriversPage'
+import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage'
+import { LandingPage } from '@/features/landing/LandingPage'
 import { OrdersPage } from '@/features/orders/OrdersPage'
 import { RoutesPage } from '@/features/routing/RoutesPage'
+import { CatalogPage } from '@/features/catalog/CatalogPage'
+import { ProductAdminPage } from '@/features/catalog/ProductAdminPage'
+import { AppLayout } from '@/features/shell/AppLayout'
 import { TrackingPage } from '@/features/tracking/TrackingPage'
 import { CreateUserPage } from '@/features/users/CreateUserPage'
+import { UsersPage } from '@/features/users/UsersPage'
 import { ZonesPage } from '@/features/zones/ZonesPage'
-import { AppLayout } from './AppLayout'
-import { HomePage } from './HomePage'
+import { HomeRoute } from './HomeRoute'
 import { NotFoundPage } from './NotFoundPage'
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
+  { path: '/inicio', element: <LandingPage /> },
   {
     path: '/',
     element: (
-      <RequireAuth>
+      <PublicIndexOrAuth>
         <AppLayout />
-      </RequireAuth>
+      </PublicIndexOrAuth>
     ),
     children: [
-      { index: true, element: <HomePage /> },
-      { path: 'orders', element: <OrdersPage /> },
-      { path: 'zones', element: <ZonesPage /> },
-      { path: 'routes', element: <RoutesPage /> },
-      { path: 'drivers', element: <DriversPage /> },
-      { path: 'tracking', element: <TrackingPage /> },
-      {
-        path: 'users/new',
-        element: (
-          <RequireRole roles={['ADMIN']}>
-            <CreateUserPage />
-          </RequireRole>
-        ),
-      },
+      { index: true, element: <HomeRoute /> },
+      { path: 'orders', element: <RequireSection section="orders"><OrdersPage /></RequireSection> },
+      { path: 'exceptions', element: <RequireSection section="exceptions"><ExceptionsPage /></RequireSection> },
+      { path: 'zones', element: <RequireSection section="zones"><ZonesPage /></RequireSection> },
+      { path: 'routes', element: <RequireSection section="routes"><RoutesPage /></RequireSection> },
+      { path: 'drivers', element: <RequireSection section="drivers"><DriversPage /></RequireSection> },
+      { path: 'drivers/new', element: <RequireSection section="newDriver"><CreateDriverPage /></RequireSection> },
+      { path: 'tracking', element: <RequireSection section="tracking"><TrackingPage /></RequireSection> },
+      { path: 'users', element: <RequireSection section="users"><UsersPage /></RequireSection> },
+      { path: 'users/new', element: <RequireSection section="users"><CreateUserPage /></RequireSection> },
+      { path: 'mis-pedidos', element: <RequireSection section="myOrders"><MyOrdersPage /></RequireSection> },
+      { path: 'catalogo', element: <RequireSection section="catalog"><CatalogPage /></RequireSection> },
+      { path: 'productos', element: <RequireSection section="products"><ProductAdminPage /></RequireSection> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

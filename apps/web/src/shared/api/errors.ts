@@ -18,7 +18,7 @@ const messages: Record<string, string> = {
   FORBIDDEN: 'No tienes permiso para esta acción.',
   CONFLICT: 'Ya existe un registro con esos datos.',
   RATE_LIMITED: 'Demasiados intentos. Espera un momento y vuelve a intentar.',
-  UPSTREAM_UNAVAILABLE: 'El servicio no está disponible. Intenta más tarde.',
+  UPSTREAM_UNAVAILABLE: 'No se pudo conectar con el backend. Revisa que el API Gateway esté corriendo.',
   UPSTREAM_TIMEOUT: 'El servicio tardó demasiado en responder.',
   NETWORK: 'No se pudo conectar con el servidor.',
 }

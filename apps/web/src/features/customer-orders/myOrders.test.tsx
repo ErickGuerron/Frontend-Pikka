@@ -1,0 +1,346 @@
+import { fireEvent, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useSession } from '@/features/auth/session-store'
+import { apiError, customerUser, mockApi, renderApp, sentBody } from '@/test/utils'
+import { resetDemoOrders } from './demo'
+import { order } from './customer-orders.fixtures'
+import type { CustomerOrder } from './types'
+
+// The real map needs a browser. Two buttons emit fixed points: one inside the covered area, one outside.
+vi.mock('@/features/geo/LazyMapCanvas', async () => {
+  const { createElement } = await import('react')
+  return {
+    LazyMapCanvas: ({ onMapClick }: { onMapClick: (p: { latitude: number; longitude: number }) => void }) =>
+      createElement(
+        'div',
+        null,
+        createElement('button', { type: 'button', onClick: () => { onMapClick({ latitude: -0.2, longitude: -78.5 }) } }, 'Elegir punto en mapa'),
+        createElement('button', { type: 'button', onClick: () => { onMapClick({ latitude: 40.4, longitude: -3.7 }) } }, 'Elegir punto fuera de zona'),
+      ),
+  }
+})
+
+const water = {
+  id: '44444444-4444-4444-4444-444444444444',
+  name: 'Agua 1L',
+  description: 'Botella',
+  unitPrice: '2.50',
+  active: true,
+  stockQuantity: 10,
+  createdAt: '2026-10-01T00:00:00Z',
+  updatedAt: '2026-10-01T00:00:00Z',
+}
+const catalog = { status: 200, body: { products: [water] } }
+
+const ring = [
+  { latitude: -0.3, longitude: -78.6 },
+  { latitude: -0.3, longitude: -78.4 },
+  { latitude: -0.1, longitude: -78.4 },
+  { latitude: -0.1, longitude: -78.6 },
+  { latitude: -0.3, longitude: -78.6 },
+]
+const coverage = { status: 200, body: { zones: [{ id: 'z1', code: 'Z-1', name: 'Zona Centro', ring }] } }
+
+function serve(orders: CustomerOrder[] | { status: number; body: unknown }) {
+  return mockApi((url, init) => {
+    if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
+    if (url.includes('/api/v1/products')) return catalog
+    if (url.endsWith('/api/v1/coverage/zones')) return coverage
+    if (url.endsWith('/api/v1/orders/mine')) return Array.isArray(orders) ? { status: 200, body: { orders } } : orders
+    if (url.endsWith('/cancel') && init.method === 'POST') return { status: 200, body: order({ status: 'CANCELLED' }) }
+    return { status: 200, body: { status: 'ready' } }
+  })
+}
+
+beforeEach(() => {
+  useSession.getState().setToken('tok')
+  resetDemoOrders()
+})
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+describe('Mis Pedidos: estados de la página', () => {
+  it('muestra la carga y luego el pedido en curso', async () => {
+    serve([order({ status: 'IN_TRANSIT' })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('Cargando tus pedidos…')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Pedido en Curso/ })).toBeInTheDocument()
+    expect(screen.getByText('1 pedido en camino')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Progreso del pedido' })).toHaveAttribute('aria-valuetext', 'En camino')
+    expect(screen.queryByText('DEMO · datos simulados')).not.toBeInTheDocument()
+  })
+
+  it('muestra un estado vacío', async () => {
+    serve([])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('Aún no tienes pedidos')).toBeInTheDocument()
+  })
+
+  it.each([404, 503])('muestra "servicio no disponible" ante un %i, sin datos inventados', async (status) => {
+    serve(apiError(status, 'NOT_FOUND'))
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('El servicio de pedidos aún no está disponible')).toBeInTheDocument()
+    expect(screen.queryByText('Historial de Pedidos')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hacer nuevo pedido' })).toBeDisabled()
+  })
+
+  it('muestra un error genérico con reintento ante un 500', async () => {
+    serve(apiError(500, 'INTERNAL'))
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('No pudimos cargar tus pedidos.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('muestra la etiqueta DEMO con el adaptador simulado y sin llamar a la red', async () => {
+    vi.stubEnv('VITE_MOCK_CUSTOMER_ORDERS', 'true')
+    const fetchMock = serve([])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('DEMO · datos simulados')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Pedido en Curso/ })).toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([u]) => u.endsWith('/orders/mine'))).toBe(false)
+  })
+})
+
+describe('Mis Pedidos: pedido en curso', () => {
+  it('ofrece cancelar en ROUTE_ASSIGNED con confirmación', async () => {
+    const fetchMock = serve([order({ status: 'ROUTE_ASSIGNED' })])
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Cancelar pedido' }))
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveTextContent('¿Cancelar el pedido #AAAAAAAA?')
+    await user.click(within(dialog).getByRole('button', { name: 'Sí, cancelar pedido' }))
+
+    await vi.waitFor(() => { expect(screen.queryByRole('dialog')).not.toBeInTheDocument() })
+    expect(fetchMock.mock.calls.some(([u, i]) => u.endsWith('/orders/aaaaaaaa-0000-4000-8000-000000000001/cancel') && i?.method === 'POST')).toBe(true)
+  })
+
+  it('ofrece cancelar en PENDING', async () => {
+    serve([order({ status: 'PENDING' })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByRole('button', { name: 'Cancelar pedido' })).toBeInTheDocument()
+  })
+
+  it.each(['IN_TRANSIT', 'PICKED_UP', 'DELIVERED'] as const)('no ofrece cancelar en %s', async (status) => {
+    serve([order({ status })])
+    renderApp('/mis-pedidos')
+    await screen.findByRole('heading', { name: /Pedido|Detalle/ })
+    expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument()
+  })
+
+  it('pedido aceptado sin repartidor avisa que espera uno de su zona', async () => {
+    serve([order({ status: 'PENDING' })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('pedido PENDING en cola muestra su posición de espera', async () => {
+    serve([order({ status: 'PENDING', queuePosition: 3 })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Tu pedido es el #3 en espera\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Lo asignaremos a un repartidor de tu zona/)).not.toBeInTheDocument()
+  })
+
+  it('pedido PENDING sin cola (queuePosition 0) conserva el aviso anterior', async () => {
+    serve([order({ status: 'PENDING', queuePosition: 0 })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText(/Lo asignaremos a un repartidor de tu zona/)).toBeInTheDocument()
+    expect(screen.queryByText(/en espera\./)).not.toBeInTheDocument()
+  })
+
+  it('en revisión muestra un aviso informativo y no un error', async () => {
+    serve([order({ status: 'PENDING_REVIEW', reviewReasons: ['ZONE_NOT_COVERED'] })])
+    renderApp('/mis-pedidos')
+    expect(await screen.findByText('Tu pedido está en revisión por un operador.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Mis Pedidos: historial', () => {
+  const list = [
+    order({ id: 'aaaaaaaa-0000-4000-8000-000000000001', status: 'IN_TRANSIT', address: 'Av. Central 123' }),
+    order({ id: 'bbbbbbbb-0000-4000-8000-000000000002', status: 'DELIVERED', address: 'Calle Norte 45', deliveryDate: '2026-01-02' }),
+    order({ id: 'cccccccc-0000-4000-8000-000000000003', status: 'CANCELLED', address: 'Pasaje Sur 9', deliveryDate: '2026-01-01' }),
+  ]
+
+  it('lista los demás pedidos y filtra por búsqueda y estado', async () => {
+    serve(list)
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    const section = (await screen.findByRole('heading', { name: 'Historial de Pedidos' })).closest('section')
+    if (section === null) throw new Error('history section missing')
+    const h = within(section)
+    const search = h.getByLabelText('Buscar por dirección o código')
+
+    expect(h.getByText('Calle Norte 45')).toBeInTheDocument()
+    expect(h.getByText('Pasaje Sur 9')).toBeInTheDocument()
+    expect(h.queryByText('Av. Central 123')).not.toBeInTheDocument()
+
+    await user.type(search, 'norte')
+    expect(h.queryByText('Pasaje Sur 9')).not.toBeInTheDocument()
+    await user.clear(search)
+    await user.type(search, '#CCCCCCCC')
+    expect(h.getByText('Pasaje Sur 9')).toBeInTheDocument()
+    expect(h.queryByText('Calle Norte 45')).not.toBeInTheDocument()
+
+    await user.clear(search)
+    await user.selectOptions(h.getByLabelText('Filtrar por estado'), 'DELIVERED')
+    expect(h.getByText('Calle Norte 45')).toBeInTheDocument()
+    expect(h.queryByText('Pasaje Sur 9')).not.toBeInTheDocument()
+  })
+
+  it('"Ver detalle" muestra ese pedido en la tarjeta principal', async () => {
+    serve(list)
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Ver detalle del pedido #BBBBBBBB' }))
+    expect(screen.getByRole('heading', { name: /Detalle del pedido/ })).toHaveTextContent('#BBBBBBBB')
+  })
+})
+
+describe('Mis Pedidos: crear pedido', () => {
+  async function openForm() {
+    vi.stubEnv('VITE_MOCK_CUSTOMER_ORDERS', 'true')
+    serve([])
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Hacer nuevo pedido' }))
+    return { user, dialog: screen.getByRole('dialog') }
+  }
+
+  async function fillForm(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, point: string) {
+    await user.click(await within(dialog).findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
+    await user.click(within(dialog).getByRole('button', { name: point }))
+    await user.clear(within(dialog).getByLabelText(/Dirección de entrega/))
+    await user.type(within(dialog).getByLabelText(/Dirección de entrega/), 'Av. Nueva 500')
+    fireEvent.change(within(dialog).getByLabelText(/Fecha de entrega/), { target: { value: '2099-06-01' } })
+    await user.click(within(dialog).getByRole('radio', { name: '12–15' }))
+    await user.type(within(dialog).getByLabelText(/Referencia del lugar/), 'Casa azul junto a la tienda')
+    await user.type(within(dialog).getByLabelText(/Teléfono de contacto/), '099 123 4567')
+    await user.click(within(dialog).getByRole('button', { name: 'Revisar pedido' }))
+    await user.click(await within(screen.getByRole('dialog')).findByRole('button', { name: 'Confirmar pedido' }))
+  }
+
+  it('valida los campos obligatorios y la fecha pasada', async () => {
+    const { user, dialog } = await openForm()
+    await user.click(within(dialog).getByRole('button', { name: 'Revisar pedido' }))
+    expect(within(dialog).getByText('Elige al menos un producto.')).toBeInTheDocument()
+    expect(within(dialog).getByText(/Indica una referencia del lugar/)).toBeInTheDocument()
+    expect(within(dialog).getByText('Ingresa un teléfono de contacto.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Elige la fecha de entrega.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Elige una ventana de entrega.')).toBeInTheDocument()
+    expect(within(dialog).getByText(/Escribe la dirección completa/)).toBeInTheDocument()
+
+    fireEvent.change(within(dialog).getByLabelText(/Fecha de entrega/), { target: { value: '2000-01-01' } })
+    await user.click(within(dialog).getByRole('button', { name: 'Revisar pedido' }))
+    expect(within(dialog).getByText('La fecha de entrega no puede ser anterior a hoy.')).toBeInTheDocument()
+  })
+
+  it('permite ampliar el mapa del formulario y elegir el punto desde ahí sin perder el formulario', async () => {
+    const { user, dialog } = await openForm()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Ampliar mapa' }))
+    const big = await screen.findByRole('dialog', { name: 'Mapa ampliado' })
+    await user.click(within(big).getByRole('button', { name: 'Elegir punto en mapa' }))
+    await user.click(within(big).getByRole('button', { name: 'Listo' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Mapa ampliado' })).not.toBeInTheDocument()
+    const form = screen.getByRole('dialog', { name: 'Hacer nuevo pedido' })
+    expect(within(form).getByLabelText('Nombre del lugar')).toBeInTheDocument()
+    expect(within(form).getByText(/Dentro de la zona/i)).toBeInTheDocument()
+  })
+
+  it('crea el pedido, cierra el diálogo y lo muestra en la lista', async () => {
+    const { user, dialog } = await openForm()
+    await fillForm(user, dialog, 'Elegir punto en mapa')
+
+    await vi.waitFor(() => { expect(screen.queryByRole('dialog')).not.toBeInTheDocument() })
+    expect(await screen.findByText(/Pedido creado/)).toBeInTheDocument()
+    expect(screen.getByText('Av. Nueva 500')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Pedido en Curso/ })).toBeInTheDocument()
+  })
+
+  it('informa (sin error) cuando el pedido queda en revisión por estar fuera de zona', async () => {
+    const { user, dialog } = await openForm()
+    await fillForm(user, dialog, 'Elegir punto fuera de zona')
+
+    expect(await screen.findByText(/quedó en revisión/)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByText('Tu pedido está en revisión por un operador.')).toBeInTheDocument()
+  })
+
+  it('no envía nada hasta confirmar: muestra un resumen con los datos y permite volver a editar', async () => {
+    const fetchMock = serve([])
+    vi.stubEnv('VITE_MOCK_CUSTOMER_ORDERS', 'true')
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Hacer nuevo pedido' }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(await within(dialog).findByRole('button', { name: 'Agregar una unidad de Agua 1L' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Elegir punto en mapa' }))
+    await user.clear(within(dialog).getByLabelText(/Dirección de entrega/))
+    await user.type(within(dialog).getByLabelText(/Dirección de entrega/), 'Av. Nueva 500')
+    fireEvent.change(within(dialog).getByLabelText(/Fecha de entrega/), { target: { value: '2099-06-01' } })
+    await user.click(within(dialog).getByRole('radio', { name: '12–15' }))
+    await user.type(within(dialog).getByLabelText(/Referencia del lugar/), 'Casa azul junto a la tienda')
+    await user.type(within(dialog).getByLabelText(/Teléfono de contacto/), '099 123 4567')
+    await user.click(within(dialog).getByRole('button', { name: 'Revisar pedido' }))
+
+    const summary = within(await screen.findByRole('dialog', { name: 'Confirma tu pedido' }))
+    expect(summary.getByText('Av. Nueva 500')).toBeInTheDocument()
+    expect(summary.getByText('Casa azul junto a la tienda')).toBeInTheDocument()
+    expect(summary.getByText('0991234567')).toBeInTheDocument()
+    expect(summary.getByText('1 × Agua 1L')).toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+
+    await user.click(summary.getByRole('button', { name: 'Editar datos' }))
+    expect(within(screen.getByRole('dialog')).getByLabelText(/Dirección de entrega/)).toHaveValue('Av. Nueva 500')
+  })
+
+  it('el mapa avisa si el punto está dentro o fuera de la cobertura', async () => {
+    const { user, dialog } = await openForm()
+    expect(await within(dialog).findByText(/Marca tu punto en el mapa para saber/)).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Elegir punto en mapa' }))
+    expect(await within(dialog).findByText(/Dentro de la zona «Zona Centro»/)).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Elegir punto fuera de zona' }))
+    expect(await within(dialog).findByText(/Fuera de la cobertura/)).toBeInTheDocument()
+  })
+
+  it('no envía las notas al servicio real', async () => {
+    const fetchMock = mockApi((url, init) => {
+      if (url.endsWith('/auth/me')) return { status: 200, body: customerUser }
+      if (url.endsWith('/orders/mine')) return { status: 200, body: { orders: [] } }
+      if (url.includes('/api/v1/products')) return catalog
+      if (url.endsWith('/api/v1/coverage/zones')) return coverage
+      if (url.endsWith('/api/v1/orders') && init.method === 'POST') return { status: 201, body: order({ status: 'PENDING' }) }
+      return { status: 200, body: {} }
+    })
+    renderApp('/mis-pedidos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Hacer nuevo pedido' }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/Notas/), 'Tocar el timbre')
+    await fillForm(user, dialog, 'Elegir punto en mapa')
+
+    await vi.waitFor(() => { expect(fetchMock.mock.calls.some(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')).toBe(true) })
+    const call = fetchMock.mock.calls.find(([u, i]) => u.endsWith('/api/v1/orders') && i?.method === 'POST')
+    expect(sentBody(call?.[1])).toEqual({
+      address: 'Av. Nueva 500',
+      addressReference: 'Casa azul junto a la tienda',
+      contactPhone: '0991234567',
+      items: [{ productId: water.id, quantity: 1 }],
+      latitude: -0.2,
+      longitude: -78.5,
+      deliveryDate: '2099-06-01',
+      windowStart: '12:00',
+      windowEnd: '15:00',
+    })
+  })
+})

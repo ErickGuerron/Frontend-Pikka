@@ -1,0 +1,65 @@
+/*
+ * Landing-only styles. Tokens match the Pikka Editorial design mockup.
+ */
+.landing {
+  --landing-deep: #004b4e;
+  --landing-primary: #004b4e;
+  --landing-primary-hover: #0a6568;
+  --landing-primary-dark: #003638;
+  --landing-primary-darker: #002628;
+  --landing-primary-radar: #00181a;
+  --landing-primary-panel: #001d1f;
+  --landing-accent: #14b8a6;
+  --landing-accent-light: #2dd4bf;
+  --landing-fixed: #a5eff2;
+  --landing-fixed-dim: #89d3d6;
+  --landing-secondary: #006b5f;
+  --landing-bg: #f0fafb;
+  --landing-line: #cce7ea;
+  --landing-muted: #557b7f;
+  --landing-card: #f7fcfc;
+  --landing-tag-bg: #e8f7f9;
+  --landing-placeholder: #8ba7ab;
+  --landing-text: #061f23;
+  --landing-text-variant: #3f4949;
+
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: var(--landing-bg);
+  color: var(--landing-text);
+  overflow-x: hidden;
+}
+
+html:has(.landing) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing) {
+    scroll-behavior: auto;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/*
+ * The back-office stylesheet sets a global `a { color }` that is unlayered, so it
+ * beats Tailwind utilities (which live in a cascade layer). Links in the landing
+ * that carry a text-* utility must get their color from that utility.
+ */
+.landing a[class*='text-'],
+.landing :is(h1, h2, h3, h4, h5, h6)[class*='text-'] {
+  color: revert-layer;
+}
+
+/* Sin retardo de doble toque en controles táctiles. */
+.landing a,
+.landing button {
+  touch-action: manipulation;
+}
