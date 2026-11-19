@@ -1,6 +1,7 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { buildMapDocument, parseMapEvent, stateMessage } from './document'
+import { mapTileSource } from './tiles'
 import type { LeafletMapProps } from './types'
 
 /**
@@ -11,7 +12,10 @@ export function LeafletMap({ state, onPick, style }: LeafletMapProps) {
   const frame = useRef<HTMLIFrameElement | null>(null)
   const [ready, setReady] = useState(false)
   // Sin ubicación de ventana (pruebas en Node) no hay origen padre: el documento no envía mensajes al anfitrión.
-  const html = useMemo(() => buildMapDocument(typeof window === 'undefined' ? undefined : window.location?.origin), [])
+  const html = useMemo(
+    () => buildMapDocument(typeof window === 'undefined' ? undefined : window.location?.origin, mapTileSource(process.env.EXPO_PUBLIC_MAP_TILE_KEY)),
+    [],
+  )
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {

@@ -1,5 +1,6 @@
 import { isRecord } from '../../../api/parse'
 import type { Coordinate } from './geo'
+import { mapTileSource, type MapTileSource } from './tiles'
 
 /** Zona a dibujar: contorno, huecos y nombre. */
 export interface MapZone {
@@ -73,8 +74,10 @@ export function stateScript(state: MapState): string {
  * `parentOrigin` es el origen de la página anfitriona (web). Se usa como targetOrigin de los mensajes al padre
  * para que solo ese origen los reciba. Sin origen conocido, el mapa no envía mensajes al padre.
  */
-export function buildMapDocument(parentOrigin?: string): string {
+export function buildMapDocument(parentOrigin?: string, tileSource: MapTileSource = mapTileSource(undefined)): string {
   const targetOrigin = JSON.stringify(parentOrigin ?? '')
+  const tileUrl = JSON.stringify(tileSource.url)
+  const tileAttribution = JSON.stringify(tileSource.attribution)
   return `<!doctype html>
 <html>
 <head>
@@ -100,10 +103,10 @@ export function buildMapDocument(parentOrigin?: string): string {
   var map = L.map('map').setView([-0.1807, -78.4678], 13);
   // OpenStreetMap exige que las teselas lleguen con el origen de la app en el Referer: si la pagina anfitriona lo recorta
   // (Referrer-Policy: no-referrer, proxys, extensiones), bloquea con "Access blocked ... tile usage policy".
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer(${tileUrl}, {
     maxZoom: 19,
     referrerPolicy: 'origin',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    attribution: ${tileAttribution}
   }).addTo(map);
   var zonesLayer = L.layerGroup().addTo(map);
   var highlightLayer = L.layerGroup().addTo(map);

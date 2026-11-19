@@ -40,6 +40,7 @@ export async function mockPhoton(page: Page) {
 /** Las teselas no son parte de lo que se prueba; se cortan para no depender de la red. */
 export async function blockTiles(page: Page) {
   await page.route('**/tile.openstreetmap.org/**', (route) => route.abort())
+  await page.route('**/api.maptiler.com/**', (route) => route.abort())
 }
 
 /** Inicia sesión por la interfaz real y deja la aplicación en la página de inicio. */
