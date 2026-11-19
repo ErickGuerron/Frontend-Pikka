@@ -45,7 +45,8 @@ test('login, navegación y cierre de sesión', async ({ page }) => {
   await expect(page.getByTestId('system-status')).toHaveText('Backend disponible')
 
   await page.getByRole('link', { name: 'Rutas' }).click()
-  await expect(page.getByRole('heading', { name: 'Rutas' })).toBeVisible()
+  // exact: la página también tiene el título "Rutas en proceso".
+  await expect(page.getByRole('heading', { name: 'Rutas', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Menú de cuenta de Ana Admin' }).click()
   await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
