@@ -35,6 +35,31 @@ export const adjustPlan: RoutePlan = {
   unassignedOrderIds: ['o-9'],
 }
 
+/** Pedido PENDING tal como lo devuelve GET /api/v1/orders. */
+export function pendingOrder(id: string, deliveryDate: string, address = `Calle ${id}`) {
+  return {
+    id,
+    address,
+    latitude: -0.18,
+    longitude: -78.47,
+    deliveryDate,
+    windowStart: '09:00',
+    windowEnd: '18:00',
+    status: 'PENDING',
+    reviewReasons: [],
+    createdAt: '2026-11-18T12:00:00Z',
+  }
+}
+
+/** Ruta en proceso tal como la devuelve GET /api/v1/tracking/routes/active. */
+export function runningRoute(id: string, driverName: string, stops: Array<{ orderId: string; status?: string }>) {
+  return {
+    id,
+    driverName,
+    stops: stops.map((s, i) => ({ orderId: s.orderId, address: `Parada ${s.orderId}`, sequence: i + 1, status: s.status ?? 'PENDING' })),
+  }
+}
+
 /** Gateway shape of POST /api/v1/routes/plan, built from an in-memory plan. */
 export function asBackend(p: RoutePlan) {
   return {
