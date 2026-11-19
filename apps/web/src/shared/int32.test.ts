@@ -24,8 +24,13 @@ describe('toInt32', () => {
   })
 
   it('matches the native 32-bit wrap for hash-sized intermediate values', () => {
+    // ~800k values: one expect per value made this test exceed the 5 s timeout in CI with coverage on,
+    // so mismatches are collected and asserted once.
+    const mismatches: number[] = []
     for (let hash = -4000000000; hash <= 4000000000; hash += 9973) {
-      expect(toInt32(hash * 31 + 97)).toBe(reference(hash * 31 + 97))
+      const value = hash * 31 + 97
+      if (toInt32(value) !== reference(value)) mismatches.push(value)
     }
+    expect(mismatches).toEqual([])
   })
 })
