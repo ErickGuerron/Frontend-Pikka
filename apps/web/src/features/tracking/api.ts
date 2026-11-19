@@ -3,9 +3,9 @@ import { listDemoActiveRoutes } from './demo'
 import { parseTrackedRoutes, type TrackedRoute } from './types'
 
 /**
- * PLANNED, NOT IMPLEMENTED: the Tracking Service and its Gateway route do not exist yet.
- * GET /api/v1/tracking/routes/active is the REST snapshot the page polls. The live WebSocket
- * from the plan comes later and will push the same snapshot. VITE_MOCK_TRACKING=true uses a demo.
+ * GET /api/v1/tracking/routes/active (Gateway, ADMIN and OPERATOR) is the REST snapshot the page
+ * polls. The live WebSocket from the plan comes later and will push the same snapshot.
+ * VITE_MOCK_TRACKING=true uses a demo.
  */
 export function isTrackingDemoMode(): boolean {
   return import.meta.env.VITE_MOCK_TRACKING === 'true'
@@ -24,5 +24,8 @@ export function listActiveRoutes(): Promise<TrackedRoute[]> {
   return http.get('/api/v1/tracking/routes/active', parseTrackedRoutes)
 }
 
-/** Intervalo del respaldo REST, en milisegundos, mientras no hay WebSocket. */
-export const SNAPSHOT_INTERVAL_MS = 10_000
+/**
+ * Cada cuánto se vuelve a pedir el estado de las rutas, en milisegundos. Son 3 minutos para no cargar el
+ * servidor: cada consulta recorre pedidos, repartidores y posiciones. El operador puede pedirlo antes con "Actualizar".
+ */
+export const SNAPSHOT_INTERVAL_MS = 180_000
